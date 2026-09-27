@@ -15,6 +15,10 @@ npm run lint     # ESLint, включая правила FSD
 
 Скопируйте `.env.example` в `.env`: dev-сервер проксирует `/api` и `/health` на бэкенд из `VITE_API_PROXY_TARGET` (`bilimtrack_v2_back`).
 
+## Деплой
+
+Сборка ходит в API по относительному `/api/v1`, как и dev-сервер: хостинг проксирует `/api/*` и `/health/` на `https://api.bilimtrack.kg` — правила в `vercel.json` (Vercel) и `public/_redirects` (Netlify). Так не нужен CORS и не важен домен панели. Без прокси статический хостинг отвечает на `POST /api/v1/auth/login/` кодом 405.
+
 ## Доступ
 
 Войти могут только операторы платформы — учётки с записью `ops.PlatformOperator` на бэкенде (без привязки к организации). После логина панель запрашивает `GET /api/v1/ops/me/`: на 403 сессия сразу закрывается. Учётки администраторов создаёт `python manage.py create_ops_admins` с временным паролем; при первом входе панель просит сменить его (`auth/change-password/`).
