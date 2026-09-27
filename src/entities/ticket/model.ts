@@ -1,59 +1,111 @@
-export type TicketPriority = "crit" | "high" | "mid" | "norm" | "low";
-export type TicketStatus = "open" | "work" | "done" | "closed";
-export type TicketSource = "tg" | "web" | "adm" | "api";
+/* Support tickets — backend: server/apps/support (SupportTicketViewSet, /api/v1/support-tickets/). */
+
+export type TicketPriority = "urgent" | "high" | "medium" | "normal" | "low";
+export type TicketStatus = "open" | "in_progress" | "resolved" | "closed";
+export type TicketSource = "web_portal" | "admin_panel" | "telegram" | "api";
+export type TicketCategory = "technical" | "billing" | "training" | "admission" | "partnership" | "feedback" | "other";
+export type MessageKind = "user" | "support" | "bot" | "system";
 export type SlaState = "over" | "soon" | "ok" | "done";
 
-export type Ticket = {
-  id: string;
+/** Raw SupportTicketMessageSerializer. */
+export type ApiTicketMessage = {
+  id: number;
+  senderType: MessageKind;
+  senderName: string;
+  text: string;
+  attachment: string | null;
+  attachmentName: string;
+  source: TicketSource;
+  createdAt: string;
+};
+
+/** Raw SupportTicketSerializer (organization is a hidden write-only field, so it is not returned). */
+export type ApiTicket = {
+  id: number;
+  createdBy: number | null;
+  userContact: string;
+  userFullName: string;
+  ticketNumber: string;
+  source: TicketSource;
+  category: TicketCategory;
+  priority: TicketPriority;
   subject: string;
+  description: string;
+  pageUrl: string;
+  errorDetails: unknown;
+  attachment: string | null;
+  status: TicketStatus;
+  telegramUserId: number | null;
+  telegramUsername: string;
+  assignedTo: number | null;
+  assignedAgentName: string;
+  closedAt: string | null;
+  rating: number | null;
+  ratingComment: string;
+  createdAt: string;
+  updatedAt: string;
+  messages: ApiTicketMessage[];
+};
+
+export type TicketMessage = { kind: MessageKind; who: string; time: string; text: string; attachment?: { url: string; name: string } };
+
+/** UI model of a ticket. */
+export type Ticket = {
+  id: number;
+  number: string;
+  subject: string;
+  description: string;
   author: string;
-  org: string;
-  orgShort: string;
-  category: string;
+  /** Registered user vs. a guest (Telegram bot / public form) with only a contact. */
+  hasAccount: boolean;
+  contact: string;
+  telegramUsername: string;
+  category: TicketCategory;
   priority: TicketPriority;
   source: TicketSource;
   status: TicketStatus;
-  updated: string;
-  unread?: boolean;
+  assignee: string;
+  createdAt: string;
+  updatedAt: string;
+  pageUrl: string;
+  errorDetails: unknown;
+  rating: number | null;
+  ratingComment: string;
   sla: { label: string; state: SlaState };
-};
-
-export type MessageKind = "user" | "support" | "bot" | "system";
-export type TicketMessage = { kind: MessageKind; who: string; time: string; text: string };
-
-export type TicketDetail = {
-  created: string;
-  /** Author matched to an account, or null when the ticket came from an unknown Telegram user. */
-  author: { initials: string; name: string; role: string } | null;
-  unknownAuthorNote?: string;
-  url: string;
-  techContext: string;
   messages: TicketMessage[];
-  fields: { k: string; v: string; editable?: boolean }[];
-  history: { text: string; who: string; time: string }[];
 };
 
 /** Priority scale, variant A from the design review: only the top of the scale shouts. */
 export const PRIORITY: Record<TicketPriority, { label: string; bg: string; fg: string; weight: number; dot: boolean }> = {
-  crit: { label: "Критический", bg: "#fb2c36", fg: "#ffffff", weight: 600, dot: false },
+  urgent: { label: "Критический", bg: "#fb2c36", fg: "#ffffff", weight: 600, dot: false },
   high: { label: "Высокий", bg: "#fff7ed", fg: "#c2410c", weight: 600, dot: true },
-  mid: { label: "Средний", bg: "#ffffff", fg: "#525252", weight: 500, dot: true },
-  norm: { label: "Обычный", bg: "transparent", fg: "#737373", weight: 400, dot: false },
+  medium: { label: "Средний", bg: "#ffffff", fg: "#525252", weight: 500, dot: true },
+  normal: { label: "Обычный", bg: "transparent", fg: "#737373", weight: 400, dot: false },
   low: { label: "Низкий", bg: "transparent", fg: "#a1a1a1", weight: 400, dot: false },
 };
 
 export const STATUS: Record<TicketStatus, { label: string; color: string }> = {
   open: { label: "Открыто", color: "#155dfc" },
-  work: { label: "В работе", color: "#fd9a00" },
-  done: { label: "Решено", color: "#00c951" },
+  in_progress: { label: "В работе", color: "#fd9a00" },
+  resolved: { label: "Решено", color: "#00c951" },
   closed: { label: "Закрыто", color: "#a1a1a1" },
 };
 
 export const SOURCE: Record<TicketSource, { label: string; icon: string; color: string }> = {
-  tg: { label: "Telegram", icon: "brand-telegram", color: "#2b7fff" },
-  web: { label: "Веб-портал", icon: "world", color: "#a1a1a1" },
-  adm: { label: "Панель", icon: "layout-dashboard", color: "#a1a1a1" },
+  telegram: { label: "Telegram", icon: "brand-telegram", color: "#2b7fff" },
+  web_portal: { label: "Веб-портал", icon: "world", color: "#a1a1a1" },
+  admin_panel: { label: "Панель", icon: "layout-dashboard", color: "#a1a1a1" },
   api: { label: "API", icon: "code", color: "#a1a1a1" },
+};
+
+export const CATEGORY: Record<TicketCategory, string> = {
+  technical: "Техническая проблема",
+  billing: "Оплата",
+  training: "Обучение работе",
+  admission: "Поступление и документы",
+  partnership: "Сотрудничество",
+  feedback: "Отзыв или предложение",
+  other: "Другое",
 };
 
 export const SLA_STYLE: Record<SlaState, { bg: string; fg: string; weight: number }> = {
@@ -63,120 +115,80 @@ export const SLA_STYLE: Record<SlaState, { bg: string; fg: string; weight: numbe
   done: { bg: "transparent", fg: "#a1a1a1", weight: 400 },
 };
 
+/** First-response targets, hours. The backend has no SLA yet; the panel computes it. */
+const SLA_HOURS: Record<TicketPriority, number> = { urgent: 1, high: 4, medium: 8, normal: 24, low: 24 };
+
 export const SLA_POLICY = "SLA первого ответа: критический 1 ч · высокий 4 ч · средний 8 ч · обычный и низкий 24 ч";
 
-export const ticketTabs = [
-  { key: "mine", label: "Мои", count: 6 },
-  { key: "open", label: "Открытые", count: 23 },
-  { key: "work", label: "В работе", count: 9 },
-  { key: "done", label: "Решённые", count: 112 },
-  { key: "all", label: "Все", count: 288 },
-] as const;
+const MIN = 60_000;
 
-export const TICKETS: Ticket[] = [
-  { id: "TCK-TG7K2M04", subject: "Не могу зайти в приложение после смены телефона", author: "@aizhan_k", org: "МУИТ", orgShort: "МУ", category: "Техническая проблема", priority: "crit", source: "tg", status: "open", updated: "5 мин назад", unread: true, sla: { label: "осталось 12 мин", state: "soon" } },
-  { id: "TCK-A3F92KD1", subject: "Оценки за модуль не выгружаются в PDF", author: "Динара Ж.", org: "Comtehno", orgShort: "CT", category: "Техническая проблема", priority: "high", source: "adm", status: "work", updated: "22 мин назад", unread: true, sla: { label: "в норме · 5 ч", state: "ok" } },
-  { id: "TCK-B81LQ2X7", subject: "Списались деньги, PRO не подключился", author: "Алишер Т.", org: "МУИТ", orgShort: "МУ", category: "Оплата", priority: "high", source: "web", status: "open", updated: "1 ч назад", unread: true, sla: { label: "просрочен 18 мин", state: "over" } },
-  { id: "TCK-C40ZR9P2", subject: "Как выставить замену преподавателя", author: "Гульнара О.", org: "НИШ Алматы", orgShort: "НИ", category: "Обучение работе", priority: "mid", source: "adm", status: "work", updated: "3 ч назад", sla: { label: "в норме · 1 д", state: "ok" } },
-  { id: "TCK-D22MW1J5", subject: "Ошибка 500 при открытии журнала 2 курса", author: "Ербол С.", org: "Comtehno", orgShort: "CT", category: "Техническая проблема", priority: "mid", source: "api", status: "open", updated: "5 ч назад", sla: { label: "осталось 55 мин", state: "soon" } },
-  { id: "TCK-E97YH3N8", subject: "Документы на поступление не прикрепляются", author: "Асель К.", org: "Школа №61", orgShort: "Ш6", category: "Поступление и документы", priority: "norm", source: "web", status: "open", updated: "вчера, 18:40", sla: { label: "просрочен 2 ч", state: "over" } },
-  { id: "TCK-F15KD8R3", subject: "Предложение по сотрудничеству с колледжем", author: "Нурлан Б.", org: "Comtehno", orgShort: "CT", category: "Сотрудничество", priority: "low", source: "web", status: "work", updated: "вчера, 11:02", sla: { label: "в норме · 2 д", state: "ok" } },
-  { id: "TCK-G63TP5V9", subject: "Спасибо за новый экран расписания", author: "Мадина А.", org: "МУИТ", orgShort: "МУ", category: "Отзыв", priority: "low", source: "tg", status: "done", updated: "18 сен", sla: { label: "выполнен", state: "done" } },
-];
-
-const DETAILS: Record<string, TicketDetail> = {
-  "TCK-TG7K2M04": {
-    created: "20 сен, 14:02",
-    author: null,
-    unknownAuthorNote: "@aizhan_k",
-    url: "—",
-    techContext:
-      '{\n  "source": "telegram_bot",\n  "chat_id": 774102938,\n  "username": "aizhan_k",\n  "phone_in_text": "+7 707 214 88 03",\n  "account_matched": false\n}',
-    messages: [
-      { kind: "system", who: "Система", time: "14:02", text: "Тикет создан из Telegram-бота" },
-      { kind: "user", who: "@aizhan_k", time: "14:02", text: "Здравствуйте! Поменяла телефон, теперь не могу зайти в приложение. Пишет «пользователь не найден». Я студентка МУИТ, 2 курс. Телефон +7 707 214 88 03" },
-      { kind: "bot", who: "Бот Lucky", time: "14:02", text: "Автор не сопоставлен с аккаунтом: совпадений по chat_id и номеру не найдено." },
-      { kind: "user", who: "@aizhan_k", time: "14:09", text: "Логин вроде a.kaliyeva, но точно не помню" },
-    ],
-    fields: [
-      { k: "Организация", v: "МУИТ (по тексту, не подтверждена)" },
-      { k: "Статус", v: "Открыто", editable: true },
-      { k: "Приоритет", v: "Критический", editable: true },
-      { k: "Категория", v: "Техническая проблема", editable: true },
-      { k: "Источник", v: "Telegram-бот" },
-      { k: "Контакт", v: "+7 707 214 88 03" },
-    ],
-    history: [
-      { text: "Тикет создан из Telegram-бота", who: "Система", time: "20 сен, 14:02" },
-      { text: "Приоритет повышен: Обычный → Критический", who: "Айдана С.", time: "20 сен, 14:05" },
-    ],
-  },
-  "TCK-A3F92KD1": {
-    created: "20 сен, 09:14",
-    author: { initials: "ДЖ", name: "Динара Жумабекова", role: "Преподаватель · Comtehno" },
-    url: "https://comtehno.bilimtrack.kg/journal/2025/module-1/export",
-    techContext:
-      '{\n  "error": "ExportTimeout",\n  "module_id": 4812,\n  "students": 212,\n  "duration_ms": 30000,\n  "browser": "Chrome 129 / Windows 11"\n}',
-    messages: [
-      { kind: "user", who: "Динара Жумабекова", time: "09:14", text: "Пытаюсь выгрузить оценки за 1 модуль в PDF — крутится и потом ошибка. Нужно сдать до пятницы." },
-      { kind: "bot", who: "Бот Lucky", time: "09:14", text: "Прикреплён технический контекст со страницы: ExportTimeout, 212 студентов." },
-      { kind: "support", who: "Поддержка · Айдана С.", time: "09:31", text: "Здравствуйте, Динара! Вижу таймаут на выгрузке большой группы. Передала разработке, ответим сегодня." },
-      { kind: "system", who: "Система", time: "09:32", text: "Приоритет изменён на «Высокий» · Айдана С." },
-      { kind: "user", who: "Динара Жумабекова", time: "09:40", text: "Спасибо, жду" },
-    ],
-    fields: [
-      { k: "Организация", v: "Comtehno" },
-      { k: "Статус", v: "В работе", editable: true },
-      { k: "Приоритет", v: "Высокий", editable: true },
-      { k: "Категория", v: "Техническая проблема", editable: true },
-      { k: "Источник", v: "Панель управления" },
-      { k: "Контакт", v: "d.zhumabekova@comtehno.kg" },
-    ],
-    history: [
-      { text: "Тикет создан", who: "Динара Жумабекова", time: "20 сен, 09:14" },
-      { text: "Назначен на Айдану С.", who: "Айдана С.", time: "20 сен, 09:28" },
-      { text: "Приоритет изменён: Обычный → Высокий", who: "Айдана С.", time: "20 сен, 09:32" },
-      { text: "Статус изменён: Открыто → В работе", who: "Айдана С.", time: "20 сен, 09:32" },
-    ],
-  },
-};
-
-/** Tickets without a hand-written detail get one derived from the list row. */
-export function detailFor(t: Ticket): TicketDetail {
-  return (
-    DETAILS[t.id] ?? {
-      created: t.updated,
-      author: { initials: initialsOf(t.author), name: t.author, role: `Пользователь · ${t.org}` },
-      url: "—",
-      techContext: `{\n  "source": "${t.source}",\n  "category": "${t.category}"\n}`,
-      messages: [{ kind: "user", who: t.author, time: t.updated, text: t.subject }],
-      fields: [
-        { k: "Организация", v: t.org },
-        { k: "Статус", v: STATUS[t.status].label, editable: true },
-        { k: "Приоритет", v: PRIORITY[t.priority].label, editable: true },
-        { k: "Категория", v: t.category, editable: true },
-        { k: "Источник", v: SOURCE[t.source].label },
-      ],
-      history: [{ text: "Тикет создан", who: t.author, time: t.updated }],
-    }
-  );
+function duration(ms: number) {
+  const m = Math.max(1, Math.round(ms / MIN));
+  if (m < 60) return `${m} мин`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h} ч`;
+  return `${Math.round(h / 24)} д`;
 }
 
-const initialsOf = (name: string) =>
-  name
-    .replace("@", "")
-    .split(/[\s.]+/)
-    .map((p) => p[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+function slaOf(t: ApiTicket, now: number): Ticket["sla"] {
+  const answered = t.messages.some((m) => m.senderType === "support");
+  if (answered || t.status === "resolved" || t.status === "closed") return { label: "выполнен", state: "done" };
+  const left = new Date(t.createdAt).getTime() + SLA_HOURS[t.priority] * 60 * MIN - now;
+  if (left <= 0) return { label: `просрочен ${duration(-left)}`, state: "over" };
+  if (left <= 60 * MIN) return { label: `осталось ${duration(left)}`, state: "soon" };
+  return { label: `в норме · ${duration(left)}`, state: "ok" };
+}
 
-/** Dev-backlog tasks that tickets were escalated to (seed state). */
-export const INITIAL_ESCALATIONS: Record<string, string> = { "TCK-A3F92KD1": "DEV-412", "TCK-D22MW1J5": "DEV-407" };
+const dateTime = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+const timeOnly = new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" });
 
-export const DEV_TASKS: Record<string, { title: string; status: string }> = {
-  "DEV-412": { title: "Таймаут экспорта журнала в PDF для больших групп", status: "В работе" },
-  "DEV-407": { title: "Медленный отчёт посещаемости", status: "В работе" },
-};
+export const formatDateTime = (iso: string) => dateTime.format(new Date(iso));
 
-export const slaStrip = { overdue: 2, soon: 2, ok: 17 };
+/** "5 мин назад", "3 ч назад", "вчера, 18:40", "18 сен". */
+export function formatRelative(iso: string, now = Date.now()) {
+  const d = new Date(iso);
+  const diff = now - d.getTime();
+  if (diff < MIN) return "только что";
+  if (diff < 60 * MIN) return `${Math.round(diff / MIN)} мин назад`;
+  if (diff < 24 * 60 * MIN && new Date(now).getDate() === d.getDate()) return `${Math.round(diff / (60 * MIN))} ч назад`;
+  const yesterday = new Date(now - 24 * 60 * MIN);
+  if (yesterday.toDateString() === d.toDateString()) return `вчера, ${timeOnly.format(d)}`;
+  return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
+}
+
+export function toTicket(t: ApiTicket, now = Date.now()): Ticket {
+  const author = t.userFullName || (t.telegramUsername ? `@${t.telegramUsername}` : "") || t.userContact || "Без имени";
+  return {
+    id: t.id,
+    number: t.ticketNumber,
+    subject: t.subject,
+    description: t.description,
+    author,
+    hasAccount: t.createdBy !== null,
+    contact: t.userContact,
+    telegramUsername: t.telegramUsername,
+    category: t.category,
+    priority: t.priority,
+    source: t.source,
+    status: t.status,
+    assignee: t.assignedAgentName,
+    createdAt: t.createdAt,
+    updatedAt: t.updatedAt,
+    pageUrl: t.pageUrl,
+    errorDetails: t.errorDetails,
+    rating: t.rating,
+    ratingComment: t.ratingComment,
+    sla: slaOf(t, now),
+    messages: [...t.messages]
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+      .map((m) => ({
+        kind: m.senderType,
+        who: m.senderType === "support" ? `Поддержка · ${m.senderName}` : m.senderName || (m.senderType === "bot" ? "Бот Lucky" : author),
+        time: timeOnly.format(new Date(m.createdAt)),
+        text: m.text,
+        attachment: m.attachment ? { url: m.attachment, name: m.attachmentName || "Вложение" } : undefined,
+      })),
+  };
+}
+
+export const isOpen = (t: Pick<Ticket, "status">) => t.status === "open" || t.status === "in_progress";

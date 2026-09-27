@@ -39,24 +39,8 @@ const METRICS = {
 
 export const useMetrics = () => useMockQuery(["metrics"], () => METRICS);
 
-/** Home dashboard: work queue, events, 30-day series and client summary. */
+/** Home dashboard: client summary (no organizations API yet). */
 const HOME = {
-  queue: [
-    { n: 7, label: "Новые заявки на демо", icon: "inbox", color: "#155dfc", to: "leads" },
-    { n: 23, label: "Открытые тикеты", icon: "lifebuoy", color: "#0a0a0a", to: "tickets" },
-    { n: 4, label: "Без ответа больше суток", icon: "clock-exclamation", color: "#fb2c36", to: "tickets" },
-    { n: 3, label: "Новые идеи", icon: "bulb", color: "#fd9a00", to: "ideas" },
-  ],
-  events: [
-    { icon: "brand-telegram", tint: "#eff6ff", color: "#155dfc", text: "Новый тикет из Telegram: «Не могу зайти после смены телефона»", org: "МУИТ · @aizhan_k", time: "5 мин назад", to: "ticket:TCK-TG7K2M04" },
-    { icon: "inbox", tint: "#eff6ff", color: "#155dfc", text: "Заявка на демо с формы лендинга", org: "Колледж «Алатау» · Бакыт Ж.", time: "34 мин назад", to: "leads" },
-    { icon: "lifebuoy", tint: "#fff7ed", color: "#fd9a00", text: "Тикет TCK-A3F92KD1 взят в работу", org: "Comtehno · Айдана С.", time: "1 ч назад", to: "ticket:TCK-A3F92KD1" },
-    { icon: "building", tint: "#f0fdf4", color: "#00a63e", text: "Заведена организация «НИШ Алматы»", org: "Платформа · Ернар К.", time: "3 ч назад", to: "orgs" },
-    { icon: "bulb", tint: "#fff7ed", color: "#fd9a00", text: "Новая идея: «Показывать GPA прямо в шапке профиля»", org: "МУИТ · Алишер Т.", time: "вчера, 17:20", to: "ideas" },
-    { icon: "article", tint: "#faf5ff", color: "#ad46ff", text: "Статья «Как колледжу перейти на электронный журнал» опубликована", org: "Контент · Жанна М.", time: "вчера, 12:05", to: "posts" },
-  ],
-  leadsSeries: [4, 3, 6, 5, 8, 6, 4, 2, 7, 9, 6, 8, 5, 4, 9, 11, 7, 6, 8, 12, 9, 7, 10, 8, 6, 11, 13, 9, 10, 14],
-  ticketSeries: [12, 14, 11, 17, 15, 19, 13, 8, 16, 18, 21, 17, 14, 12, 20, 23, 19, 16, 18, 22, 20, 15, 19, 24, 21, 17, 23, 20, 22, 26],
   summary: [
     { n: "34", label: "Организаций всего", color: "#0a0a0a" },
     { n: "29", label: "Активных", color: "#00a63e" },

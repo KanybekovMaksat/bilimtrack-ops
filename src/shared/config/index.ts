@@ -4,7 +4,7 @@ export const routes = {
   metrics: "/metrics",
   leads: "/leads",
   tickets: "/tickets",
-  ticket: (id: string) => `/tickets/${id}`,
+  ticket: (id: string | number) => `/tickets/${id}`,
   ticketStates: "/tickets-states",
   ticketPriority: "/tickets-priority",
   ideas: "/ideas",
@@ -15,7 +15,6 @@ export const routes = {
   licenses: "/licenses",
   accounts: "/accounts",
   account: (login: string) => `/accounts/${login}`,
-  accountSession: (login: string) => `/accounts/${login}/session`,
   plans: "/plans",
   plan: (code: string) => `/plans/${code}`,
   subscriptions: "/subscriptions",
@@ -38,5 +37,3 @@ export const routes = {
   denied: "/denied",
 } as const;
 
-/** "Today" in the mock data set — the design is pinned to 20 Sep 2026. */
-export const MOCK_TODAY_LABEL = "суббота, 20 сентября · Asia/Almaty";

@@ -6,6 +6,7 @@ export { Field, KV, StaticSelect, SummaryGrid, TextArea, TextInput } from "./for
 export { Icon } from "./icon";
 export { Breadcrumbs, EmptyState, LineChart, Meter, PageHeader, PageSkeleton, PageTitle } from "./layout";
 export { Avatar, OrgLabel, OrgMark } from "./marks";
+export { ErrorBoundary } from "./error-boundary";
 export { Drawer, Modal, ModalActions } from "./overlay";
 export { Delta, Pill, StatusDot, type PillTone } from "./pill";
 export { Cell, Num, Row, Table } from "./table";

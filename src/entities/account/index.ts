@@ -1,67 +1,76 @@
-import { create } from "zustand";
-import { useMockQuery } from "@/shared/api";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { api } from "@/shared/api";
 
-export type Account = {
-  login: string;
-  name: string;
-  email: string;
-  phone: string;
-  status: "Активен";
-  lastLogin: string;
-  initials: string;
+/* Platform-wide account search for the helpdesk account.
+   Backend: server/apps/users (support_accounts use cases), /api/v1/support/accounts/. */
+
+export type ProfileType = "employee" | "learner" | "guardian";
+
+export const profileTypeLabel: Record<ProfileType, string> = {
+  employee: "Сотрудник",
+  learner: "Учащийся",
+  guardian: "Родитель",
+};
+
+export type OrgRef = { id: number; name: string };
+
+export type Membership = {
+  id: number;
+  organization: OrgRef;
+  status: string;
+  isDefault: boolean;
+  roles: { id: number; code: string; name: string }[];
 };
 
 export type Profile = {
-  name: string;
-  type: string;
-  org: string;
-  orgShort: string;
-  /** login of the linked account, or null for a profile with no way to sign in */
-  account: string | null;
+  id: number;
+  profileType: ProfileType;
+  fullName: string;
+  email: string;
+  phone: string;
+  organization: OrgRef;
+  /** Account the profile is linked to; null — the person cannot sign in with it. */
+  linkedUserId: number | null;
 };
 
-export type Membership = { org: string; orgShort: string; roles: string; status: "Активно" | "Архив"; main: boolean };
-
-const ACCOUNT: Account = {
-  login: "a.kaliyeva",
-  name: "Калиева Айжан Ерлановна",
-  email: "aizhan.k@muit.kz",
-  phone: "+7 707 214 88 03",
-  status: "Активен",
-  lastLogin: "12 марта 2026",
-  initials: "АК",
+export type Account = {
+  id: number;
+  username: string;
+  email: string;
+  phone: string;
+  isActive: boolean;
+  lastLogin: string | null;
+  memberships: Membership[];
+  profiles: Profile[];
 };
 
-const PROFILES: Profile[] = [
-  { name: "Калиева Айжан Ерлановна", type: "Учащийся · 2 курс, ВТ-23-1", org: "МУИТ", orgShort: "МУ", account: null },
-  { name: "Калиева Айжан", type: "Учащийся · выпуск 2023", org: "Comtehno", orgShort: "CT", account: "a.kaliyeva" },
-];
+export type AccountSearch = { accounts: Account[]; profiles: Profile[] };
 
-export const SEARCH_HINTS = ["+7 707 214 88 03", "a.kaliyeva", "aizhan@muit.kz", "Калиева Айжан"];
+export const accountKeys = { search: (q: string) => ["account-search", q] as const };
 
-/** Mock search: every query finds the demo account and its two profiles. */
-export const useAccountSearch = (query: string) =>
-  useMockQuery(["account-search", query], () => ({ accounts: [ACCOUNT], profiles: PROFILES }));
+/** Backend searches username, email, phone and profile names; needs at least 2 characters. */
+export const searchAccounts = (q: string) => api<AccountSearch>("support/accounts/", { query: { q } });
 
-type LinkState = { linked: boolean; link: () => void };
+export const useAccountSearch = (q: string) =>
+  useSuspenseQuery({ queryKey: accountKeys.search(q), queryFn: () => searchAccounts(q) }).data;
 
-/** Whether the orphan МУИТ profile has been linked to a.kaliyeva in this session. */
-export const useProfileLink = create<LinkState>()((set) => ({ linked: false, link: () => set({ linked: true }) }));
-
-export function useAccount(login: string) {
-  const linked = useProfileLink((s) => s.linked);
-  const data = useMockQuery(["account", login], () => ACCOUNT);
-  const comtehno: Membership = { org: "Comtehno", orgShort: "CT", roles: "Учащийся", status: "Архив", main: false };
-  return {
-    account: data,
-    linked,
-    memberships: linked
-      ? [{ org: "МУИТ", orgShort: "МУ", roles: "Учащийся", status: "Активно" as const, main: true }, comtehno]
-      : [comtehno],
-    profiles: linked
-      ? [{ org: "МУИТ", orgShort: "МУ", type: "Учащийся · ВТ-23-1" }, { org: "Comtehno", orgShort: "CT", type: "Учащийся · выпуск 2023" }]
-      : [{ org: "Comtehno", orgShort: "CT", type: "Учащийся · выпуск 2023" }],
-  };
+/** There is no GET-by-id endpoint, so an account card is resolved through search by username. */
+export function useAccount(username: string) {
+  const { accounts } = useAccountSearch(username);
+  return accounts.find((a) => a.username === username) ?? null;
 }
 
-export const ORPHAN_PROFILE = PROFILES[0];
+/** POST support/accounts/:id/link-profile/ — creates/restores membership with default roles, password untouched. */
+export function useLinkProfile(userId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (p: Pick<Profile, "id" | "profileType">) =>
+      api<Account>(`support/accounts/${userId}/link-profile/`, { method: "POST", body: { profileType: p.profileType, profileId: p.id } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["account-search"] }),
+  });
+}
+
+export const statusLabel = (s: string) => ({ active: "Активно", inactive: "Неактивно", archived: "Архив", suspended: "Приостановлено" })[s] ?? s;
+
+const dt = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", year: "numeric" });
+export const formatLastLogin = (iso: string | null) => (iso ? dt.format(new Date(iso)) : "ни разу");

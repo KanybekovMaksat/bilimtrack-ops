@@ -1,8 +1,14 @@
 import { QueryClient, useSuspenseQuery, type QueryKey } from "@tanstack/react-query";
+import { ApiError } from "./http";
 
 export const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { staleTime: 60_000, retry: 1, refetchOnWindowFocus: false },
+    queries: {
+      staleTime: 30_000,
+      refetchOnWindowFocus: false,
+      // Auth / access / missing-object errors will not fix themselves on retry.
+      retry: (count, err) => !(err instanceof ApiError && err.status >= 400 && err.status < 500) && count < 1,
+    },
   },
 });
 

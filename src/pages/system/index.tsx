@@ -1,11 +1,11 @@
 import { SERVICE_STATE, useSystemStatus } from "@/entities/platform";
-import { Card, PageHeader, Pill } from "@/shared/ui";
+import { Callout, Card, PageHeader, Pill } from "@/shared/ui";
 
 export function SystemPage() {
-  const services = useSystemStatus();
+  const { services, checkedAt } = useSystemStatus();
   return (
     <div className="flex max-w-[820px] flex-col gap-4">
-      <PageHeader title="Статус системы" subtitle="обновлено 30 секунд назад" />
+      <PageHeader title="Статус системы" subtitle={`проверено в ${new Date(checkedAt).toLocaleTimeString("ru-RU")} · обновляется каждые 30 секунд`} />
       <Card className="overflow-hidden">
         {services.map((s) => {
           const st = SERVICE_STATE[s.state];
@@ -23,6 +23,9 @@ export function SystemPage() {
           );
         })}
       </Card>
+      <Callout tone="muted" icon="info-circle" iconClassName="text-neutral-400 self-start">
+        Очередь фоновых задач (Celery), почтовые рассылки, Telegram-бот и WhatsApp Business бэкенд пока не отдаёт — их статус появится, когда будет эндпоинт.
+      </Callout>
     </div>
   );
 }

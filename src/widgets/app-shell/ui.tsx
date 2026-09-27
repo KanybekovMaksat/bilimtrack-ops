@@ -1,11 +1,13 @@
 import { Suspense, useEffect, useRef, useState } from "react";
+import { QueryErrorResetBoundary } from "@tanstack/react-query";
 import { Link, Outlet, useLocation, useNavigate } from "react-router";
+import { useLeadsSoft } from "@/entities/lead";
 import { useSession } from "@/entities/session";
-import { ImpersonationBanner } from "@/features/impersonate";
+import { isOpen, useTicketsSoft } from "@/entities/ticket";
 import logoMark from "@/shared/assets/logo-mark.svg";
 import { routes } from "@/shared/config";
 import { cn } from "@/shared/lib";
-import { Avatar, Icon, PageSkeleton } from "@/shared/ui";
+import { Avatar, ErrorBoundary, Icon, PageSkeleton } from "@/shared/ui";
 import { NAV, isActive } from "./nav";
 
 /** Bilimtrack puzzle mark — the same asset as the blog and design system. */
@@ -13,8 +15,19 @@ export function Logo({ size = 30 }: { size?: number }) {
   return <img src={logoMark} alt="Bilimtrack" width={size} height={size} className="shrink-0" />;
 }
 
+/** Live counters: open tickets and new demo requests (hidden if the account has no access). */
+function useCounters() {
+  const tickets = useTicketsSoft();
+  const leads = useLeadsSoft();
+  return {
+    tickets: tickets.data?.filter(isOpen).length,
+    leads: leads.data?.filter((l) => l.status === "new").length,
+  };
+}
+
 function Sidebar() {
   const { pathname } = useLocation();
+  const counters = useCounters();
 
   return (
     <aside className="sticky top-0 flex h-screen w-[252px] shrink-0 flex-col gap-1 overflow-auto border-r border-neutral-100 px-3 py-3.5">
@@ -38,8 +51,13 @@ function Sidebar() {
               >
                 <Icon name={it.icon} size={18} className={on ? "text-brand" : "text-neutral-400"} />
                 <span className="flex-1">{it.label}</span>
-                {it.count != null && (
-                  <span className="rounded-full bg-neutral-100 px-[7px] py-px text-[11px] font-semibold text-neutral-500">{it.count}</span>
+                {it.counter && counters[it.counter] ? (
+                  <span className="rounded-full bg-neutral-100 px-[7px] py-px text-[11px] font-semibold text-neutral-500">{counters[it.counter]}</span>
+                ) : null}
+                {it.demo && (
+                  <span title="Бэкенда пока нет — экран на демо-данных" className="rounded-full border border-dashed border-neutral-300 px-1.5 text-[10px] text-neutral-400">
+                    демо
+                  </span>
                 )}
               </Link>
             );
@@ -50,18 +68,20 @@ function Sidebar() {
   );
 }
 
-function HeaderBadge({ to, icon, count, tone }: { to: string; icon: string; count: number; tone: "red" | "blue" }) {
+function HeaderBadge({ to, icon, count, tone, title }: { to: string; icon: string; count?: number; tone: "red" | "blue"; title: string }) {
   return (
-    <Link to={to} className="relative flex size-[34px] items-center justify-center rounded-full text-ink hover:bg-neutral-100 hover:text-ink">
+    <Link to={to} title={title} className="relative flex size-[34px] items-center justify-center rounded-full text-ink hover:bg-neutral-100 hover:text-ink">
       <Icon name={icon} size={19} />
-      <span
-        className={cn(
-          "absolute top-px right-0 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white",
-          tone === "red" ? "bg-red-500" : "bg-brand",
-        )}
-      >
-        {count}
-      </span>
+      {count ? (
+        <span
+          className={cn(
+            "absolute top-px right-0 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white",
+            tone === "red" ? "bg-red-500" : "bg-brand",
+          )}
+        >
+          {count}
+        </span>
+      ) : null}
     </Link>
   );
 }
@@ -86,15 +106,15 @@ function UserMenu() {
       <button onClick={() => setOpen((v) => !v)} className="flex items-center gap-[9px] border-0 bg-transparent p-0 text-left">
         <Avatar initials={user?.initials} size={30} tone="brand" className="text-xs" />
         <div className="leading-[1.2]">
-          <div className="text-[13px] font-medium">{user?.name}</div>
+          <div className="text-[13px] font-medium">{user?.username}</div>
           <div className="text-[11px] text-neutral-400">{user?.role}</div>
         </div>
         <Icon name="chevron-down" size={15} className="text-neutral-400" />
       </button>
       {open && (
         <div className="absolute top-10 right-0 z-30 w-48 rounded-xl border border-neutral-200 bg-white p-1 shadow-pop">
-          <div className="px-3 py-2 font-num text-xs text-neutral-500">{user?.login}</div>
-          <button onClick={signOut} className="flex w-full items-center gap-2 rounded-lg border-0 bg-transparent px-3 py-2 text-left text-[13px] hover:bg-neutral-100">
+          <div className="px-3 py-2 font-num text-xs text-neutral-500">{user?.email || user?.username}</div>
+          <button onClick={() => signOut()} className="flex w-full items-center gap-2 rounded-lg border-0 bg-transparent px-3 py-2 text-left text-[13px] hover:bg-neutral-100">
             <Icon name="logout" size={16} className="text-neutral-500" />
             Выйти
           </button>
@@ -141,9 +161,10 @@ function GlobalSearch() {
   );
 }
 
-/** Sidebar + sticky header + page outlet; one Suspense boundary for all mock queries. */
+/** Sidebar + sticky header + page outlet; one Suspense + error boundary for every page query. */
 export function AppShell() {
   const { pathname } = useLocation();
+  const counters = useCounters();
   return (
     <div className="flex min-h-screen min-w-[1280px] bg-white">
       <Sidebar />
@@ -152,17 +173,22 @@ export function AppShell() {
           <GlobalSearch />
           <div className="flex-1" />
           <div className="flex items-center gap-1.5">
-            <HeaderBadge to={routes.tickets} icon="lifebuoy" count={23} tone="red" />
-            <HeaderBadge to={routes.leads} icon="inbox" count={7} tone="blue" />
+            <HeaderBadge to={routes.tickets} icon="lifebuoy" count={counters.tickets} tone="red" title="Открытые тикеты" />
+            <HeaderBadge to={routes.leads} icon="inbox" count={counters.leads} tone="blue" title="Новые заявки на демо" />
           </div>
           <div className="h-6 w-px bg-neutral-200" />
           <UserMenu />
         </header>
         <main className="min-w-0 flex-1 px-7 pt-6 pb-14">
-          <ImpersonationBanner />
-          <Suspense key={pathname} fallback={<PageSkeleton />}>
-            <Outlet />
-          </Suspense>
+          <QueryErrorResetBoundary>
+            {({ reset }) => (
+              <ErrorBoundary key={pathname} onReset={reset}>
+                <Suspense fallback={<PageSkeleton />}>
+                  <Outlet />
+                </Suspense>
+              </ErrorBoundary>
+            )}
+          </QueryErrorResetBoundary>
         </main>
       </div>
     </div>

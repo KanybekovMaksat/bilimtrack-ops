@@ -1,4 +1,5 @@
-import { useMockQuery } from "@/shared/api";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { HEALTH_URL, api, useMockQuery } from "@/shared/api";
 
 /** Platform observability: audit trail, sign-in log, service status, staff. */
 
@@ -46,15 +47,44 @@ export const SERVICE_STATE: Record<ServiceState, { dot: string; tone: "success" 
   Сбой: { dot: "#fb2c36", tone: "danger" },
 };
 
-const SERVICES: { name: string; state: ServiceState; detail: string }[] = [
-  { name: "API", state: "Норма", detail: "p95 210 мс · 0 ошибок за час" },
-  { name: "Очередь фоновых задач", state: "Деградация", detail: "1 840 задач в очереди · задержка 6 минут" },
-  { name: "Почтовые рассылки", state: "Норма", detail: "отправлено 412 за сутки · 3 отказа" },
-  { name: "Telegram-бот", state: "Норма", detail: "последний апдейт 14 секунд назад" },
-  { name: "WhatsApp Business", state: "Сбой", detail: "токен истекает 24 сентября · вебхуки не приходят 41 минуту" },
-];
+type SystemService = { name: string; state: ServiceState; detail: string };
 
-export const useSystemStatus = () => useMockQuery(["system"], () => SERVICES);
+const HEALTH_NAMES: Record<string, string> = { Cache: "Кэш (Redis)", Database: "База данных (PostgreSQL)", Storage: "Файловое хранилище" };
+
+/**
+ * Live status from the backend: public `system/status/` (maintenance mode) and
+ * django-health-check `/health/` (database, cache, storage). Polled every 30 s.
+ */
+async function fetchSystemStatus(): Promise<{ services: SystemService[]; checkedAt: string }> {
+  const started = performance.now();
+  const services: SystemService[] = [];
+  try {
+    const status = await api<{ maintenance: boolean; estimatedEnd: string | null; message: string }>("system/status/");
+    const ms = Math.round(performance.now() - started);
+    services.push({ name: "API", state: "Норма", detail: `отвечает за ${ms} мс` });
+    services.push(
+      status.maintenance
+        ? { name: "Режим обслуживания", state: "Деградация", detail: status.message || `включён${status.estimatedEnd ? ` до ${new Date(status.estimatedEnd).toLocaleString("ru-RU")}` : ""}` }
+        : { name: "Режим обслуживания", state: "Норма", detail: "выключен, пользователи работают как обычно" },
+    );
+  } catch (e) {
+    services.push({ name: "API", state: "Сбой", detail: e instanceof Error ? e.message : "не отвечает" });
+  }
+  try {
+    const res = await fetch(HEALTH_URL, { headers: { Accept: "application/json" } });
+    const body = (await res.json()) as Record<string, string>;
+    for (const [key, value] of Object.entries(body)) {
+      const name = HEALTH_NAMES[key.split("(")[0]] ?? key;
+      services.push({ name, state: value === "OK" ? "Норма" : "Сбой", detail: value === "OK" ? "проверка пройдена" : value });
+    }
+  } catch {
+    services.push({ name: "Проверки инфраструктуры", state: "Сбой", detail: "/health/ не ответил" });
+  }
+  return { services, checkedAt: new Date().toISOString() };
+}
+
+export const useSystemStatus = () =>
+  useSuspenseQuery({ queryKey: ["system-status"], queryFn: fetchSystemStatus, refetchInterval: 30_000, staleTime: 0 }).data;
 
 export type StaffMember = {
   name: string;

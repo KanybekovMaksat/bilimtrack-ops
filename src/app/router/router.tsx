@@ -1,6 +1,5 @@
 import { createBrowserRouter } from "react-router";
 import { AccountPage } from "@/pages/account";
-import { AccountSessionPage } from "@/pages/account-session";
 import { AccountsPage } from "@/pages/accounts";
 import { AuditPage } from "@/pages/audit";
 import { ChannelsPage } from "@/pages/channels";
@@ -76,7 +75,6 @@ export const router = createBrowserRouter([
       { path: routes.licenses, element: <LicensesPage /> },
       { path: routes.accounts, element: <AccountsPage /> },
       { path: routes.account(":login"), element: <AccountPage /> },
-      { path: routes.accountSession(":login"), element: <AccountSessionPage /> },
 
       { path: routes.plans, element: <PlansPage /> },
       { path: routes.plan(":code"), element: <PlanPage /> },

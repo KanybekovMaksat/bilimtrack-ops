@@ -1,6 +1,7 @@
 import { routes } from "@/shared/config";
 
-export type NavItem = { to: string; label: string; icon: string; count?: number; also?: string[] };
+/** `counter` = live badge from the API; `demo` = the screen still runs on mock data (no backend yet). */
+export type NavItem = { to: string; label: string; icon: string; counter?: "tickets" | "leads"; demo?: boolean; also?: string[] };
 export type NavGroup = { title: string; items: NavItem[] };
 
 /** Sidebar structure; `also` lists extra path prefixes that keep an item highlighted. */
@@ -9,50 +10,50 @@ export const NAV: NavGroup[] = [
   {
     title: "Бизнес",
     items: [
-      { to: routes.metrics, label: "Сводные метрики", icon: "chart-bar" },
+      { to: routes.metrics, label: "Сводные метрики", icon: "chart-bar", demo: true },
     ],
   },
   {
     title: "Продажи",
     items: [
-      { to: routes.leads, label: "Заявки на демо", icon: "inbox", count: 7 },
+      { to: routes.leads, label: "Заявки на демо", icon: "inbox", counter: "leads" },
     ],
   },
   {
     title: "Поддержка",
     items: [
-      { to: routes.tickets, label: "Тикеты", icon: "lifebuoy", count: 23, also: [routes.ticketStates, routes.ticketPriority] },
-      { to: routes.ideas, label: "Идеи", icon: "bulb", count: 3 },
+      { to: routes.tickets, label: "Тикеты", icon: "lifebuoy", counter: "tickets", also: [routes.ticketStates, routes.ticketPriority] },
+      { to: routes.ideas, label: "Идеи", icon: "bulb", demo: true },
     ],
   },
   {
     title: "Клиенты",
     items: [
-      { to: routes.orgs, label: "Организации", icon: "building", also: [routes.orgNew] },
-      { to: routes.onboarding, label: "Онбординг", icon: "checklist", count: 5 },
-      { to: routes.licenses, label: "Лицензии и модули", icon: "toggle-right" },
+      { to: routes.orgs, label: "Организации", icon: "building", also: [routes.orgNew], demo: true },
+      { to: routes.onboarding, label: "Онбординг", icon: "checklist", demo: true },
+      { to: routes.licenses, label: "Лицензии и модули", icon: "toggle-right", demo: true },
       { to: routes.accounts, label: "Аккаунты", icon: "user-search" },
     ],
   },
   {
     title: "Биллинг",
     items: [
-      { to: routes.plans, label: "Тарифы", icon: "cards" },
-      { to: routes.subscriptions, label: "Подписки", icon: "repeat" },
-      { to: routes.payments, label: "Платежи", icon: "credit-card" },
-      { to: routes.providers, label: "Провайдеры", icon: "plug" },
-      { to: routes.orgBilling, label: "Биллинг организаций", icon: "building-bank" },
+      { to: routes.plans, label: "Тарифы", icon: "cards", demo: true },
+      { to: routes.subscriptions, label: "Подписки", icon: "repeat", demo: true },
+      { to: routes.payments, label: "Платежи", icon: "credit-card", demo: true },
+      { to: routes.providers, label: "Провайдеры", icon: "plug", demo: true },
+      { to: routes.orgBilling, label: "Биллинг организаций", icon: "building-bank", demo: true },
     ],
   },
   {
     title: "Соцсети",
     items: [
-      { to: routes.channels, label: "Каналы", icon: "broadcast" },
-      { to: routes.inbox, label: "Входящие", icon: "messages" },
-      { to: routes.templates, label: "Шаблоны", icon: "template" },
+      { to: routes.channels, label: "Каналы", icon: "broadcast", demo: true },
+      { to: routes.inbox, label: "Входящие", icon: "messages", demo: true },
+      { to: routes.templates, label: "Шаблоны", icon: "template", demo: true },
     ],
   },
-  { title: "Задачи", items: [{ to: routes.tasks, label: "Доска задач", icon: "layout-kanban" }] },
+  { title: "Задачи", items: [{ to: routes.tasks, label: "Доска задач", icon: "layout-kanban", demo: true }] },
   {
     title: "Контент",
     items: [
@@ -64,11 +65,11 @@ export const NAV: NavGroup[] = [
   {
     title: "Платформа",
     items: [
-      { to: routes.audit, label: "Аудит", icon: "history" },
-      { to: routes.logins, label: "Логи входов", icon: "login" },
+      { to: routes.audit, label: "Аудит", icon: "history", demo: true },
+      { to: routes.logins, label: "Логи входов", icon: "login", demo: true },
       { to: routes.system, label: "Статус системы", icon: "heartbeat" },
-      { to: routes.errors, label: "Ошибки", icon: "bug", count: 3 },
-      { to: routes.team, label: "Команда", icon: "users" },
+      { to: routes.errors, label: "Ошибки", icon: "bug", demo: true },
+      { to: routes.team, label: "Команда", icon: "users", demo: true },
     ],
   },
 ];

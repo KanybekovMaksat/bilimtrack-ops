@@ -1,17 +1,17 @@
-export { devTask, ticketKeys, useEscalations, useTicket, useTickets } from "./api";
+export { ticketKeys, useCloseTicket, useReplyToTicket, useTicket, useTickets, useTicketsSoft } from "./api";
 export {
+  CATEGORY,
   PRIORITY,
   SLA_POLICY,
   SOURCE,
   STATUS,
-  TICKETS,
-  slaStrip,
-  ticketTabs,
+  formatDateTime,
+  formatRelative,
+  isOpen,
   type MessageKind,
   type Ticket,
-  type TicketDetail,
   type TicketMessage,
   type TicketPriority,
   type TicketStatus,
 } from "./model";
-export { EscalationTag, PriorityPill, SlaPill, SourceLabel, TicketStatusLabel } from "./ui";
+export { PriorityPill, SlaPill, SourceLabel, TicketStatusLabel } from "./ui";

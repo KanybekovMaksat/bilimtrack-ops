@@ -1,56 +1,66 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { LEAD_NOTE, LEAD_STATUSES, leadStatusTone, useLeads, type Lead, type LeadStatus } from "@/entities/lead";
+import { LEAD_STATUSES, leadStatusLabel, leadStatusTone, useLeads, useUpdateLeadStatus, type Lead, type LeadStatus } from "@/entities/lead";
+import { formatDateTime } from "@/entities/ticket";
 import { routes } from "@/shared/config";
 import { cn } from "@/shared/lib";
-import { Button, Cell, Drawer, FilterChip, Icon, KV, Num, PageHeader, Pill, Row, SearchInput, Table } from "@/shared/ui";
+import { Button, Cell, Drawer, EmptyState, FilterChip, Icon, KV, Num, PageHeader, Pill, Row, SearchInput, Table } from "@/shared/ui";
 
-const COLS = "92px 148px 168px minmax(200px,1fr) 104px 76px 160px 118px";
+const COLS = "112px 148px 168px minmax(200px,1fr) 104px 96px 190px 128px";
 
 export function LeadsPage() {
-  const seed = useLeads();
-  const [leads, setLeads] = useState(seed);
-  const [open, setOpen] = useState<number | null>(null);
+  const leads = useLeads();
+  const update = useUpdateLeadStatus();
+  const [openId, setOpenId] = useState<number | null>(null);
   const [query, setQuery] = useState("");
+  const [status, setStatus] = useState<LeadStatus | null>(null);
 
-  const setStatus = (i: number, status: LeadStatus) => setLeads((ls) => ls.map((l, j) => (j === i ? { ...l, status } : l)));
-  const visible = leads.map((l, i) => ({ l, i })).filter(({ l }) => !query || `${l.name} ${l.contact}`.toLowerCase().includes(query.toLowerCase()));
+  const q = query.trim().toLowerCase();
+  const rows = leads.filter((l) => (!status || l.status === status) && (!q || `${l.name} ${l.contact} ${l.org}`.toLowerCase().includes(q)));
+  const openIndex = rows.findIndex((l) => l.id === openId);
+  const open = openIndex >= 0 ? rows[openIndex] : null;
+  const setLeadStatus = (id: number, s: LeadStatus) => update.mutate({ id, status: s });
+  const cycleStatus = () => setStatus((s) => (s === null ? LEAD_STATUSES[0] : (LEAD_STATUSES[LEAD_STATUSES.indexOf(s) + 1] ?? null)));
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader
-        title="Заявки на демо"
-        subtitle="с лендинга, блога и Instagram Direct"
-      />
+      <PageHeader title="Заявки на демо" subtitle="с лендинга и блога bilimtrack.kg" />
       <div className="flex flex-wrap items-center gap-2">
-        <SearchInput placeholder="Имя или контакт" value={query} onChange={setQuery} />
-        {["Статус", "Тип организации", "Размер", "Источник", "Период"].map((f) => (
-          <FilterChip key={f} label={f} />
-        ))}
+        <SearchInput placeholder="Имя, контакт, организация" value={query} onChange={setQuery} />
+        <FilterChip label={status ? `Статус: ${leadStatusLabel[status]}` : "Статус"} tone={status ? "active" : "default"} onClick={cycleStatus} />
+        <div className="flex-1" />
+        <span className="text-[13px] text-neutral-500">Новых: {leads.filter((l) => l.status === "new").length}</span>
       </div>
-      <Table cols={COLS} minWidth={1110} head={["Дата", "Имя", "Контакт", "Организация", "Тип", "Размер", "Источник", "Статус"]}>
-        {visible.map(({ l, i }) => (
-          <Row key={l.name} onClick={() => setOpen(i)}>
-            <span className="text-xs text-neutral-500">{l.date}</span>
-            <Cell className="text-brand">{l.name}</Cell>
-            <Cell className="text-neutral-700">{l.contact}</Cell>
-            <Cell>{l.org}</Cell>
-            <span className="text-xs text-neutral-500">{l.type}</span>
-            <Num className="text-neutral-700">{l.size}</Num>
-            <Cell className={cn("text-xs", l.fromArticle ? "text-brand" : "text-neutral-500")}>{l.source}</Cell>
-            <StatusSelect value={l.status} onChange={(s) => setStatus(i, s)} />
-          </Row>
-        ))}
-      </Table>
+      {update.error && <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-xs text-red-600">Статус не сохранён: {update.error.message}</div>}
+      {rows.length ? (
+        <Table cols={COLS} minWidth={1140} head={["Дата", "Имя", "Контакт", "Организация", "Тип", "Размер", "Источник", "Статус"]}>
+          {rows.map((l) => (
+            <Row key={l.id} onClick={() => setOpenId(l.id)}>
+              <span className="text-xs text-neutral-500">{formatDateTime(l.createdAt)}</span>
+              <Cell className="text-brand">{l.name}</Cell>
+              <Cell className="text-neutral-700">{l.contact}</Cell>
+              <Cell>{l.org}</Cell>
+              <span className="text-xs text-neutral-500">{l.type}</span>
+              <Num className="text-neutral-700">{l.size}</Num>
+              <Cell className={cn("text-xs", l.article ? "text-brand" : "text-neutral-500")}>{l.source}</Cell>
+              <StatusSelect value={l.status} onChange={(s) => setLeadStatus(l.id, s)} />
+            </Row>
+          ))}
+        </Table>
+      ) : (
+        <div className="rounded-xl border border-neutral-200">
+          <EmptyState icon="inbox-off" title={leads.length ? "По фильтрам ничего не найдено" : "Заявок пока нет"} description="Заявки приходят с формы «Запросить демо» на лендинге и в статьях блога." />
+        </div>
+      )}
       <p className="m-0 text-xs text-neutral-400">Статус меняется прямо в строке. Клик по строке открывает карточку панелью справа — список остаётся на месте.</p>
 
-      {open !== null && (
+      {open && (
         <LeadDrawer
-          lead={leads[open]}
-          onClose={() => setOpen(null)}
-          onPrev={() => setOpen(Math.max(0, open - 1))}
-          onNext={() => setOpen(Math.min(leads.length - 1, open + 1))}
-          onStatus={(s) => setStatus(open, s)}
+          lead={open}
+          onClose={() => setOpenId(null)}
+          onPrev={() => setOpenId(rows[Math.max(0, openIndex - 1)].id)}
+          onNext={() => setOpenId(rows[Math.min(rows.length - 1, openIndex + 1)].id)}
+          onStatus={(s) => setLeadStatus(open.id, s)}
         />
       )}
     </div>
@@ -64,7 +74,7 @@ function StatusSelect({ value, onChange }: { value: LeadStatus; onChange: (s: Le
     <span className="relative" onClick={(e) => e.stopPropagation()}>
       <button onClick={() => setOpen((v) => !v)} className="border-0 bg-transparent p-0">
         <Pill tone={leadStatusTone[value]}>
-          {value}
+          {leadStatusLabel[value]}
           <Icon name="chevron-down" size={13} className="opacity-70" />
         </Pill>
       </button>
@@ -79,7 +89,7 @@ function StatusSelect({ value, onChange }: { value: LeadStatus; onChange: (s: Le
               }}
               className={cn("block w-full rounded-lg border-0 bg-transparent px-2.5 py-1.5 text-left text-xs hover:bg-neutral-100", s === value && "font-semibold text-brand")}
             >
-              {s}
+              {leadStatusLabel[s]}
             </button>
           ))}
         </div>
@@ -113,7 +123,7 @@ function LeadDrawer({ lead, onClose, onPrev, onNext, onStatus }: DrawerProps) {
           <Button variant="primary" size="xl" icon="building-plus" className="flex-1" onClick={() => navigate(`${routes.orgNew}?from=lead`)}>
             Завести организацию
           </Button>
-          <Button size="xl" className="px-3.5 font-normal" onClick={() => onStatus("Закрыта")}>
+          <Button size="xl" className="px-3.5 font-normal" disabled={lead.status === "closed"} onClick={() => onStatus("closed")}>
             Закрыть заявку
           </Button>
         </>
@@ -133,20 +143,19 @@ function LeadDrawer({ lead, onClose, onPrev, onNext, onStatus }: DrawerProps) {
               onClick={() => onStatus(s)}
               className={cn("flex-1 rounded-full border-0 py-1.5 text-xs font-medium", s === lead.status ? "bg-brand text-white" : "bg-neutral-100 text-neutral-500")}
             >
-              {s}
+              {leadStatusLabel[s]}
             </button>
           ))}
         </div>
         <div className="flex flex-col gap-2.5">
           <KV k="Дата" width={120}>
-            {lead.date.replace("сен", "сентября 2026")}
+            {formatDateTime(lead.createdAt)}
           </KV>
           <KV k="Контакт" width={120}>
             {lead.contact}
           </KV>
           <KV k="Организация" width={120}>
             {lead.org}
-            {lead.city && `, ${lead.city}`}
           </KV>
           <KV k="Тип" width={120}>
             {lead.type}
@@ -155,29 +164,8 @@ function LeadDrawer({ lead, onClose, onPrev, onNext, onStatus }: DrawerProps) {
             {lead.size} учащихся
           </KV>
           <KV k="Источник" width={120}>
-            {lead.source === "Лендинг" ? "Форма на лендинге · /demo" : lead.source}
+            {lead.source}
           </KV>
-        </div>
-        <div>
-          <div className="mb-1.5 text-xs text-neutral-400">Заметки менеджера</div>
-          <div className="min-h-[72px] rounded-xl border border-neutral-200 px-3 py-2.5 text-[13px] leading-[19px] text-neutral-700">{LEAD_NOTE}</div>
-        </div>
-        <div>
-          <div className="mb-1.5 text-xs text-neutral-400">История изменений</div>
-          {[
-            { text: "Заявка получена с формы лендинга", who: "Система", time: lead.date },
-            { text: `Статус: ${lead.status}`, who: "Система", time: lead.date },
-          ].map((h) => (
-            <div key={h.text} className="flex gap-2 border-b border-neutral-50 py-[7px]">
-              <Icon name="point" size={16} className="text-neutral-300" />
-              <div className="flex-1">
-                <div className="text-xs">{h.text}</div>
-                <div className="text-[11px] text-neutral-400">
-                  {h.who} · {h.time}
-                </div>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
     </Drawer>

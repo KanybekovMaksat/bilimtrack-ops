@@ -2,11 +2,10 @@ import { useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { HealthPill } from "@/entities/client-health";
 import { OrgStatusPill, PRESETS, useOrganization, type OrgModule } from "@/entities/organization";
-import { STATUS, TICKETS } from "@/entities/ticket";
 import { OrgModuleToggle } from "@/features/toggle-org-module";
 import { routes } from "@/shared/config";
 import { cn, toPoints } from "@/shared/lib";
-import { Avatar, Breadcrumbs, Button, Card, Icon, LineChart, OrgMark, Row, StatusDot, Table, Tabs, Toggle } from "@/shared/ui";
+import { Avatar, Breadcrumbs, Button, Callout, Card, Icon, LineChart, OrgMark, Row, Table, Tabs, Toggle } from "@/shared/ui";
 
 const TABS = [
   { key: "overview", label: "Обзор" },
@@ -152,28 +151,10 @@ export function OrgDetailsPage() {
       )}
 
       {tab === "cases" && (
-        <Card className="overflow-hidden rounded-xl">
-          {TICKETS.filter((t) => t.org === org.name)
-            .concat(org.name === "МУИТ" ? [] : TICKETS.slice(0, 3))
-            .slice(0, 5)
-            .map((t) => (
-              <div
-                key={t.id}
-                onClick={() => navigate(routes.ticket(t.id))}
-                className="flex cursor-pointer items-center gap-3 border-b border-neutral-100 px-3.5 py-[11px] last:border-b-0 hover:bg-neutral-50"
-              >
-                <span className="w-[120px] font-num text-xs text-neutral-500">{t.id}</span>
-                <span className="flex-1 text-[13px]">{t.subject}</span>
-                <span className="text-xs text-neutral-500">{t.category}</span>
-                <span className="w-[100px]">
-                  <StatusDot color={STATUS[t.status].color} className="text-ink">
-                    {STATUS[t.status].label}
-                  </StatusDot>
-                </span>
-                <span className="w-[100px] text-right text-xs text-neutral-400">{t.updated}</span>
-              </div>
-            ))}
-        </Card>
+        <Callout tone="muted" icon="info-circle" iconClassName="text-neutral-400 self-start" className="text-[13px] leading-5">
+          Обращения организации появятся здесь, когда API тикетов начнёт отдавать организацию и фильтр по ней. Пока все тикеты — в{" "}
+          <Link to={routes.tickets}>общем инбоксе</Link>.
+        </Callout>
       )}
     </div>
   );
