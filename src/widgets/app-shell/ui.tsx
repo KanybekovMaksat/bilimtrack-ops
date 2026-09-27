@@ -3,20 +3,15 @@ import { Link, Outlet, useLocation, useNavigate } from "react-router";
 import { staffRoleLabel, useSession } from "@/entities/session";
 import { ImpersonationBanner } from "@/features/impersonate";
 import { RoleSwitcher } from "@/features/switch-role";
+import logoMark from "@/shared/assets/logo-mark.svg";
 import { routes } from "@/shared/config";
 import { cn } from "@/shared/lib";
 import { Avatar, Icon, PageSkeleton } from "@/shared/ui";
 import { NAV, isActive } from "./nav";
 
+/** Bilimtrack puzzle mark — the same asset as the blog and design system. */
 export function Logo({ size = 30 }: { size?: number }) {
-  return (
-    <div
-      className="flex shrink-0 items-center justify-center bg-ink text-white"
-      style={{ width: size, height: size, borderRadius: size > 36 ? 12 : 8, fontSize: size > 36 ? 24 : 17 }}
-    >
-      <Icon name="puzzle" />
-    </div>
-  );
+  return <img src={logoMark} alt="Bilimtrack" width={size} height={size} className="shrink-0" />;
 }
 
 function Sidebar() {
