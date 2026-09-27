@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { leadStatusLabel, useLeadsSoft } from "@/entities/lead";
-import { useHomeDashboard } from "@/entities/metrics";
+import { useOrganizationsSoft } from "@/entities/organization";
 import { SOURCE, formatRelative, isOpen, useTicketsSoft } from "@/entities/ticket";
 import { routes } from "@/shared/config";
-import { toPoints } from "@/shared/lib";
+import { formatInt, toPoints } from "@/shared/lib";
 import { Card, CardHeader, Icon, LineChart, SectionLabel } from "@/shared/ui";
 
 const DAY = 86_400_000;
@@ -22,14 +22,18 @@ function perDay(dates: string[], days: number, now: number) {
 
 const dayLabel = (ms: number) => new Date(ms).toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
 
-function DemoTag() {
-  return <span className="rounded-full border border-dashed border-neutral-300 px-1.5 text-[10px] font-normal text-neutral-400">демо</span>;
-}
-
 export function HomePage() {
   const tickets = useTicketsSoft().data ?? [];
   const leads = useLeadsSoft().data ?? [];
-  const mock = useHomeDashboard();
+  const orgs = useOrganizationsSoft().data;
+  const summary = orgs
+    ? [
+        { n: formatInt(orgs.length), label: "Организаций всего", color: "#0a0a0a" },
+        { n: formatInt(orgs.filter((o) => o.status === "active").length), label: "Активных", color: "#00a63e" },
+        { n: formatInt(orgs.filter((o) => o.status === "inactive").length), label: "На паузе", color: "#fd9a00" },
+        { n: formatInt(orgs.reduce((a, o) => a + o.learnersCount, 0)), label: "Учащихся на платформе", color: "#0a0a0a" },
+      ]
+    : [];
   const navigate = useNavigate();
   const [now] = useState(() => Date.now());
 
@@ -150,10 +154,13 @@ export function HomePage() {
           </Card>
           <Card className="p-4">
             <div className="mb-3 flex items-center gap-2 text-sm font-medium">
-              Сводка по клиентам <DemoTag />
+              <Link to={routes.orgs} className="text-ink hover:text-brand">
+                Сводка по клиентам
+              </Link>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              {mock.summary.map((s) => (
+              {!orgs && <div className="col-span-2 h-[120px] animate-pulse rounded-xl bg-neutral-50" />}
+              {summary.map((s) => (
                 <div key={s.label} className="rounded-xl bg-neutral-50 px-3 py-2.5">
                   <div className="font-num text-xl leading-[1.2] font-semibold" style={{ color: s.color }}>
                     {s.n}

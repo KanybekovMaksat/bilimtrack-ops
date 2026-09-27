@@ -106,14 +106,14 @@ function UserMenu() {
       <button onClick={() => setOpen((v) => !v)} className="flex items-center gap-[9px] border-0 bg-transparent p-0 text-left">
         <Avatar initials={user?.initials} size={30} tone="brand" className="text-xs" />
         <div className="leading-[1.2]">
-          <div className="text-[13px] font-medium">{user?.username}</div>
+          <div className="text-[13px] font-medium">{user?.fullName || user?.username}</div>
           <div className="text-[11px] text-neutral-400">{user?.role}</div>
         </div>
         <Icon name="chevron-down" size={15} className="text-neutral-400" />
       </button>
       {open && (
         <div className="absolute top-10 right-0 z-30 w-48 rounded-xl border border-neutral-200 bg-white p-1 shadow-pop">
-          <div className="px-3 py-2 font-num text-xs text-neutral-500">{user?.email || user?.username}</div>
+          <div className="px-3 py-2 font-num text-xs text-neutral-500">{user?.username}</div>
           <button onClick={() => signOut()} className="flex w-full items-center gap-2 rounded-lg border-0 bg-transparent px-3 py-2 text-left text-[13px] hover:bg-neutral-100">
             <Icon name="logout" size={16} className="text-neutral-500" />
             Выйти

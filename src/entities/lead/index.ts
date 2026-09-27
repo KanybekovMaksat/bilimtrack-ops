@@ -2,8 +2,8 @@ import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tansta
 import { api, apiList } from "@/shared/api";
 import type { PillTone } from "@/shared/ui";
 
-/* Demo requests from the landing page and the blog.
-   Backend: server/apps/leads (DemoRequest), staff API /api/v1/cms/demo-requests/ (list + PATCH status). */
+/* Demo requests from the landing pages and the blog.
+   Backend: server/apps/leads (DemoRequest), staff API /api/v1/cms/demo-requests/ (list + PATCH status / note). */
 
 export type LeadStatus = "new" | "contacted" | "demo_scheduled" | "closed";
 
@@ -23,27 +23,32 @@ export const leadStatusTone: Record<LeadStatus, PillTone> = {
   closed: "neutral",
 };
 
-const ORG_TYPE: Record<string, string> = { school: "Школа", college: "Колледж", university: "Университет", other: "Другое" };
-const STUDENTS: Record<string, string> = { lt100: "до 100", "100_300": "100–300", "300_1000": "300–1000", gt1000: "свыше 1000" };
-
-/** Raw CMSDemoRequestSerializer. */
+/** Raw CMSDemoRequestSerializer. Two forms feed it: the SIS landing sends
+ *  `organizationName` + `studentCountRange`, the blog / main landing — `organization` + `orgType` + `studentsCount`. */
 type ApiLead = {
   id: number;
   name: string;
   contact: string;
   organization: string;
+  organizationName: string;
   orgType: string;
+  orgTypeLabel: string;
   studentsCount: string;
+  studentsCountLabel: string;
+  studentCountRange: string;
   source: string;
   sourceArticle: number | null;
   sourceArticleTitle: string | null;
   status: LeadStatus;
+  note: string;
   createdAt: string;
+  updatedAt: string;
 };
 
 export type Lead = {
   id: number;
   createdAt: string;
+  updatedAt: string;
   name: string;
   contact: string;
   org: string;
@@ -53,19 +58,23 @@ export type Lead = {
   /** Title of the blog article the request came from, if any. */
   article: string | null;
   status: LeadStatus;
+  /** Manager's note: who was called, what was agreed. */
+  note: string;
 };
 
 const toLead = (l: ApiLead): Lead => ({
   id: l.id,
   createdAt: l.createdAt,
+  updatedAt: l.updatedAt,
   name: l.name,
   contact: l.contact,
-  org: l.organization || "—",
-  type: ORG_TYPE[l.orgType] ?? (l.orgType || "—"),
-  size: STUDENTS[l.studentsCount] ?? (l.studentsCount || "—"),
-  source: l.sourceArticleTitle ? `Статья «${l.sourceArticleTitle}»` : l.source || "Лендинг",
+  org: l.organization || l.organizationName || "—",
+  type: l.orgTypeLabel || "—",
+  size: l.studentsCountLabel || l.studentCountRange || "—",
+  source: l.sourceArticleTitle ? `Статья «${l.sourceArticleTitle}»` : l.source || (l.organizationName ? "Лендинг SIS" : "Лендинг"),
   article: l.sourceArticleTitle,
   status: l.status,
+  note: l.note ?? "",
 });
 
 const leadKeys = { all: ["leads"] as const };
@@ -76,16 +85,18 @@ export const useLeads = () => useSuspenseQuery({ queryKey: leadKeys.all, queryFn
 /** Non-suspending variant for counters in the shell. */
 export const useLeadsSoft = () => useQuery({ queryKey: leadKeys.all, queryFn: fetchLeads });
 
-export function useUpdateLeadStatus() {
+type LeadPatch = { id: number; status?: LeadStatus; note?: string };
+
+/** PATCH cms/demo-requests/:id/ — status and/or the manager's note. */
+export function useUpdateLead() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, status }: { id: number; status: LeadStatus }) =>
-      api<ApiLead>(`cms/demo-requests/${id}/`, { method: "PATCH", body: { status } }),
-    // Optimistic: the pill changes at once, rolls back if the server refuses.
-    onMutate: async ({ id, status }) => {
+    mutationFn: ({ id, ...patch }: LeadPatch) => api<ApiLead>(`cms/demo-requests/${id}/`, { method: "PATCH", body: patch }),
+    // Optimistic: the row changes at once, rolls back if the server refuses.
+    onMutate: async ({ id, ...patch }) => {
       await qc.cancelQueries({ queryKey: leadKeys.all });
       const prev = qc.getQueryData<Lead[]>(leadKeys.all);
-      qc.setQueryData<Lead[]>(leadKeys.all, (ls) => ls?.map((l) => (l.id === id ? { ...l, status } : l)));
+      qc.setQueryData<Lead[]>(leadKeys.all, (ls) => ls?.map((l) => (l.id === id ? { ...l, ...patch } : l)));
       return { prev };
     },
     onError: (_e, _v, ctx) => ctx?.prev && qc.setQueryData(leadKeys.all, ctx.prev),

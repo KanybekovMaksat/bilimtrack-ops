@@ -70,7 +70,7 @@ export const router = createBrowserRouter([
 
       { path: routes.orgs, element: <OrgsPage /> },
       { path: routes.orgNew, element: <OrgNewPage /> },
-      { path: routes.org(":slug"), element: <OrgDetailsPage /> },
+      { path: routes.org(":id"), element: <OrgDetailsPage /> },
       { path: routes.onboarding, element: <OnboardingPage /> },
       { path: routes.licenses, element: <LicensesPage /> },
       { path: routes.accounts, element: <AccountsPage /> },

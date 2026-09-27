@@ -146,3 +146,19 @@ export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T
 export async function apiList<T>(path: string, query: RequestOptions["query"] = {}): Promise<T[]> {
   return api<T[]>(path, { query: { page_size: 500, ...query } });
 }
+
+export type Page<T> = { rows: T[]; count: number };
+
+/** One page of a paginated list, keeping the total from `meta.count`. */
+export async function apiPage<T>(path: string, query: RequestOptions["query"] = {}): Promise<Page<T>> {
+  let res: Response;
+  try {
+    res = await send(path, { query }, true);
+  } catch {
+    throw new ApiError(0, "Нет связи с сервером. Проверьте интернет или адрес API.");
+  }
+  if (!res.ok) throw await parseError(res);
+  const body = await res.json();
+  const rows = (body?.data ?? []) as T[];
+  return { rows, count: body?.meta?.count ?? rows.length };
+}

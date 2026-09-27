@@ -94,6 +94,11 @@ import {
   WalletCards,
   Wrench,
   X,
+  Trash2,
+  RefreshCw,
+  UserX,
+  MessageSquare,
+  KeyRound,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "../lib";
@@ -225,6 +230,11 @@ const ICONS: Record<string, Glyph> = {
   "users-group": UsersRound,
   world: Globe,
   x: X,
+  trash: Trash2,
+  refresh: RefreshCw,
+  "user-off": UserX,
+  message: MessageSquare,
+  password: KeyRound,
   zzz: Moon,
 };
 

@@ -7,7 +7,7 @@ import { Card, CardHeader, Delta, Meter, PageHeader } from "@/shared/ui";
 export function MetricsPage() {
   const m = useMetrics();
   const navigate = useNavigate();
-  const toOrg = () => navigate(routes.org("muit"));
+  const toOrg = () => navigate(routes.orgs);
   const top = m.funnel[0].n;
 
   return (

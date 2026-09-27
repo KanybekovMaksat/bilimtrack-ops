@@ -1,16 +1,14 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
-import { LEAD_STATUSES, leadStatusLabel, leadStatusTone, useLeads, useUpdateLeadStatus, type Lead, type LeadStatus } from "@/entities/lead";
+import { LEAD_STATUSES, leadStatusLabel, leadStatusTone, useLeads, useUpdateLead, type Lead, type LeadStatus } from "@/entities/lead";
 import { formatDateTime } from "@/entities/ticket";
-import { routes } from "@/shared/config";
 import { cn } from "@/shared/lib";
-import { Button, Cell, Drawer, EmptyState, FilterChip, Icon, KV, Num, PageHeader, Pill, Row, SearchInput, Table } from "@/shared/ui";
+import { Button, Cell, Drawer, EmptyState, FilterChip, Icon, KV, Num, PageHeader, Pill, Row, SearchInput, Table, TextArea } from "@/shared/ui";
 
 const COLS = "112px 148px 168px minmax(200px,1fr) 104px 96px 190px 128px";
 
 export function LeadsPage() {
   const leads = useLeads();
-  const update = useUpdateLeadStatus();
+  const update = useUpdateLead();
   const [openId, setOpenId] = useState<number | null>(null);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<LeadStatus | null>(null);
@@ -24,20 +22,23 @@ export function LeadsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title="Заявки на демо" subtitle="с лендинга и блога bilimtrack.kg" />
+      <PageHeader title="Заявки на демо" subtitle="с лендингов и блога bilimtrack.kg" />
       <div className="flex flex-wrap items-center gap-2">
         <SearchInput placeholder="Имя, контакт, организация" value={query} onChange={setQuery} />
         <FilterChip label={status ? `Статус: ${leadStatusLabel[status]}` : "Статус"} tone={status ? "active" : "default"} onClick={cycleStatus} />
         <div className="flex-1" />
         <span className="text-[13px] text-neutral-500">Новых: {leads.filter((l) => l.status === "new").length}</span>
       </div>
-      {update.error && <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-xs text-red-600">Статус не сохранён: {update.error.message}</div>}
+      {update.error && <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-xs text-red-600">Изменение не сохранено: {update.error.message}</div>}
       {rows.length ? (
         <Table cols={COLS} minWidth={1140} head={["Дата", "Имя", "Контакт", "Организация", "Тип", "Размер", "Источник", "Статус"]}>
           {rows.map((l) => (
             <Row key={l.id} onClick={() => setOpenId(l.id)}>
               <span className="text-xs text-neutral-500">{formatDateTime(l.createdAt)}</span>
-              <Cell className="text-brand">{l.name}</Cell>
+              <Cell className="text-brand">
+                {l.name}
+                {l.note && <Icon name="message" size={13} className="ml-1.5 text-neutral-400" />}
+              </Cell>
               <Cell className="text-neutral-700">{l.contact}</Cell>
               <Cell>{l.org}</Cell>
               <span className="text-xs text-neutral-500">{l.type}</span>
@@ -56,11 +57,13 @@ export function LeadsPage() {
 
       {open && (
         <LeadDrawer
+          key={open.id}
           lead={open}
           onClose={() => setOpenId(null)}
           onPrev={() => setOpenId(rows[Math.max(0, openIndex - 1)].id)}
           onNext={() => setOpenId(rows[Math.min(rows.length - 1, openIndex + 1)].id)}
           onStatus={(s) => setLeadStatus(open.id, s)}
+          onNote={(note) => update.mutate({ id: open.id, note })}
         />
       )}
     </div>
@@ -98,10 +101,19 @@ function StatusSelect({ value, onChange }: { value: LeadStatus; onChange: (s: Le
   );
 }
 
-type DrawerProps = { lead: Lead; onClose: () => void; onPrev: () => void; onNext: () => void; onStatus: (s: LeadStatus) => void };
+type DrawerProps = {
+  lead: Lead;
+  onClose: () => void;
+  onPrev: () => void;
+  onNext: () => void;
+  onStatus: (s: LeadStatus) => void;
+  onNote: (note: string) => void;
+};
 
-function LeadDrawer({ lead, onClose, onPrev, onNext, onStatus }: DrawerProps) {
-  const navigate = useNavigate();
+function LeadDrawer({ lead, onClose, onPrev, onNext, onStatus, onNote }: DrawerProps) {
+  // The drawer is keyed by lead id, so Prev / Next starts with that lead's note.
+  const [note, setNote] = useState(lead.note);
+  const dirty = note.trim() !== lead.note.trim();
   return (
     <Drawer
       open
@@ -120,8 +132,8 @@ function LeadDrawer({ lead, onClose, onPrev, onNext, onStatus }: DrawerProps) {
       }
       footer={
         <>
-          <Button variant="primary" size="xl" icon="building-plus" className="flex-1" onClick={() => navigate(`${routes.orgNew}?from=lead`)}>
-            Завести организацию
+          <Button variant="primary" size="xl" className="flex-1" disabled={!dirty} onClick={() => onNote(note.trim())}>
+            Сохранить заметку
           </Button>
           <Button size="xl" className="px-3.5 font-normal" disabled={lead.status === "closed"} onClick={() => onStatus("closed")}>
             Закрыть заявку
@@ -133,7 +145,7 @@ function LeadDrawer({ lead, onClose, onPrev, onNext, onStatus }: DrawerProps) {
         <div>
           <div className="text-lg leading-6 font-semibold">{lead.name}</div>
           <div className="text-[13px] text-neutral-500">
-            {lead.org} · {lead.type}
+            {[lead.org, lead.type].filter((v) => v && v !== "—").join(" · ") || "Организация не указана"}
           </div>
         </div>
         <div className="flex gap-1 rounded-full bg-neutral-100 p-[3px]">
@@ -161,12 +173,19 @@ function LeadDrawer({ lead, onClose, onPrev, onNext, onStatus }: DrawerProps) {
             {lead.type}
           </KV>
           <KV k="Размер" width={120}>
-            {lead.size} учащихся
+            {lead.size === "—" ? "—" : `${lead.size} учащихся`}
           </KV>
           <KV k="Источник" width={120}>
             {lead.source}
           </KV>
+          <KV k="Изменена" width={120}>
+            {formatDateTime(lead.updatedAt)}
+          </KV>
         </div>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs font-semibold text-neutral-500">Заметка менеджера</span>
+          <TextArea look="plain" className="min-h-28" value={note} onChange={(e) => setNote(e.target.value)} placeholder="С кем говорили, о чём договорились, когда перезвонить" />
+        </label>
       </div>
     </Drawer>
   );

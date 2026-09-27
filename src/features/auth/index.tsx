@@ -38,11 +38,11 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
     <form onSubmit={submit} className="flex flex-col gap-3.5 rounded-2xl border border-neutral-200 bg-white p-6">
       <div className="flex items-center gap-1.5 self-start rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand">
         <Icon name="lock" />
-        Только для сотрудников
+        Только для команды Bilimtrack
       </div>
       <label className="flex flex-col gap-1.5">
-        <span className="text-xs text-neutral-500">Логин или номер телефона</span>
-        <input className={input} placeholder="bilimtrack_tech_support" autoComplete="username" value={login} onChange={(e) => setLogin(e.target.value)} required />
+        <span className="text-xs text-neutral-500">Логин</span>
+        <input className={input} placeholder="m.kanybekov" autoComplete="username" value={login} onChange={(e) => setLogin(e.target.value)} required />
       </label>
       <label className="flex flex-col gap-1.5">
         <span className="text-xs text-neutral-500">Пароль</span>

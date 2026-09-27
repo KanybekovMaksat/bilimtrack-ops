@@ -38,15 +38,3 @@ const METRICS = {
 };
 
 export const useMetrics = () => useMockQuery(["metrics"], () => METRICS);
-
-/** Home dashboard: client summary (no organizations API yet). */
-const HOME = {
-  summary: [
-    { n: "34", label: "Организаций всего", color: "#0a0a0a" },
-    { n: "29", label: "Активных", color: "#00a63e" },
-    { n: "5", label: "На паузе", color: "#fd9a00" },
-    { n: "41 280", label: "Учащихся на платформе", color: "#0a0a0a" },
-  ],
-};
-
-export const useHomeDashboard = () => useMockQuery(["home"], () => HOME);

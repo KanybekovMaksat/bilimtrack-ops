@@ -1,6 +1,6 @@
 import { routes } from "@/shared/config";
 
-/** `counter` = live badge from the API; `demo` = the screen still runs on mock data (no backend yet). */
+/** `counter` = live badge from the API; `demo` = no backend yet, the screen runs on mock data. */
 export type NavItem = { to: string; label: string; icon: string; counter?: "tickets" | "leads"; demo?: boolean; also?: string[] };
 export type NavGroup = { title: string; items: NavItem[] };
 
@@ -23,15 +23,15 @@ export const NAV: NavGroup[] = [
     title: "Поддержка",
     items: [
       { to: routes.tickets, label: "Тикеты", icon: "lifebuoy", counter: "tickets", also: [routes.ticketStates, routes.ticketPriority] },
-      { to: routes.ideas, label: "Идеи", icon: "bulb", demo: true },
+      { to: routes.ideas, label: "Идеи", icon: "bulb" },
     ],
   },
   {
     title: "Клиенты",
     items: [
-      { to: routes.orgs, label: "Организации", icon: "building", also: [routes.orgNew], demo: true },
+      { to: routes.orgs, label: "Организации", icon: "building", also: [routes.orgNew] },
       { to: routes.onboarding, label: "Онбординг", icon: "checklist", demo: true },
-      { to: routes.licenses, label: "Лицензии и модули", icon: "toggle-right", demo: true },
+      { to: routes.licenses, label: "Лицензии и модули", icon: "toggle-right" },
       { to: routes.accounts, label: "Аккаунты", icon: "user-search" },
     ],
   },
@@ -53,13 +53,13 @@ export const NAV: NavGroup[] = [
       { to: routes.templates, label: "Шаблоны", icon: "template", demo: true },
     ],
   },
-  { title: "Задачи", items: [{ to: routes.tasks, label: "Доска задач", icon: "layout-kanban", demo: true }] },
+  { title: "Задачи", items: [{ to: routes.tasks, label: "Доска задач", icon: "layout-kanban" }] },
   {
     title: "Контент",
     items: [
-      { to: routes.posts, label: "Статьи", icon: "article" },
-      { to: routes.dicts, label: "Справочники", icon: "list-details" },
-      { to: routes.media, label: "Медиатека", icon: "photo" },
+      { to: routes.posts, label: "Статьи", icon: "article", demo: true },
+      { to: routes.dicts, label: "Справочники", icon: "list-details", demo: true },
+      { to: routes.media, label: "Медиатека", icon: "photo", demo: true },
     ],
   },
   {

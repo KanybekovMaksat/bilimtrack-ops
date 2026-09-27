@@ -1,133 +1,163 @@
-import { Suspense, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { formatLastLogin, profileTypeLabel, useAccountSearch } from "@/entities/account";
+import {
+  ACCOUNTS_PAGE_SIZE,
+  accountKindLabel,
+  accountName,
+  formatLastLogin,
+  useAccounts,
+  type AccountKind,
+  type AccountFilters,
+} from "@/entities/account";
+import { useOrganizationsSoft } from "@/entities/organization";
 import { routes } from "@/shared/config";
-import { cn } from "@/shared/lib";
-import { Avatar, Button, EmptyState, Icon, OrgMark, Pill } from "@/shared/ui";
+import { formatInt, orgShort, plural } from "@/shared/lib";
+import { Avatar, Button, Callout, Cell, EmptyState, FilterChip, OrgMark, PageHeader, Pill, Row, SearchInput, Table } from "@/shared/ui";
 
-const orgShort = (name: string) => name.replace(/[«»"№\s]/g, "").slice(0, 2).toUpperCase();
+const KINDS: AccountKind[] = ["employee", "learner", "guardian", "operator", "no_membership"];
+const STATUSES = ["active", "inactive"] as const;
+
+const cycle = <T,>(list: readonly T[], v: T | undefined): T | undefined => (v === undefined ? list[0] : list[list.indexOf(v) + 1]);
 
 export function AccountsPage() {
+  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
-  const submitted = params.get("q") ?? "";
-  const [query, setQuery] = useState(submitted);
-  const [prev, setPrev] = useState(submitted);
+  const urlQuery = params.get("q") ?? "";
+  const [query, setQuery] = useState(urlQuery);
+  const [prevUrl, setPrevUrl] = useState(urlQuery);
+  const [q, setQ] = useState(urlQuery);
+  const [filters, setFilters] = useState<Omit<AccountFilters, "q" | "page">>({});
+  const [page, setPage] = useState(1);
+  const orgs = useOrganizationsSoft();
+
   // Header search navigates here with a new ?q=: keep the field in sync.
-  if (prev !== submitted) {
-    setPrev(submitted);
-    setQuery(submitted);
+  if (prevUrl !== urlQuery) {
+    setPrevUrl(urlQuery);
+    setQuery(urlQuery);
+    setQ(urlQuery);
+    setPage(1);
   }
 
-  const search = (q: string) => {
-    setQuery(q);
-    if (q.trim()) setParams({ q: q.trim() });
+  // Search as you type, debounced.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const next = query.trim();
+      if (next !== q) {
+        setQ(next);
+        setPage(1);
+        setParams(next ? { q: next } : {}, { replace: true });
+      }
+    }, 350);
+    return () => clearTimeout(t);
+  }, [query, q, setParams]);
+
+  const setFilter = (patch: Partial<typeof filters>) => {
+    setFilters((f) => ({ ...f, ...patch }));
+    setPage(1);
   };
 
-  return (
-    <div className="mx-auto flex max-w-[900px] flex-col gap-5 pt-3">
-      <div>
-        <h1 className="m-0 mb-1 text-xl leading-[26px] font-semibold tracking-[-.01em]">Поиск аккаунтов</h1>
-        <div className="text-[13px] text-neutral-500">Логин, почта, телефон или ФИО — по всем организациям</div>
-      </div>
-      <form
-        className="flex gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          search(query);
-        }}
-      >
-        <label className="flex h-12 flex-1 items-center gap-2.5 rounded-full border border-neutral-200 bg-neutral-100 px-[18px]">
-          <Icon name="search" size={20} className="text-neutral-400" />
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="+996 555 21 40 88" className="flex-1 border-0 bg-transparent font-sans text-[15px] outline-none" />
-        </label>
-        <Button type="submit" variant="primary" className="h-12 px-6 text-[15px]" disabled={query.trim().length < 2}>
-          Найти
-        </Button>
-      </form>
+  const list = useAccounts({ ...filters, q: q.length >= 2 ? q : undefined, page });
+  const total = list.data?.count ?? 0;
+  const pages = Math.max(1, Math.ceil(total / ACCOUNTS_PAGE_SIZE));
 
-      {submitted.length >= 2 ? (
-        <Suspense fallback={<div className="h-40 animate-pulse rounded-2xl bg-neutral-50" />}>
-          <Results query={submitted} />
-        </Suspense>
-      ) : (
-        <EmptyState
-          dashed
-          icon="user-search"
-          title="Введите запрос, чтобы начать"
-          description="Ищем по логину, почте, телефону и ФИО в профилях. Нужно минимум 2 символа. Телефон ищется по вхождению — вводите так, как он записан в системе."
+  return (
+    <div className="flex flex-col gap-4">
+      <PageHeader title="Аккаунты" subtitle={list.data ? `${formatInt(total)} ${plural(total, ["учётная запись", "учётные записи", "учётных записей"])} по фильтрам` : "все учётные записи платформы"} />
+      <div className="flex flex-wrap items-center gap-2">
+        <SearchInput width={300} placeholder="Логин, почта, телефон или ФИО" value={query} onChange={setQuery} />
+        <select
+          value={filters.organizationId ?? ""}
+          onChange={(e) => setFilter({ organizationId: e.target.value ? Number(e.target.value) : undefined })}
+          className="h-[34px] max-w-[240px] rounded-full border border-neutral-200 bg-white px-3 text-[13px] outline-none"
+        >
+          <option value="">Все организации</option>
+          {(orgs.data ?? []).map((o) => (
+            <option key={o.id} value={o.id}>
+              {o.name}
+            </option>
+          ))}
+        </select>
+        <FilterChip
+          label={filters.kind ? accountKindLabel[filters.kind] : "Кто"}
+          tone={filters.kind ? "active" : "default"}
+          onClick={() => setFilter({ kind: cycle(KINDS, filters.kind) })}
         />
+        <FilterChip
+          label={filters.status ? (filters.status === "active" ? "Активные" : "Отключённые") : "Статус"}
+          tone={filters.status ? "active" : "default"}
+          onClick={() => setFilter({ status: cycle(STATUSES, filters.status) })}
+        />
+        <FilterChip icon="zzz" tone={filters.neverLoggedIn ? "warn" : "default"} label="Ни разу не входили" onClick={() => setFilter({ neverLoggedIn: !filters.neverLoggedIn })} />
+        {list.isFetching && <span className="text-xs text-neutral-400">Загрузка…</span>}
+      </div>
+      {q.length === 1 && <div className="text-xs text-neutral-400">Для поиска нужно минимум 2 символа.</div>}
+
+      {list.error ? (
+        <Callout tone="danger">{list.error.message}</Callout>
+      ) : list.data && !list.data.rows.length ? (
+        <div className="rounded-xl border border-neutral-200">
+          <EmptyState icon="user-search" title="Никого не найдено" description="Поиск идёт по логину, почте, телефону и ФИО в профилях всех организаций." />
+        </div>
+      ) : (
+        <Table
+          cols="minmax(170px,1fr) minmax(190px,1.1fr) minmax(200px,1.2fr) 110px 150px"
+          minWidth={960}
+          head={["Логин", "Имя и контакты", "Организации", "Статус", "Последний вход"]}
+        >
+          {(list.data?.rows ?? []).map((a) => {
+            const name = accountName(a);
+            const orgNames = [...new Map([...a.memberships.map((m) => m.organization), ...a.profiles.map((p) => p.organization)].map((o) => [o.id, o])).values()];
+            return (
+              <Row key={a.id} onClick={() => navigate(routes.account(a.username))}>
+                <span className="flex min-w-0 items-center gap-2">
+                  <Avatar icon={a.operator ? "shield-lock" : "key"} size={26} tone={a.operator ? "brand" : "neutral"} />
+                  <Cell className="font-num font-medium">{a.username}</Cell>
+                </span>
+                <span className="min-w-0">
+                  <Cell className="block">{name || <span className="text-neutral-400">—</span>}</Cell>
+                  <Cell className="block text-[11px] text-neutral-400">{[a.phone, a.email].filter(Boolean).join(" · ") || "нет контактов"}</Cell>
+                </span>
+                <span className="flex min-w-0 items-center gap-1.5">
+                  {a.operator ? (
+                    <Pill size="sm" tone="info">
+                      {a.operator.roleLabel}
+                    </Pill>
+                  ) : orgNames.length ? (
+                    <>
+                      <OrgMark short={orgShort(orgNames[0].name)} size={18} />
+                      <Cell className="text-xs text-neutral-700">{orgNames[0].name}</Cell>
+                      {orgNames.length > 1 && <span className="shrink-0 text-[11px] text-neutral-400">+{orgNames.length - 1}</span>}
+                    </>
+                  ) : (
+                    <span className="text-xs text-warn">без организации</span>
+                  )}
+                </span>
+                <span>
+                  <Pill size="sm" tone={a.isActive ? "success" : "neutral"}>
+                    {a.isActive ? "Активен" : "Отключён"}
+                  </Pill>
+                </span>
+                <span className="text-xs text-neutral-500">{formatLastLogin(a.lastLogin)}</span>
+              </Row>
+            );
+          })}
+          {list.isLoading && <div className="h-40 animate-pulse bg-neutral-50" />}
+        </Table>
       )}
-    </div>
-  );
-}
 
-function Results({ query }: { query: string }) {
-  const { accounts, profiles } = useAccountSearch(query);
-  const navigate = useNavigate();
-
-  if (!accounts.length && !profiles.length) {
-    return <EmptyState dashed icon="user-search" title="Ничего не найдено" description={`По запросу «${query}» нет ни аккаунтов, ни профилей.`} />;
-  }
-
-  return (
-    <div className="flex flex-col gap-[18px]">
-      <div>
-        <div className="mb-2 flex items-center gap-2">
-          <span className="text-[13px] font-semibold">Аккаунты</span>
-          <span className="text-xs text-neutral-400">записи для входа · {accounts.length}</span>
+      {pages > 1 && (
+        <div className="flex items-center justify-end gap-2 text-xs text-neutral-500">
+          <span>
+            Страница {page} из {pages}
+          </span>
+          <Button size="xs" icon="chevron-up" className="font-normal" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+            Назад
+          </Button>
+          <Button size="xs" iconRight="chevron-down" className="font-normal" disabled={page >= pages} onClick={() => setPage((p) => p + 1)}>
+            Дальше
+          </Button>
         </div>
-        <div className="flex flex-col gap-2">
-          {accounts.map((a) => (
-            <div
-              key={a.id}
-              onClick={() => navigate(routes.account(a.username))}
-              className="flex cursor-pointer items-center gap-3.5 rounded-[14px] border border-neutral-200 p-3.5 hover:bg-neutral-50"
-            >
-              <Avatar icon="key" size={38} tone="brand" />
-              <div className="min-w-0 flex-1">
-                <div className="font-num text-sm font-medium">{a.username}</div>
-                <div className="truncate text-xs text-neutral-500">
-                  {[a.profiles[0]?.fullName, a.email, a.phone].filter(Boolean).join(" · ") || "нет контактов"}
-                </div>
-              </div>
-              <Pill tone={a.isActive ? "success" : "neutral"}>{a.isActive ? "Активен" : "Отключён"}</Pill>
-              <span className="text-[11px] text-neutral-400">вход {formatLastLogin(a.lastLogin)}</span>
-              <Icon name="chevron-right" size={18} className="text-neutral-300" />
-            </div>
-          ))}
-          {!accounts.length && <div className="rounded-[14px] border border-dashed border-neutral-200 p-4 text-center text-[13px] text-neutral-500">Аккаунтов не найдено</div>}
-        </div>
-      </div>
-      <div>
-        <div className="mb-2 flex items-center gap-2">
-          <span className="text-[13px] font-semibold">Профили</span>
-          <span className="text-xs text-neutral-400">человек в организации · {profiles.length}</span>
-        </div>
-        <div className="flex flex-col gap-2">
-          {profiles.map((p) => (
-            <div key={`${p.profileType}-${p.id}`} className={cn("flex items-center gap-3.5 rounded-[14px] border p-3.5", p.linkedUserId ? "border-neutral-200" : "border-amber-500")}>
-              <Avatar icon="user" size={38} />
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium">{p.fullName}</div>
-                <div className="flex items-center gap-1.5 text-xs text-neutral-500">
-                  {profileTypeLabel[p.profileType]} ·
-                  <span className="inline-flex items-center gap-[5px]">
-                    <OrgMark short={orgShort(p.organization.name)} size={16} />
-                    {p.organization.name}
-                  </span>
-                  {(p.phone || p.email) && <span className="text-neutral-400">· {p.phone || p.email}</span>}
-                </div>
-              </div>
-              <Pill size="lg" tone={p.linkedUserId ? "neutral" : "warn"}>
-                {p.linkedUserId ? "Есть аккаунт" : "Нет аккаунта"}
-              </Pill>
-            </div>
-          ))}
-        </div>
-        <p className="mt-2.5 mb-0 text-xs leading-[18px] text-neutral-400">
-          Профиль без аккаунта — типичная причина «не могу зайти». Привязка делается из карточки аккаунта: «Привязать профиль».
-        </p>
-      </div>
+      )}
     </div>
   );
 }

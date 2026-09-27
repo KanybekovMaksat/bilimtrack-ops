@@ -13,13 +13,17 @@ npm run build    # typecheck + production build
 npm run lint     # ESLint, включая правила FSD
 ```
 
-Вход моковый: подходит любой логин, пароль не проверяется.
+Скопируйте `.env.example` в `.env`: dev-сервер проксирует `/api` и `/health` на бэкенд из `VITE_API_PROXY_TARGET` (`bilimtrack_v2_back`).
+
+## Доступ
+
+Войти могут только операторы платформы — учётки с записью `ops.PlatformOperator` на бэкенде (без привязки к организации). После логина панель запрашивает `GET /api/v1/ops/me/`: на 403 сессия сразу закрывается. Учётки администраторов создаёт `python manage.py create_ops_admins` с временным паролем; при первом входе панель просит сменить его (`auth/change-password/`).
 
 ## Данные
 
-Всё на моковых данных из макета, «сегодня» — 20 сентября 2026. Данные лежат в `src/entities/*`, читаются через `useMockQuery` (`shared/api`) — это TanStack Query с `useSuspenseQuery` и искусственной задержкой, поэтому загрузка страниц показывает скелетон. Чтобы подключить бэкенд, замените fetcher в хуке сущности на реальный запрос — страницы менять не нужно.
+Разделы на реальном API: главная (очередь, события, сводка по клиентам), заявки на демо (`cms/demo-requests`), тикеты (`support-tickets`), идеи (`ideas`), организации и их модули, настройки, структура и люди (`ops/organizations`), лицензии (`ops/licenses`), аккаунты (`ops/accounts`, привязка профиля — `support/accounts`), доска задач (`ops/boards`, `ops/tasks`), статус системы.
 
-Действия, которые меняют состояние (эскалация тикета, вход от имени, привязка профиля, задачи на доске, анонсы, ручные платежи организаций), хранятся в Zustand-сторах и живут до перезагрузки страницы.
+Остальные разделы помечены в сайдбаре меткой «демо»: бэкенда для них нет, они работают на моковых данных из макета через `useMockQuery` (`shared/api`). Чтобы подключить бэкенд, замените fetcher в хуке сущности на реальный запрос.
 
 ## Экраны
 
@@ -29,10 +33,10 @@ npm run lint     # ESLint, включая правила FSD
 | Бизнес | `/metrics` |
 | Продажи | `/leads` (карточка заявки — панель справа) |
 | Поддержка | `/tickets`, `/tickets/:id`, `/tickets-states`, `/tickets-priority`, `/ideas` |
-| Клиенты | `/orgs`, `/orgs/:slug?tab=…`, `/orgs-new` (мастер из 5 шагов), `/onboarding`, `/licenses`, `/accounts`, `/accounts/:login`, `/accounts/:login/session` |
+| Клиенты | `/orgs`, `/orgs/:id?tab=…`, `/orgs-new` (мастер из 5 шагов, демо), `/onboarding`, `/licenses`, `/accounts`, `/accounts/:login` |
 | Биллинг | `/plans`, `/plans/:code`, `/subscriptions`, `/payments`, `/providers`, `/org-billing` |
 | Соцсети | `/channels`, `/inbox`, `/templates` |
-| Задачи | `/tasks` — канбан с drag-and-drop и список |
+| Задачи | `/tasks` — канбан с drag-and-drop, список, редактор задачи с комментариями, колонки |
 | Контент | `/posts`, `/posts/editor`, `/dicts`, `/media` |
 | Платформа | `/audit`, `/logins`, `/system`, `/errors`, `/team`, `/denied` |
 
@@ -43,13 +47,13 @@ src/
 ├── app/        точка входа, роутер, guards (авторизация и роли), глобальные стили и токены
 ├── pages/      страницы — по слайсу на экран
 ├── widgets/    app-shell (сайдбар + шапка), tickets-table, ticket-thread, task-board
-├── features/   действия пользователя: auth, escalate-ticket, impersonate, link-profile,
-│               toggle-org-module, create-organization,
-│               refund-payment, add-org-payment, create-task, pick-media, edit-dictionary-entry
+├── features/   действия пользователя: auth, change-password, link-profile, toggle-org-module,
+│               edit-license, task-editor, manage-columns, create-organization,
+│               refund-payment, add-org-payment, pick-media, edit-dictionary-entry
 ├── entities/   ticket, organization, client-health, license, onboarding, metrics, lead, idea,
 │               account, plan, subscription, payment, org-billing, channel, task,
 │               article, platform, session
-└── shared/     ui-kit по дизайн-системе, api (mock + query client), lib, config (маршруты)
+└── shared/     ui-kit по дизайн-системе, api (http-клиент, mock + query client), lib, config (маршруты)
 ```
 
 Слайс отдаёт наружу только `index.ts`. Правила импортов проверяет ESLint (`eslint.config.js`):

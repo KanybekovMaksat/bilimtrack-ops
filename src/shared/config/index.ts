@@ -9,7 +9,7 @@ export const routes = {
   ticketPriority: "/tickets-priority",
   ideas: "/ideas",
   orgs: "/orgs",
-  org: (slug: string) => `/orgs/${slug}`,
+  org: (id: string | number) => `/orgs/${id}`,
   orgNew: "/orgs-new",
   onboarding: "/onboarding",
   licenses: "/licenses",

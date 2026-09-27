@@ -74,7 +74,7 @@ export function OnboardingPage() {
                 {n} из {TOTAL} шагов
               </div>
             </div>
-            <Button onClick={() => navigate(routes.org(current.slug))}>Карточка организации</Button>
+            <Button onClick={() => navigate(routes.orgs)}>Карточка организации</Button>
           </div>
           <div className="flex flex-col px-[18px] pt-1 pb-4">
             {PLAYBOOK.map((g, gi) => {

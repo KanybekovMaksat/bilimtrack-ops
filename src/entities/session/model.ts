@@ -1,61 +1,80 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { api, saveTokens } from "@/shared/api";
+import { ApiError, api, saveTokens } from "@/shared/api";
+import { initialsOf } from "@/shared/lib";
+
+/* Panel access = an active platform operator (backend: server/apps/ops, GET ops/me/).
+   Organization owners, the old helpdesk login and everyone else get 403 there and are signed out. */
 
 export type SessionUser = {
   id: number;
   username: string;
   email: string;
+  fullName: string;
   /** Label under the name in the header. */
   role: string;
   initials: string;
-  /** The global helpdesk account: cross-organization tickets and account search. */
-  isSupport: boolean;
+  /** Temporary password issued by `create_ops_admins`: the panel asks to change it first. */
+  mustChangePassword: boolean;
 };
 
-/** Slice of GET users/me/ the panel uses. */
-type MeResponse = {
-  user: { id: number; username: string; email: string; phone: string };
-  memberships?: { organization?: { name?: string } | null; roles?: { name?: string }[] }[];
+/** GET ops/me/. */
+type OperatorResponse = {
+  id: number;
+  username: string;
+  email: string;
+  fullName: string;
+  role: string;
+  roleLabel: string;
+  lastLogin: string | null;
+  mustChangePassword: boolean;
 };
 
-const SUPPORT_USERNAME = import.meta.env.VITE_SUPPORT_USERNAME || "bilimtrack_tech_support";
+export const NOT_OPERATOR = "not_operator";
 
-const initialsOf = (s: string) =>
-  s
-    .replace(/[^a-zA-Zа-яА-ЯёЁ\s._-]/g, "")
-    .split(/[\s._-]+/)
-    .filter(Boolean)
-    .map((p) => p[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase() || "?";
+async function loadOperator(): Promise<SessionUser> {
+  try {
+    const me = await api<OperatorResponse>("ops/me/");
+    return {
+      id: me.id,
+      username: me.username,
+      email: me.email,
+      fullName: me.fullName,
+      role: me.roleLabel,
+      initials: initialsOf(me.fullName || me.username),
+      mustChangePassword: me.mustChangePassword,
+    };
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 403) {
+      throw new ApiError(403, "Bilimtrack Ops доступен только команде Bilimtrack. У этой учётной записи нет доступа.", NOT_OPERATOR);
+    }
+    throw err;
+  }
+}
 
-async function loadMe(): Promise<SessionUser> {
-  const me = await api<MeResponse>("users/me/");
-  const isSupport = me.user.username === SUPPORT_USERNAME;
-  const firstRole = me.memberships?.[0]?.roles?.[0]?.name;
-  return {
-    id: me.user.id,
-    username: me.user.username,
-    email: me.user.email,
-    role: isSupport ? "Поддержка Bilimtrack" : (firstRole ?? "Сотрудник"),
-    initials: initialsOf(me.user.username),
-    isSupport,
-  };
+async function serverLogout() {
+  try {
+    await api("auth/logout/", { method: "POST", body: {} });
+  } catch {
+    // Signing out locally is enough if the server call fails.
+  }
+  saveTokens(null);
 }
 
 type SessionState = {
   user: SessionUser | null;
   signIn: (username: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  /** Re-reads ops/me: drops the session if access was revoked since the last visit. */
+  revalidate: () => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   /** Local reset when the backend rejects the session (refresh failed). */
   expire: () => void;
 };
 
 export const useSession = create<SessionState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       signIn: async (username, password) => {
         const tokens = await api<{ access: string; refresh?: string }>("auth/login/", {
@@ -64,19 +83,40 @@ export const useSession = create<SessionState>()(
           anonymous: true,
         });
         saveTokens(tokens);
-        set({ user: await loadMe() });
+        try {
+          set({ user: await loadOperator() });
+        } catch (err) {
+          // Valid login, but not a Bilimtrack operator: do not keep the session.
+          await serverLogout();
+          throw err;
+        }
       },
       signOut: async () => {
-        try {
-          await api("auth/logout/", { method: "POST", body: {} });
-        } catch {
-          // Signing out locally is enough if the server call fails.
-        }
-        saveTokens(null);
+        await serverLogout();
         set({ user: null });
+      },
+      revalidate: async () => {
+        if (!get().user) return;
+        try {
+          set({ user: await loadOperator() });
+        } catch (err) {
+          if (err instanceof ApiError && err.code === NOT_OPERATOR) {
+            await serverLogout();
+            set({ user: null });
+          }
+        }
+      },
+      changePassword: async (currentPassword, newPassword) => {
+        await api("auth/change-password/", {
+          method: "POST",
+          body: { currentPassword, newPassword, confirmPassword: newPassword },
+        });
+        const user = get().user;
+        if (user) set({ user: { ...user, mustChangePassword: false } });
       },
       expire: () => set({ user: null }),
     }),
-    { name: "bilimtrack-ops.session", version: 2 },
+    // v3: the session now comes from ops/me (older persisted shapes are dropped).
+    { name: "bilimtrack-ops.session", version: 3, migrate: () => ({ user: null }) as never },
   ),
 );
