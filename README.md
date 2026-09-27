@@ -17,7 +17,7 @@ npm run lint     # ESLint, включая правила FSD
 
 ## Деплой
 
-Сборка ходит в API по относительному `/api/v1`, как и dev-сервер: хостинг проксирует `/api/*` и `/health/` на `https://api.bilimtrack.kg` — правила в `vercel.json` (Vercel) и `public/_redirects` (Netlify). Так не нужен CORS и не важен домен панели. Без прокси статический хостинг отвечает на `POST /api/v1/auth/login/` кодом 405.
+Панель развёрнута на `https://bilimtrack.bashtup.com`. Собранная версия обращается к API напрямую — `https://api.bilimtrack.kg/api/v1` (переопределяется `VITE_API_URL` / `VITE_HEALTH_URL`); в dev остаётся относительный `/api/v1` через прокси Vite. Домен панели должен быть в `CORS_ALLOWED_ORIGINS` бэкенда (`config/.env` на сервере) — иначе браузер заблокирует запросы. Новый домен панели = новая строка там же и пересоздание `web`.
 
 ## Доступ
 

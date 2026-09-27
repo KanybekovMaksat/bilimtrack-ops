@@ -1,5 +1,0 @@
-# Netlify: the API is proxied through the panel's own domain (no CORS), as the Vite dev proxy does.
-/api/*    https://api.bilimtrack.kg/api/:splat  200
-/health/  https://api.bilimtrack.kg/health/     200
-# SPA fallback for client-side routes (/orgs/12, /tasks, ...).
-/*        /index.html                            200

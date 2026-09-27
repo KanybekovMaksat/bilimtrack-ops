@@ -9,8 +9,11 @@
  *   `auth/refresh/` accepts the refresh token in the body or reads it from the cookie.
  */
 
-export const API_URL = (import.meta.env.VITE_API_URL || "/api/v1").replace(/\/$/, "");
-export const HEALTH_URL = import.meta.env.VITE_HEALTH_URL || "/health/";
+/** Production API host. Dev goes through the Vite proxy (same origin); a deployed build calls the API directly. */
+const PROD_API = "https://api.bilimtrack.kg";
+
+export const API_URL = (import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "/api/v1" : `${PROD_API}/api/v1`)).replace(/\/$/, "");
+export const HEALTH_URL = import.meta.env.VITE_HEALTH_URL || (import.meta.env.DEV ? "/health/" : `${PROD_API}/health/`);
 
 export class ApiError extends Error {
   readonly status: number;
