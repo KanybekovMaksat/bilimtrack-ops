@@ -1,5 +1,6 @@
 import type { InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from "react";
 import { cn } from "../lib";
+import { Icon } from "./icon";
 
 type FieldProps = { label: ReactNode; strong?: boolean; className?: string; children: ReactNode };
 
@@ -64,7 +65,7 @@ export function StaticSelect({ children, className }: { children: ReactNode; cla
       )}
     >
       {children}
-      <i className="ti ti-chevron-down text-neutral-400" />
+      <Icon name="chevron-down" className="text-neutral-400" />
     </div>
   );
 }

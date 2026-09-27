@@ -1,8 +1,7 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router";
-import { staffRoleLabel, useSession } from "@/entities/session";
+import { useSession } from "@/entities/session";
 import { ImpersonationBanner } from "@/features/impersonate";
-import { RoleSwitcher } from "@/features/switch-role";
 import logoMark from "@/shared/assets/logo-mark.svg";
 import { routes } from "@/shared/config";
 import { cn } from "@/shared/lib";
@@ -15,9 +14,7 @@ export function Logo({ size = 30 }: { size?: number }) {
 }
 
 function Sidebar() {
-  const role = useSession((s) => s.role);
   const { pathname } = useLocation();
-  const groups = NAV.map((g) => ({ ...g, items: g.items.filter((i) => i.roles.includes(role)) })).filter((g) => g.items.length);
 
   return (
     <aside className="sticky top-0 flex h-screen w-[252px] shrink-0 flex-col gap-1 overflow-auto border-r border-neutral-100 px-3 py-3.5">
@@ -25,7 +22,7 @@ function Sidebar() {
         <Logo />
         <div className="text-[15px] font-semibold">Bilimtrack Ops</div>
       </Link>
-      {groups.map((g) => (
+      {NAV.map((g) => (
         <div key={g.title || "root"} className="mb-2.5 flex flex-col gap-px">
           {g.title && <div className="px-2.5 py-1 text-[10px] font-semibold tracking-[.06em] text-neutral-400 uppercase">{g.title}</div>}
           {g.items.map((it) => {
@@ -49,9 +46,6 @@ function Sidebar() {
           })}
         </div>
       ))}
-      <div className="mt-auto">
-        <RoleSwitcher />
-      </div>
     </aside>
   );
 }
@@ -74,7 +68,6 @@ function HeaderBadge({ to, icon, count, tone }: { to: string; icon: string; coun
 
 function UserMenu() {
   const user = useSession((s) => s.user);
-  const role = useSession((s) => s.role);
   const signOut = useSession((s) => s.signOut);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -94,7 +87,7 @@ function UserMenu() {
         <Avatar initials={user?.initials} size={30} tone="brand" className="text-xs" />
         <div className="leading-[1.2]">
           <div className="text-[13px] font-medium">{user?.name}</div>
-          <div className="text-[11px] text-neutral-400">{staffRoleLabel[role]}</div>
+          <div className="text-[11px] text-neutral-400">{user?.role}</div>
         </div>
         <Icon name="chevron-down" size={15} className="text-neutral-400" />
       </button>

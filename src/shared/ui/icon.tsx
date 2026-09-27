@@ -1,15 +1,257 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, SVGProps } from "react";
+import {
+  Activity,
+  AlarmClock,
+  ArchiveX,
+  ArrowDown,
+  ArrowUpRight,
+  Bell,
+  Bold,
+  Bot,
+  Bug,
+  Building,
+  Building2,
+  Calendar,
+  ChartColumn,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  CircleAlert,
+  CircleCheck,
+  CircleDashed,
+  Clock,
+  ClockAlert,
+  Code,
+  CreditCard,
+  Diff,
+  Dot,
+  Ellipsis,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  FileText,
+  FilterX,
+  GitPullRequest,
+  Globe,
+  Headset,
+  Heading1,
+  Heading2,
+  HeartPulse,
+  History,
+  House,
+  Image,
+  Inbox,
+  Info,
+  Italic,
+  Key,
+  Landmark,
+  LayoutDashboard,
+  LayoutList,
+  LayoutTemplate,
+  LifeBuoy,
+  Lightbulb,
+  Link,
+  List,
+  ListChecks,
+  ListTree,
+  Lock,
+  LogIn,
+  LogOut,
+  Mail,
+  Megaphone,
+  MessagesSquare,
+  Minus,
+  Moon,
+  Newspaper,
+  Paperclip,
+  Pencil,
+  Play,
+  Plug,
+  Plus,
+  Quote,
+  RadioTower,
+  Repeat,
+  Rocket,
+  School,
+  Search,
+  Send,
+  Settings2,
+  Shapes,
+  ShieldCheck,
+  ShieldUser,
+  Sparkles,
+  Square,
+  SquareCheck,
+  SquareKanban,
+  ToggleRight,
+  TriangleAlert,
+  Upload,
+  User,
+  UserSearch,
+  Users,
+  UsersRound,
+  WalletCards,
+  Wrench,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import { cn } from "../lib";
 
+type GlyphProps = SVGProps<SVGSVGElement> & { size?: number | string };
+
+/** Brand marks are not in lucide; minimal single-colour versions that follow currentColor. */
+function brand(path: string) {
+  return function BrandIcon({ size = 24, ...props }: GlyphProps) {
+    return (
+      <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" {...props}>
+        <path d={path} />
+      </svg>
+    );
+  };
+}
+
+const Telegram = brand(
+  "M21.9 4.3c.3-1.2-.9-2.1-2-1.7L2.8 9.2c-1.2.5-1.2 1.2-.2 1.5l4.4 1.4 1.7 5.2c.2.6.1.8.7.8.5 0 .7-.2 1-.5l2.1-2.1 4.4 3.3c.8.5 1.4.2 1.6-.8l3.4-12.7zM8.9 13.4l8.6-5.4c.4-.3.8-.1.5.2l-7.1 6.4-.3 3.2-1.7-4.4z",
+);
+const WhatsApp = brand(
+  "M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.8-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6.5-.1 1.5-.6 1.7-1.2s.2-1.1.2-1.2l-.5-.3z",
+);
+const Instagram = brand(
+  "M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 8.2a3.2 3.2 0 1 1 0-6.4 3.2 3.2 0 0 1 0 6.4zM17.3 5.5a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4zM12 2c-2.7 0-3 0-4.1.1-1 0-1.8.2-2.4.5-.7.3-1.2.6-1.8 1.2S2.9 5 2.6 5.6c-.3.7-.4 1.4-.5 2.4C2 9 2 9.3 2 12s0 3 .1 4.1c0 1 .2 1.8.5 2.4.3.7.6 1.2 1.2 1.8s1.1.9 1.8 1.2c.7.3 1.4.4 2.4.5 1 .1 1.4.1 4.1.1s3 0 4.1-.1c1 0 1.8-.2 2.4-.5.7-.3 1.2-.6 1.8-1.2s.9-1.1 1.2-1.8c.3-.7.4-1.4.5-2.4.1-1 .1-1.4.1-4.1s0-3-.1-4.1c0-1-.2-1.8-.5-2.4a4.9 4.9 0 0 0-1.2-1.8A4.9 4.9 0 0 0 18.4 2.6c-.7-.3-1.4-.4-2.4-.5C15 2 14.7 2 12 2zm0 1.8c2.7 0 3 0 4 .1.9 0 1.5.2 1.8.3.5.2.8.4 1.1.7.4.4.6.7.7 1.1.1.3.3.8.3 1.8.1 1 .1 1.3.1 4s0 3-.1 4c0 .9-.2 1.5-.3 1.8-.2.5-.4.8-.7 1.1-.4.4-.7.6-1.1.7-.3.1-.8.3-1.8.3-1 .1-1.3.1-4 .1s-3 0-4-.1c-.9 0-1.5-.2-1.8-.3-.5-.2-.8-.4-1.1-.7-.4-.4-.6-.7-.7-1.1-.1-.3-.3-.8-.3-1.8-.1-1-.1-1.3-.1-4s0-3 .1-4c0-.9.2-1.5.3-1.8.2-.5.4-.8.7-1.1.4-.4.7-.6 1.1-.7.3-.1.8-.3 1.8-.3 1-.1 1.3-.1 4-.1z",
+);
+
+type Glyph = LucideIcon | ReturnType<typeof brand>;
+
+/** Icon names used across the panel (kept from the design handoff) → glyph. */
+const ICONS: Record<string, Glyph> = {
+  alarm: AlarmClock,
+  "alert-circle": CircleAlert,
+  "alert-triangle": TriangleAlert,
+  "arrow-down": ArrowDown,
+  "arrow-up-right": ArrowUpRight,
+  "arrows-diff": Diff,
+  article: Newspaper,
+  bell: Bell,
+  bold: Bold,
+  "brand-instagram": Instagram,
+  "brand-telegram": Telegram,
+  "brand-whatsapp": WhatsApp,
+  broadcast: RadioTower,
+  bug: Bug,
+  building: Building2,
+  "building-bank": Landmark,
+  "building-community": Building,
+  "building-plus": Building2,
+  bulb: Lightbulb,
+  calendar: Calendar,
+  cards: WalletCards,
+  category: Shapes,
+  "chart-bar": ChartColumn,
+  check: Check,
+  checkbox: SquareCheck,
+  checklist: ListChecks,
+  "chevron-down": ChevronDown,
+  "chevron-right": ChevronRight,
+  "chevron-up": ChevronUp,
+  "circle-check": CircleCheck,
+  "circle-check-filled": CircleCheck,
+  "circle-dashed": CircleDashed,
+  clock: Clock,
+  "clock-exclamation": ClockAlert,
+  code: Code,
+  "credit-card": CreditCard,
+  dots: Ellipsis,
+  "external-link": ExternalLink,
+  eye: Eye,
+  "eye-off": EyeOff,
+  "file-text": FileText,
+  "filter-off": FilterX,
+  "git-pull-request": GitPullRequest,
+  "h-1": Heading1,
+  "h-2": Heading2,
+  headset: Headset,
+  "heart-rate-monitor": HeartPulse,
+  heartbeat: Activity,
+  history: History,
+  home: House,
+  inbox: Inbox,
+  "inbox-off": ArchiveX,
+  "info-circle": Info,
+  italic: Italic,
+  key: Key,
+  "layout-dashboard": LayoutDashboard,
+  "layout-kanban": SquareKanban,
+  "layout-list": LayoutList,
+  lifebuoy: LifeBuoy,
+  link: Link,
+  list: List,
+  "list-check": ListChecks,
+  "list-details": ListTree,
+  lock: Lock,
+  login: LogIn,
+  logout: LogOut,
+  mail: Mail,
+  messages: MessagesSquare,
+  minus: Minus,
+  paperclip: Paperclip,
+  pencil: Pencil,
+  photo: Image,
+  "player-play": Play,
+  plug: Plug,
+  plus: Plus,
+  point: Dot,
+  quote: Quote,
+  repeat: Repeat,
+  robot: Bot,
+  rocket: Rocket,
+  school: School,
+  search: Search,
+  send: Send,
+  "settings-2": Settings2,
+  "shield-lock": ShieldCheck,
+  sparkles: Sparkles,
+  speakerphone: Megaphone,
+  square: Square,
+  "square-check-filled": SquareCheck,
+  template: LayoutTemplate,
+  "toggle-right": ToggleRight,
+  tool: Wrench,
+  upload: Upload,
+  user: User,
+  "user-search": UserSearch,
+  "user-shield": ShieldUser,
+  users: Users,
+  "users-group": UsersRound,
+  world: Globe,
+  x: X,
+  zzz: Moon,
+};
+
 type IconProps = {
-  /** Tabler icon name without the `ti-` prefix, e.g. "lifebuoy". */
+  /** Icon key, e.g. "lifebuoy". Keys ending in "-filled" render as a solid glyph. */
   name: string;
   size?: number;
   className?: string;
   style?: CSSProperties;
 };
 
-/** Tabler icon from the webfont — the design system's canonical icon set. */
+/** Stroke icon (lucide-react) sized like text by default: 1em, inherits colour. */
 export function Icon({ name, size, className, style }: IconProps) {
-  return <i aria-hidden className={cn("ti", `ti-${name}`, className)} style={{ fontSize: size, ...style }} />;
+  const Glyph = ICONS[name];
+  if (!Glyph) {
+    if (import.meta.env.DEV) console.warn(`[Icon] unknown icon "${name}"`);
+    return null;
+  }
+  const filled = name.endsWith("-filled");
+  return (
+    <Glyph
+      aria-hidden
+      size={size ?? "1em"}
+      strokeWidth={filled ? 2.25 : 1.75}
+      className={cn("inline-block shrink-0 align-[-0.125em]", className)}
+      style={style}
+      {...(filled ? { fill: "currentColor", stroke: "#fff" } : {})}
+    />
+  );
 }

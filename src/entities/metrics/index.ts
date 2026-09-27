@@ -63,11 +63,6 @@ const HOME = {
     { n: "5", label: "На паузе", color: "#fd9a00" },
     { n: "41 280", label: "Учащихся на платформе", color: "#0a0a0a" },
   ],
-  drafts: [
-    { title: "Электронный журнал для колледжа: с чего начать", date: "черновик · 19 сен" },
-    { title: "Как мы считаем GPA в Bilimtrack", date: "черновик · 16 сен" },
-    { title: "Интервью: цифровизация НИШ Алматы", date: "запланировано · 24 сен" },
-  ],
 };
 
 export const useHomeDashboard = () => useMockQuery(["home"], () => HOME);

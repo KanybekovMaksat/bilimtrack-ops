@@ -1,6 +1,5 @@
 import { Link, useNavigate } from "react-router";
 import { useHomeDashboard } from "@/entities/metrics";
-import { useSession } from "@/entities/session";
 import { MOCK_TODAY_LABEL, routes } from "@/shared/config";
 import { Card, CardHeader, Icon, LineChart, SectionLabel } from "@/shared/ui";
 import { toPoints } from "@/shared/lib";
@@ -11,9 +10,7 @@ const targetPath = (to: string) =>
 
 export function HomePage() {
   const data = useHomeDashboard();
-  const role = useSession((s) => s.role);
   const navigate = useNavigate();
-  const isAdmin = role === "admin";
   const y = (v: number) => 100 - v * 3.4;
 
   return (
@@ -23,8 +20,7 @@ export function HomePage() {
         <span className="text-[13px] text-neutral-400">{MOCK_TODAY_LABEL}</span>
       </div>
 
-      {isAdmin && (
-        <div>
+      <div>
           <SectionLabel className="mb-2">Очередь работы</SectionLabel>
           <div className="grid grid-cols-4 gap-3">
             {data.queue.map((q) => (
@@ -44,8 +40,7 @@ export function HomePage() {
               </Link>
             ))}
           </div>
-        </div>
-      )}
+      </div>
 
       <div className="grid grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] items-start gap-4">
         <Card className="overflow-hidden">
@@ -53,11 +48,9 @@ export function HomePage() {
             className="py-3.5"
             title="Последние события"
             action={
-              isAdmin && (
-                <Link to={routes.audit} className="text-[13px]">
-                  Весь журнал
-                </Link>
-              )
+              <Link to={routes.audit} className="text-[13px]">
+                Весь журнал
+              </Link>
             }
           />
           {data.events.map((e) => (
@@ -79,8 +72,6 @@ export function HomePage() {
         </Card>
 
         <div className="flex flex-col gap-4">
-          {isAdmin ? (
-            <>
               <Card className="p-4">
                 <div className="mb-3.5 flex items-center justify-between">
                   <div className="text-sm font-medium">Заявки и тикеты · 30 дней</div>
@@ -123,24 +114,6 @@ export function HomePage() {
                   ))}
                 </div>
               </Card>
-            </>
-          ) : (
-            <Card className="p-4">
-              <div className="mb-1 text-sm font-medium">Мои черновики</div>
-              <div className="mb-3 text-xs text-neutral-500">Роль «Контент» не видит очередь работы, графики и сводку по клиентам</div>
-              {data.drafts.map((d) => (
-                <Link
-                  key={d.title}
-                  to={routes.postEditor}
-                  className="flex items-center gap-2.5 border-t border-neutral-50 py-[9px] text-ink hover:bg-neutral-50 hover:text-ink"
-                >
-                  <Icon name="file-text" size={16} className="text-neutral-400" />
-                  <span className="flex-1 text-[13px]">{d.title}</span>
-                  <span className="text-[11px] text-neutral-400">{d.date}</span>
-                </Link>
-              ))}
-            </Card>
-          )}
         </div>
       </div>
     </div>

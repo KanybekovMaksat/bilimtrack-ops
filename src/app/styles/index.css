@@ -1,23 +1,4 @@
 @import "tailwindcss";
-@import "@tabler/icons-webfont/dist/tabler-icons.min.css";
-
-/* The filled icon stylesheet redefines `.ti` for every icon, so only the few
-   filled glyphs the panel uses are declared here, from the filled font. */
-@font-face {
-  font-family: "tabler-icons-filled";
-  font-display: block;
-  src: url("@tabler/icons-webfont/dist/fonts/tabler-icons-filled.woff2") format("woff2");
-}
-.ti.ti-circle-check-filled,
-.ti.ti-square-check-filled {
-  font-family: "tabler-icons-filled" !important;
-}
-.ti-circle-check-filled:before {
-  content: "\f704";
-}
-.ti-square-check-filled:before {
-  content: "\f76d";
-}
 
 /* Bilimtrack design system tokens (see design handoff: colors_and_type.css).
    Neutrals, blue, green, red, amber, orange and purple come from Tailwind's

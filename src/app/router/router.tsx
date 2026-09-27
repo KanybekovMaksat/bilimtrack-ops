@@ -1,22 +1,18 @@
-import type { ReactElement } from "react";
-import { createBrowserRouter, type RouteObject } from "react-router";
+import { createBrowserRouter } from "react-router";
 import { AccountPage } from "@/pages/account";
 import { AccountSessionPage } from "@/pages/account-session";
 import { AccountsPage } from "@/pages/accounts";
-import { AnnouncementsPage } from "@/pages/announcements";
 import { AuditPage } from "@/pages/audit";
 import { ChannelsPage } from "@/pages/channels";
 import { DeniedPage, NotFoundPage } from "@/pages/denied";
 import { DictsPage } from "@/pages/dicts";
 import { ErrorsPage } from "@/pages/errors";
-import { FunnelPage } from "@/pages/funnel";
 import { HealthPage } from "@/pages/health";
 import { HomePage } from "@/pages/home";
 import { IdeasPage } from "@/pages/ideas";
 import { InboxPage } from "@/pages/inbox";
 import { LeadsPage } from "@/pages/leads";
 import { LicensesPage } from "@/pages/licenses";
-import { ListsPage } from "@/pages/lists";
 import { LoginPage } from "@/pages/login";
 import { LoginsPage } from "@/pages/logins";
 import { MediaPage } from "@/pages/media";
@@ -43,17 +39,8 @@ import { TicketStatesPage } from "@/pages/ticket-states";
 import { TicketsPage } from "@/pages/tickets";
 import { routes } from "@/shared/config";
 import { AppShell } from "@/widgets/app-shell";
-import { GuestOnly, RequireAuth, RequireRole } from "./guards";
+import { GuestOnly, RequireAuth } from "./guards";
 
-/** Admin-only route; `section` names it on the access-denied screen. */
-const admin = (path: string, section: string, element: ReactElement): RouteObject => ({
-  path,
-  element: (
-    <RequireRole roles={["admin"]} section={section}>
-      {element}
-    </RequireRole>
-  ),
-});
 
 export const router = createBrowserRouter([
   {
@@ -73,52 +60,49 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <HomePage /> },
 
-      admin(routes.metrics, "Сводные метрики", <MetricsPage />),
-      admin(routes.health, "Здоровье клиентов", <HealthPage />),
+      { path: routes.metrics, element: <MetricsPage /> },
+      { path: routes.health, element: <HealthPage /> },
 
-      admin(routes.leads, "Заявки на демо", <LeadsPage />),
-      admin(routes.funnel, "Воронка", <FunnelPage />),
+      { path: routes.leads, element: <LeadsPage /> },
 
-      admin(routes.tickets, "Тикеты", <TicketsPage />),
-      admin(routes.ticket(":id"), "Тикеты", <TicketDetailsPage />),
-      admin(routes.ticketStates, "Тикеты", <TicketStatesPage />),
-      admin(routes.ticketPriority, "Тикеты", <TicketPriorityPage />),
-      admin(routes.ideas, "Идеи", <IdeasPage />),
+      { path: routes.tickets, element: <TicketsPage /> },
+      { path: routes.ticket(":id"), element: <TicketDetailsPage /> },
+      { path: routes.ticketStates, element: <TicketStatesPage /> },
+      { path: routes.ticketPriority, element: <TicketPriorityPage /> },
+      { path: routes.ideas, element: <IdeasPage /> },
 
-      admin(routes.orgs, "Организации", <OrgsPage />),
-      admin(routes.orgNew, "Организации", <OrgNewPage />),
-      admin(routes.org(":slug"), "Организации", <OrgDetailsPage />),
-      admin(routes.onboarding, "Онбординг", <OnboardingPage />),
-      admin(routes.licenses, "Лицензии и модули", <LicensesPage />),
-      admin(routes.accounts, "Аккаунты", <AccountsPage />),
-      admin(routes.account(":login"), "Аккаунты", <AccountPage />),
-      admin(routes.accountSession(":login"), "Аккаунты", <AccountSessionPage />),
-      admin(routes.lists, "Списки и рассылки", <ListsPage />),
-      admin(routes.announcements, "Анонсы", <AnnouncementsPage />),
+      { path: routes.orgs, element: <OrgsPage /> },
+      { path: routes.orgNew, element: <OrgNewPage /> },
+      { path: routes.org(":slug"), element: <OrgDetailsPage /> },
+      { path: routes.onboarding, element: <OnboardingPage /> },
+      { path: routes.licenses, element: <LicensesPage /> },
+      { path: routes.accounts, element: <AccountsPage /> },
+      { path: routes.account(":login"), element: <AccountPage /> },
+      { path: routes.accountSession(":login"), element: <AccountSessionPage /> },
 
-      admin(routes.plans, "Тарифы", <PlansPage />),
-      admin(routes.plan(":code"), "Тарифы", <PlanPage />),
-      admin(routes.subscriptions, "Подписки", <SubscriptionsPage />),
-      admin(routes.payments, "Платежи", <PaymentsPage />),
-      admin(routes.providers, "Провайдеры", <ProvidersPage />),
-      admin(routes.orgBilling, "Биллинг организаций", <OrgBillingPage />),
+      { path: routes.plans, element: <PlansPage /> },
+      { path: routes.plan(":code"), element: <PlanPage /> },
+      { path: routes.subscriptions, element: <SubscriptionsPage /> },
+      { path: routes.payments, element: <PaymentsPage /> },
+      { path: routes.providers, element: <ProvidersPage /> },
+      { path: routes.orgBilling, element: <OrgBillingPage /> },
 
-      admin(routes.channels, "Каналы", <ChannelsPage />),
-      admin(routes.inbox, "Входящие", <InboxPage />),
-      admin(routes.templates, "Шаблоны", <TemplatesPage />),
+      { path: routes.channels, element: <ChannelsPage /> },
+      { path: routes.inbox, element: <InboxPage /> },
+      { path: routes.templates, element: <TemplatesPage /> },
 
-      admin(routes.tasks, "Доска задач", <TasksPage />),
+      { path: routes.tasks, element: <TasksPage /> },
 
       { path: routes.posts, element: <PostsPage /> },
       { path: routes.postEditor, element: <PostEditorPage /> },
       { path: routes.dicts, element: <DictsPage /> },
       { path: routes.media, element: <MediaPage /> },
 
-      admin(routes.audit, "Аудит", <AuditPage />),
-      admin(routes.logins, "Логи входов", <LoginsPage />),
-      admin(routes.system, "Статус системы", <SystemPage />),
-      admin(routes.errors, "Ошибки", <ErrorsPage />),
-      admin(routes.team, "Команда", <TeamPage />),
+      { path: routes.audit, element: <AuditPage /> },
+      { path: routes.logins, element: <LoginsPage /> },
+      { path: routes.system, element: <SystemPage /> },
+      { path: routes.errors, element: <ErrorsPage /> },
+      { path: routes.team, element: <TeamPage /> },
       { path: routes.denied, element: <DeniedPage /> },
 
       { path: "*", element: <NotFoundPage /> },

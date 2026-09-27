@@ -3,13 +3,12 @@ import { useNavigate } from "react-router";
 import { LEAD_NOTE, LEAD_STATUSES, leadStatusTone, useLeads, type Lead, type LeadStatus } from "@/entities/lead";
 import { routes } from "@/shared/config";
 import { cn } from "@/shared/lib";
-import { Button, Cell, Drawer, FilterChip, Icon, KV, Num, PageHeader, Pill, Row, SearchInput, Segmented, Table } from "@/shared/ui";
+import { Button, Cell, Drawer, FilterChip, Icon, KV, Num, PageHeader, Pill, Row, SearchInput, Table } from "@/shared/ui";
 
 const COLS = "92px 148px 168px minmax(200px,1fr) 104px 76px 160px 118px";
 
 export function LeadsPage() {
   const seed = useLeads();
-  const navigate = useNavigate();
   const [leads, setLeads] = useState(seed);
   const [open, setOpen] = useState<number | null>(null);
   const [query, setQuery] = useState("");
@@ -22,16 +21,6 @@ export function LeadsPage() {
       <PageHeader
         title="Заявки на демо"
         subtitle="с лендинга, блога и Instagram Direct"
-        actions={
-          <Segmented
-            value="list"
-            onChange={(v) => v === "funnel" && navigate(routes.funnel)}
-            options={[
-              { value: "list", label: "Список" },
-              { value: "funnel", label: "Воронка" },
-            ]}
-          />
-        }
       />
       <div className="flex flex-wrap items-center gap-2">
         <SearchInput placeholder="Имя или контакт" value={query} onChange={setQuery} />
