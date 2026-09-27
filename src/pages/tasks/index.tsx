@@ -1,16 +1,14 @@
 import { useState } from "react";
 import { useSession } from "@/entities/session";
-import { TASK_PRIORITIES, TASK_TYPES, priorityStyle, typeGlyph, useBoard, useOperators, useTasks, type Task, type TaskPriority, type TaskType } from "@/entities/task";
+import { operatorOptions, priorityOptions, priorityStyle, typeGlyph, typeOptions, useBoard, useOperators, useTasks, type Task, type TaskPriority, type TaskType } from "@/entities/task";
 import { ManageColumnsModal } from "@/features/manage-columns";
 import { TaskEditorModal, type TaskEditorTarget } from "@/features/task-editor";
 import { formatDate, initialsOf } from "@/shared/lib";
-import { Avatar, Button, Cell, EmptyState, FilterChip, Icon, PageHeader, Row, SearchInput, Segmented, Table } from "@/shared/ui";
+import { Button, Cell, Dropdown, EmptyState, FilterChip, Icon, PageHeader, Row, SearchInput, Segmented, Table, UserAvatar } from "@/shared/ui";
 import { TaskBoard } from "@/widgets/task-board";
 
-/** «me» | «none» | operator id | null (everyone). */
-type AssigneeFilter = "me" | "none" | number | null;
-
-const cycle = <T,>(list: T[], v: T | null): T | null => (v === null ? list[0] : (list[list.indexOf(v) + 1] ?? null));
+/** «me» | «none» | operator id (as string) | null (everyone). */
+type AssigneeFilter = string | null;
 
 export function TasksPage() {
   const me = useSession((s) => s.user);
@@ -33,22 +31,20 @@ export function TasksPage() {
     (t) =>
       (!q || `${t.title} ${t.description}`.toLowerCase().includes(q)) &&
       (assignee === null ||
-        (assignee === "me" ? t.assignee?.id === me?.id : assignee === "none" ? !t.assignee : t.assignee?.id === assignee)) &&
+        (assignee === "me" ? t.assignee?.id === me?.id : assignee === "none" ? !t.assignee : String(t.assignee?.id) === assignee)) &&
       (!type || t.type === type) &&
       (!priority || t.priority === priority) &&
       (!tag || t.tags.includes(tag)) &&
       (!hideDone || !t.column.isDone),
   );
   const open = tasks.filter((t) => !t.column.isDone).length;
-  const assigneeLabel =
-    assignee === null
-      ? "Исполнитель"
-      : assignee === "me"
-        ? "Мои задачи"
-        : assignee === "none"
-          ? "Без исполнителя"
-          : (operators.data?.find((o) => o.id === assignee)?.fullName ?? "Исполнитель");
-  const assigneeCycle: AssigneeFilter[] = ["me", "none", ...(operators.data ?? []).filter((o) => o.id !== me?.id).map((o) => o.id)];
+  const mine = operators.data?.find((o) => o.id === me?.id);
+  const assigneeOptions = [
+    { value: "me", label: "Мои задачи", avatar: { src: mine?.avatar ?? me?.avatar, initials: me?.initials ?? "?" } },
+    { value: "none", label: "Без исполнителя", icon: "user" },
+    ...operatorOptions((operators.data ?? []).filter((o) => o.id !== me?.id)),
+  ];
+  const avatars = Object.fromEntries((operators.data ?? []).map((o) => [o.id, o.avatar]));
   const firstColumn = board.columns[0]?.id;
 
   return (
@@ -77,25 +73,39 @@ export function TasksPage() {
       />
       <div className="flex flex-wrap items-center gap-2">
         <SearchInput width={220} placeholder="Заголовок или описание" value={query} onChange={setQuery} />
-        <FilterChip label={assigneeLabel} tone={assignee !== null ? "active" : "default"} onClick={() => setAssignee((a) => cycle(assigneeCycle, a))} />
-        <FilterChip
-          label={type ? typeGlyph(type).label : "Тип"}
-          tone={type ? "active" : "default"}
-          onClick={() => setType((t) => cycle(TASK_TYPES.map((x) => x.value), t))}
+        <Dropdown<string>
+          look="chip"
+          label="Исполнитель"
+          placeholder="Все исполнители"
+          clearable
+          searchable
+          searchPlaceholder="Имя или логин"
+          menuWidth={280}
+          value={assignee}
+          onChange={setAssignee}
+          options={assigneeOptions}
         />
-        <FilterChip
-          label={priority ? (TASK_PRIORITIES.find((p) => p.value === priority)?.label ?? "Приоритет") : "Приоритет"}
-          tone={priority ? "active" : "default"}
-          onClick={() => setPriority((p) => cycle(TASK_PRIORITIES.map((x) => x.value), p))}
-        />
-        {tags.length > 0 && <FilterChip label={tag ? `Метка: ${tag}` : "Метка"} tone={tag ? "active" : "default"} onClick={() => setTag((t) => cycle(tags, t))} />}
+        <Dropdown<TaskType> look="chip" label="Тип" placeholder="Все типы" clearable value={type} onChange={setType} options={typeOptions()} />
+        <Dropdown<TaskPriority> look="chip" label="Приоритет" placeholder="Любой приоритет" clearable value={priority} onChange={setPriority} options={priorityOptions()} />
+        {tags.length > 0 && (
+          <Dropdown<string>
+            look="chip"
+            label="Метка"
+            placeholder="Все метки"
+            clearable
+            searchable={tags.length > 8}
+            value={tag}
+            onChange={setTag}
+            options={tags.map((t) => ({ value: t, label: t, icon: "tag" }))}
+          />
+        )}
         <FilterChip icon="check" tone={hideDone ? "active" : "default"} label="Скрыть выполненные" onClick={() => setHideDone((v) => !v)} />
       </div>
 
       {view === "board" ? (
-        <TaskBoard board={board} tasks={visible} onAdd={(columnId) => setEditor({ columnId })} onOpen={(task) => setEditor({ task })} />
+        <TaskBoard board={board} tasks={visible} avatars={avatars} onAdd={(columnId) => setEditor({ columnId })} onOpen={(task) => setEditor({ task })} />
       ) : visible.length ? (
-        <TaskList tasks={visible} onOpen={(task) => setEditor({ task })} />
+        <TaskList tasks={visible} avatars={avatars} onOpen={(task) => setEditor({ task })} />
       ) : (
         <div className="rounded-xl border border-neutral-200">
           <EmptyState icon="layout-kanban" title={tasks.length ? "По фильтрам ничего не найдено" : "Задач пока нет"} />
@@ -110,7 +120,7 @@ export function TasksPage() {
   );
 }
 
-function TaskList({ tasks, onOpen }: { tasks: Task[]; onOpen: (t: Task) => void }) {
+function TaskList({ tasks, onOpen, avatars }: { tasks: Task[]; onOpen: (t: Task) => void; avatars: Record<number, string | null | undefined> }) {
   return (
     <Table cols="110px minmax(260px,1fr) 124px 124px 170px 96px" minWidth={960} head={["Тип", "Задача", "Приоритет", "Колонка", "Исполнитель", "Срок"]}>
       {tasks.map((t) => {
@@ -135,7 +145,7 @@ function TaskList({ tasks, onOpen }: { tasks: Task[]; onOpen: (t: Task) => void 
             <span className="flex min-w-0 items-center gap-1.5 text-xs">
               {t.assignee ? (
                 <>
-                  <Avatar initials={initialsOf(t.assignee.fullName)} size={22} tone="brand" className="text-[9px]" />
+                  <UserAvatar src={avatars[t.assignee.id]} initials={initialsOf(t.assignee.fullName)} size={22} className="text-[9px]" />
                   <Cell>{t.assignee.fullName}</Cell>
                 </>
               ) : (

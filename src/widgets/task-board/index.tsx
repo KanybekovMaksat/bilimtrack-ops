@@ -1,7 +1,7 @@
 import { useRef, useState, type DragEvent } from "react";
 import { priorityStyle, typeGlyph, useMoveTask, type Board, type Task } from "@/entities/task";
 import { cn, formatDate, initialsOf } from "@/shared/lib";
-import { Avatar, Icon } from "@/shared/ui";
+import { Avatar, Icon, UserAvatar } from "@/shared/ui";
 
 type DropTarget = { column: number; before: number | null } | null;
 
@@ -9,8 +9,9 @@ function Slot() {
   return <div className="-my-[5px] -mb-0.5 h-[3px] rounded-full bg-brand" />;
 }
 
-function TaskCard({ task, dragging, onOpen, onDragStart, onDragEnd, onDragOver, onDrop }: {
+function TaskCard({ task, avatar, dragging, onOpen, onDragStart, onDragEnd, onDragOver, onDrop }: {
   task: Task;
+  avatar?: string | null;
   dragging: boolean;
   onOpen: () => void;
   onDragStart: (e: DragEvent) => void;
@@ -67,7 +68,7 @@ function TaskCard({ task, dragging, onOpen, onDragStart, onDragEnd, onDragOver, 
         )}
         {task.assignee ? (
           <span title={task.assignee.fullName}>
-            <Avatar initials={initialsOf(task.assignee.fullName)} size={22} tone="brand" className="text-[9px]" />
+            <UserAvatar src={avatar} initials={initialsOf(task.assignee.fullName)} size={22} className="text-[9px]" />
           </span>
         ) : (
           <span title="Без исполнителя">
@@ -85,10 +86,12 @@ type Props = {
   tasks: Task[];
   onAdd: (columnId: number) => void;
   onOpen: (task: Task) => void;
+  /** Operator id → profile photo. */
+  avatars?: Record<number, string | null | undefined>;
 };
 
 /** Kanban board with native drag-and-drop between and within columns. */
-export function TaskBoard({ board, tasks, onAdd, onOpen }: Props) {
+export function TaskBoard({ board, tasks, onAdd, onOpen, avatars = {} }: Props) {
   const move = useMoveTask(board);
   const dragId = useRef<number | null>(null);
   const [dragging, setDragging] = useState<number | null>(null);
@@ -147,6 +150,7 @@ export function TaskBoard({ board, tasks, onAdd, onOpen }: Props) {
                   {over && target?.before === t.id && dragging !== t.id && <Slot />}
                   <TaskCard
                     task={t}
+                    avatar={t.assignee ? avatars[t.assignee.id] : null}
                     dragging={dragging === t.id}
                     onOpen={() => onOpen(t)}
                     onDragStart={(e) => {

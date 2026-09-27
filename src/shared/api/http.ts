@@ -173,3 +173,18 @@ export async function apiPage<T>(path: string, query: RequestOptions["query"] = 
   const rows = (body?.data ?? []) as T[];
   return { rows, count: body?.meta?.count ?? rows.length };
 }
+
+/** Authorized file download (contracts are not public media): answers with the blob and the server's file name. */
+export async function apiBlob(path: string, query: RequestOptions["query"] = {}): Promise<{ blob: Blob; filename: string | null }> {
+  let res: Response;
+  try {
+    res = await send(path, { query }, true);
+  } catch {
+    throw new ApiError(0, "Нет связи с сервером. Проверьте интернет или адрес API.");
+  }
+  if (!res.ok) throw await parseError(res);
+  const disposition = res.headers.get("Content-Disposition") ?? "";
+  const star = /filename\*=UTF-8''([^;]+)/i.exec(disposition)?.[1];
+  const plain = /filename="?([^";]+)"?/i.exec(disposition)?.[1];
+  return { blob: await res.blob(), filename: star ? decodeURIComponent(star) : (plain ?? null) };
+}

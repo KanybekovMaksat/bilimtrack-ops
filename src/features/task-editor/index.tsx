@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useSession } from "@/entities/session";
 import {
-  TASK_PRIORITIES,
-  TASK_TYPES,
+  operatorOptions,
+  priorityOptions,
+  typeOptions,
   useAddComment,
   useCreateTask,
   useDeleteComment,
@@ -15,8 +16,8 @@ import {
   type TaskPriority,
   type TaskType,
 } from "@/entities/task";
-import { cn, formatDate, formatDateTimeShort, initialsOf } from "@/shared/lib";
-import { Avatar, Button, Callout, Modal, ModalActions, Segmented, TextArea, TextInput } from "@/shared/ui";
+import { formatDate, formatDateTimeShort, initialsOf } from "@/shared/lib";
+import { Avatar, Button, Callout, Dropdown, Modal, ModalActions, Segmented, TextArea, TextInput } from "@/shared/ui";
 
 /** `task` — edit an existing task; `columnId` — create a new one in that column. */
 export type TaskEditorTarget = { task: Task } | { columnId: number } | null;
@@ -77,28 +78,28 @@ function TaskEditor({ board, target, onClose }: { board: Board; target: NonNulla
         <Label>Заголовок · обязательно</Label>
         <TextInput look="plain" value={draft.title} onChange={(e) => set({ title: e.target.value })} placeholder="Что нужно сделать" autoFocus={!existing} />
       </label>
-      <div className="flex flex-wrap gap-4">
-        <div className="flex flex-col gap-2">
+      <div className="grid grid-cols-3 gap-3">
+        <div className="flex flex-col gap-1.5">
           <Label>Тип</Label>
-          <Segmented<TaskType>
-            value={draft.type}
-            onChange={(type) => set({ type })}
-            options={TASK_TYPES.map((t) => ({ value: t.value, label: t.label, icon: t.icon, iconColor: t.color }))}
-          />
+          <Dropdown<TaskType> value={draft.type} onChange={(type) => type && set({ type })} options={typeOptions()} placeholder="Тип задачи" />
         </div>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1.5">
           <Label>Приоритет</Label>
-          <Segmented<TaskPriority> value={draft.priority} onChange={(priority) => set({ priority })} options={TASK_PRIORITIES.map((p) => ({ value: p.value, label: p.label }))} />
+          <Dropdown<TaskPriority> value={draft.priority} onChange={(priority) => priority && set({ priority })} options={priorityOptions()} placeholder="Приоритет" />
         </div>
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label>Исполнитель</Label>
-        <div className="flex flex-wrap gap-1.5">
-          <PersonChip on={draft.assigneeId === null} onClick={() => set({ assigneeId: null })} label="Без исполнителя" />
-          {(operators.data ?? []).map((p) => (
-            <PersonChip key={p.id} on={draft.assigneeId === p.id} onClick={() => set({ assigneeId: p.id })} label={p.fullName} initials={initialsOf(p.fullName)} />
-          ))}
-          {operators.isLoading && <span className="text-xs text-neutral-400">Загружаем команду…</span>}
+        <div className="flex flex-col gap-1.5">
+          <Label>Исполнитель</Label>
+          <Dropdown<string>
+            value={draft.assigneeId === null ? null : String(draft.assigneeId)}
+            onChange={(v) => set({ assigneeId: v ? Number(v) : null })}
+            options={operatorOptions(operators.data ?? [])}
+            placeholder="Без исполнителя"
+            clearable
+            searchable
+            searchPlaceholder="Имя или логин"
+            menuWidth={300}
+          />
+          {operators.isLoading && <span className="text-[11px] text-neutral-400">Загружаем команду…</span>}
         </div>
       </div>
       <div className="flex flex-wrap gap-4">
@@ -162,21 +163,6 @@ function TaskEditor({ board, target, onClose }: { board: Board; target: NonNulla
   );
 }
 
-function PersonChip({ on, onClick, label, initials }: { on: boolean; onClick: () => void; label: string; initials?: string }) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "flex h-8 items-center gap-1.5 rounded-full border pr-2.5 text-[13px] font-medium",
-        initials ? "pl-1" : "pl-2.5",
-        on ? "border-brand bg-brand-50 text-brand" : "border-neutral-200 bg-white text-neutral-700",
-      )}
-    >
-      {initials && <Avatar initials={initials} size={24} tone="brand" className="text-[9px]" />}
-      {label}
-    </button>
-  );
-}
 
 function Comments({ boardId, taskId }: { boardId: number; taskId: number }) {
   const me = useSession((s) => s.user);

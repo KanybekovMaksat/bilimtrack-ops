@@ -6,7 +6,8 @@ function useEscape(open: boolean, onClose: () => void) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      // A dropdown inside the dialog handles its own Escape (and marks it handled).
+      if (e.key === "Escape" && !e.defaultPrevented) onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

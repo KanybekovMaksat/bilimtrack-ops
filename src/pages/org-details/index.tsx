@@ -14,6 +14,7 @@ import {
 import { useCan } from "@/entities/session";
 import { AddPersonModal, EditMembershipModal } from "@/features/add-person";
 import { EditLicenseModal } from "@/features/edit-license";
+import { ContractsPanel } from "@/features/manage-contracts";
 import { DeleteOrganizationModal, EditOrganizationModal, OrgLogoPicker, OrgStatusModal } from "@/features/manage-organization";
 import { OrgModuleToggle } from "@/features/toggle-org-module";
 import { routes } from "@/shared/config";
@@ -25,6 +26,7 @@ const TABS = [
   { key: "modules", label: "Модули и настройки" },
   { key: "structure", label: "Структура" },
   { key: "people", label: "Люди" },
+  { key: "contracts", label: "Договоры" },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -110,6 +112,7 @@ function OrgDetails({ orgId }: { orgId: number }) {
       {tab === "modules" && <ModulesTab org={org} />}
       {tab === "structure" && <StructureTab org={org} />}
       {tab === "people" && <PeopleTab org={org} />}
+      {tab === "contracts" && <ContractsPanel orgId={org.id} orgName={org.name} />}
 
       {statusTarget && <OrgStatusModal org={org} target={statusTarget} onClose={() => setStatusTarget(null)} />}
       {editing && <EditOrganizationModal org={org} onClose={() => setEditing(false)} />}

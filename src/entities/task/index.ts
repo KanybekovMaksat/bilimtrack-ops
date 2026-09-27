@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { api, apiList } from "@/shared/api";
+import { initialsOf } from "@/shared/lib";
+import type { DropdownOption } from "@/shared/ui";
 
 /* Team task board. Backend: server/apps/ops (Task, TaskBoard, use_cases/tasks.py),
    /api/v1/ops/boards/ and /api/v1/ops/tasks/. Only Bilimtrack operators see the OPS board. */
@@ -62,7 +64,32 @@ export type Task = {
 
 export type TaskComment = { id: number; taskId: number; author: Person | null; text: string; createdAt: string; updatedAt: string };
 
-export type Operator = { id: number; username: string; email: string; fullName: string; role: string; roleLabel: string; lastLogin: string | null };
+export type Operator = {
+  id: number;
+  username: string;
+  email: string;
+  fullName: string;
+  role: string;
+  roleLabel: string;
+  lastLogin: string | null;
+  /** Profile photo the admin set in «Мой профиль». */
+  avatar?: string | null;
+};
+
+/** Operators as select options: photo (or initials), name and login. */
+export const operatorOptions = (operators: Operator[]): DropdownOption<string>[] =>
+  operators.map((o) => ({
+    value: String(o.id),
+    label: o.fullName || o.username,
+    hint: o.username,
+    avatar: { src: o.avatar, initials: initialsOf(o.fullName || o.username) },
+  }));
+
+export const typeOptions = (): DropdownOption<TaskType>[] => TASK_TYPES.map((t) => ({ value: t.value, label: t.label, icon: t.icon, iconColor: t.color }));
+
+const PRIORITY_DOT: Record<TaskPriority, string> = { low: "#d4d4d4", normal: "#a1a1a1", medium: "#fd9a00", high: "#f97316", urgent: "#fb2c36" };
+
+export const priorityOptions = (): DropdownOption<TaskPriority>[] => TASK_PRIORITIES.map((p) => ({ value: p.value, label: p.label, dot: PRIORITY_DOT[p.value] }));
 
 export type TaskInput = {
   columnId?: number;
