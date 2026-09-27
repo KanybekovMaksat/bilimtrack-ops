@@ -1,1 +1,1 @@
-export { useSessionStore, useSessionUser, type SessionUser } from "./model/session-store";
+export { staffRoleLabel, useSession, type SessionUser, type StaffRole } from "./model";

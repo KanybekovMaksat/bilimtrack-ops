@@ -1,2 +1,1 @@
-export { ApiError, delay, nextId, notFound } from "./mock-client";
-export { queryClient } from "./query-client";
+export { delay, queryClient, useMockQuery } from "./mock";

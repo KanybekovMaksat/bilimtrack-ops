@@ -1,8 +1,8 @@
 # Bilimtrack Ops
 
-Внутренняя операционная панель команды Bilimtrack: тикеты поддержки, клиентские организации и состояние сервисов.
+Внутренняя панель команды Bilimtrack: продажи, поддержка, клиенты, биллинг, каналы связи, контент и мониторинг платформы. Сверстана по макету «Bilimtrack Ops v2» из Claude Design на дизайн-системе Bilimtrack (TikTok Sans, Inter, Tabler Icons, акцент `#155dfc`).
 
-**Стек:** React 19 · TypeScript · Vite · React Router · TanStack Query · Zustand · Tailwind CSS v4 · lucide-react
+**Стек:** React 19 · TypeScript · Vite · React Router · TanStack Query · Zustand · Tailwind CSS v4 · Tabler Icons (webfont)
 
 ## Запуск
 
@@ -13,26 +13,46 @@ npm run build    # typecheck + production build
 npm run lint     # ESLint, включая правила FSD
 ```
 
-Вход — любая почта `@bilimtrack.kg` и пароль от 6 символов (мок-авторизация). Данные хранятся в памяти (`entities/*/api`) с имитацией задержки сети. Чтобы подключить реальный backend, замените реализацию `*Api` в сущностях. Хуки и UI при этом не меняются.
+Вход моковый: подходит любой логин, пароль не проверяется. В сайдбаре внизу есть переключатель демо-роли «Админ / Контент»: у роли «Контент» остаются только главная, статьи, справочники и медиатека, остальные разделы показывают экран «Доступ закрыт».
+
+## Данные
+
+Всё на моковых данных из макета, «сегодня» — 20 сентября 2026. Данные лежат в `src/entities/*`, читаются через `useMockQuery` (`shared/api`) — это TanStack Query с `useSuspenseQuery` и искусственной задержкой, поэтому загрузка страниц показывает скелетон. Чтобы подключить бэкенд, замените fetcher в хуке сущности на реальный запрос — страницы менять не нужно.
+
+Действия, которые меняют состояние (эскалация тикета, вход от имени, привязка профиля, задачи на доске, анонсы, ручные платежи организаций), хранятся в Zustand-сторах и живут до перезагрузки страницы.
+
+## Экраны
+
+| Раздел | Маршруты |
+|---|---|
+| Главная | `/` — очередь работы, события, график, сводка (у роли «Контент» — черновики) |
+| Бизнес | `/metrics`, `/health` |
+| Продажи | `/leads` (карточка заявки — панель справа), `/funnel` |
+| Поддержка | `/tickets`, `/tickets/:id`, `/tickets-states`, `/tickets-priority`, `/ideas` |
+| Клиенты | `/orgs`, `/orgs/:slug?tab=…`, `/orgs-new` (мастер из 5 шагов), `/onboarding`, `/licenses`, `/accounts`, `/accounts/:login`, `/accounts/:login/session`, `/lists`, `/announcements` |
+| Биллинг | `/plans`, `/plans/:code`, `/subscriptions`, `/payments`, `/providers`, `/org-billing` |
+| Соцсети | `/channels`, `/inbox`, `/templates` |
+| Задачи | `/tasks` — канбан с drag-and-drop и список |
+| Контент | `/posts`, `/posts/editor`, `/dicts`, `/media` |
+| Платформа | `/audit`, `/logins`, `/system`, `/errors`, `/team`, `/denied` |
 
 ## Архитектура — Feature-Sliced Design
 
 ```
 src/
-├── app/        # инициализация: провайдеры, роутер, guards, глобальные стили
-├── pages/      # страницы-композиции: dashboard, tickets, ticket-details, organizations, services, login, not-found
-├── widgets/    # самостоятельные блоки UI: app-layout, stats-overview, tickets-table, service-status-board, organizations-table
-├── features/   # пользовательские действия: auth, ticket-filters, update-ticket, create-ticket, toggle-theme
-├── entities/   # бизнес-сущности: ticket, organization, employee, service, session
-└── shared/     # без бизнес-логики: ui-kit, api-утилиты, lib, config
+├── app/        точка входа, роутер, guards (авторизация и роли), глобальные стили и токены
+├── pages/      страницы — по слайсу на экран
+├── widgets/    app-shell (сайдбар + шапка), tickets-table, ticket-thread, task-board
+├── features/   действия пользователя: auth, switch-role, escalate-ticket, impersonate, link-profile,
+│               toggle-org-module, create-organization, compose-announcement, send-broadcast,
+│               refund-payment, add-org-payment, create-task, pick-media, edit-dictionary-entry
+├── entities/   ticket, organization, client-health, license, onboarding, metrics, lead, idea,
+│               account, audience, plan, subscription, payment, org-billing, channel, task,
+│               article, platform, announcement, session
+└── shared/     ui-kit по дизайн-системе, api (mock + query client), lib, config (маршруты)
 ```
 
-Каждый слайс устроен по сегментам `ui/`, `model/`, `api/` и наружу отдаёт только `index.ts` (public API).
+Слайс отдаёт наружу только `index.ts`. Правила импортов проверяет ESLint (`eslint.config.js`):
 
-### Правила импортов
-
-1. Слой импортирует только из **нижележащих** слоёв: `app → pages → widgets → features → entities → shared`.
-2. Слайсы одного слоя не импортируют друг друга.
-3. Импорт — только через public API: `@/entities/ticket`, а не `@/entities/ticket/api/ticket-api`.
-
-Правила 1 и 3 проверяются ESLint (`eslint.config.js`), и их нарушение ломает `npm run lint`.
+1. Слой импортирует только из нижележащих слоёв: `app → pages → widgets → features → entities → shared`.
+2. Импорт слайса — только через его public API: `@/entities/ticket`, а не `@/entities/ticket/model`.

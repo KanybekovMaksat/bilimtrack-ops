@@ -1,0 +1,182 @@
+import { Suspense, useEffect, useRef, useState } from "react";
+import { Link, Outlet, useLocation, useNavigate } from "react-router";
+import { staffRoleLabel, useSession } from "@/entities/session";
+import { ImpersonationBanner } from "@/features/impersonate";
+import { RoleSwitcher } from "@/features/switch-role";
+import { routes } from "@/shared/config";
+import { cn } from "@/shared/lib";
+import { Avatar, Icon, PageSkeleton } from "@/shared/ui";
+import { NAV, isActive } from "./nav";
+
+export function Logo({ size = 30 }: { size?: number }) {
+  return (
+    <div
+      className="flex shrink-0 items-center justify-center bg-ink text-white"
+      style={{ width: size, height: size, borderRadius: size > 36 ? 12 : 8, fontSize: size > 36 ? 24 : 17 }}
+    >
+      <Icon name="puzzle" />
+    </div>
+  );
+}
+
+function Sidebar() {
+  const role = useSession((s) => s.role);
+  const { pathname } = useLocation();
+  const groups = NAV.map((g) => ({ ...g, items: g.items.filter((i) => i.roles.includes(role)) })).filter((g) => g.items.length);
+
+  return (
+    <aside className="sticky top-0 flex h-screen w-[252px] shrink-0 flex-col gap-1 overflow-auto border-r border-neutral-100 px-3 py-3.5">
+      <Link to={routes.home} className="flex items-center gap-2.5 px-2 pt-1 pb-3.5 text-ink hover:text-ink">
+        <Logo />
+        <div className="text-[15px] font-semibold">Bilimtrack Ops</div>
+      </Link>
+      {groups.map((g) => (
+        <div key={g.title || "root"} className="mb-2.5 flex flex-col gap-px">
+          {g.title && <div className="px-2.5 py-1 text-[10px] font-semibold tracking-[.06em] text-neutral-400 uppercase">{g.title}</div>}
+          {g.items.map((it) => {
+            const on = isActive(it, pathname);
+            return (
+              <Link
+                key={it.to}
+                to={it.to}
+                className={cn(
+                  "flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-sm leading-[18px] hover:bg-neutral-100",
+                  on ? "bg-neutral-100 font-medium text-brand hover:text-brand" : "text-ink hover:text-ink",
+                )}
+              >
+                <Icon name={it.icon} size={18} className={on ? "text-brand" : "text-neutral-400"} />
+                <span className="flex-1">{it.label}</span>
+                {it.count != null && (
+                  <span className="rounded-full bg-neutral-100 px-[7px] py-px text-[11px] font-semibold text-neutral-500">{it.count}</span>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+      ))}
+      <div className="mt-auto">
+        <RoleSwitcher />
+      </div>
+    </aside>
+  );
+}
+
+function HeaderBadge({ to, icon, count, tone }: { to: string; icon: string; count: number; tone: "red" | "blue" }) {
+  return (
+    <Link to={to} className="relative flex size-[34px] items-center justify-center rounded-full text-ink hover:bg-neutral-100 hover:text-ink">
+      <Icon name={icon} size={19} />
+      <span
+        className={cn(
+          "absolute top-px right-0 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white",
+          tone === "red" ? "bg-red-500" : "bg-brand",
+        )}
+      >
+        {count}
+      </span>
+    </Link>
+  );
+}
+
+function UserMenu() {
+  const user = useSession((s) => s.user);
+  const role = useSession((s) => s.role);
+  const signOut = useSession((s) => s.signOut);
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button onClick={() => setOpen((v) => !v)} className="flex items-center gap-[9px] border-0 bg-transparent p-0 text-left">
+        <Avatar initials={user?.initials} size={30} tone="brand" className="text-xs" />
+        <div className="leading-[1.2]">
+          <div className="text-[13px] font-medium">{user?.name}</div>
+          <div className="text-[11px] text-neutral-400">{staffRoleLabel[role]}</div>
+        </div>
+        <Icon name="chevron-down" size={15} className="text-neutral-400" />
+      </button>
+      {open && (
+        <div className="absolute top-10 right-0 z-30 w-48 rounded-xl border border-neutral-200 bg-white p-1 shadow-pop">
+          <div className="px-3 py-2 font-num text-xs text-neutral-500">{user?.login}</div>
+          <button onClick={signOut} className="flex w-full items-center gap-2 rounded-lg border-0 bg-transparent px-3 py-2 text-left text-[13px] hover:bg-neutral-100">
+            <Icon name="logout" size={16} className="text-neutral-500" />
+            Выйти
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GlobalSearch() {
+  const navigate = useNavigate();
+  const [q, setQ] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (q.trim()) navigate(`${routes.accounts}?q=${encodeURIComponent(q.trim())}`);
+      }}
+      className="flex h-9 max-w-[520px] flex-1 items-center gap-2 rounded-full bg-neutral-100 px-3.5 text-sm"
+    >
+      <Icon name="search" size={17} className="text-neutral-400" />
+      <input
+        ref={inputRef}
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="Поиск по аккаунтам, организациям, тикетам, заявкам"
+        className="min-w-0 flex-1 border-0 bg-transparent font-sans text-sm outline-none placeholder:text-neutral-400"
+      />
+      <span className="rounded-md border border-neutral-200 bg-white px-1.5 py-px text-[11px] text-neutral-500">⌘K</span>
+    </form>
+  );
+}
+
+/** Sidebar + sticky header + page outlet; one Suspense boundary for all mock queries. */
+export function AppShell() {
+  const { pathname } = useLocation();
+  return (
+    <div className="flex min-h-screen min-w-[1280px] bg-white">
+      <Sidebar />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-4 border-b border-neutral-100 bg-white px-6">
+          <GlobalSearch />
+          <div className="flex-1" />
+          <div className="flex items-center gap-1.5">
+            <HeaderBadge to={routes.tickets} icon="lifebuoy" count={23} tone="red" />
+            <HeaderBadge to={routes.leads} icon="inbox" count={7} tone="blue" />
+          </div>
+          <div className="h-6 w-px bg-neutral-200" />
+          <UserMenu />
+        </header>
+        <main className="min-w-0 flex-1 px-7 pt-6 pb-14">
+          <ImpersonationBanner />
+          <Suspense key={pathname} fallback={<PageSkeleton />}>
+            <Outlet />
+          </Suspense>
+        </main>
+      </div>
+    </div>
+  );
+}
