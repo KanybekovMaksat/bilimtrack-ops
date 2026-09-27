@@ -36,13 +36,13 @@ npm run lint     # ESLint, включая правила FSD
 | Главная | `/` — очередь работы, события, график, сводка |
 | Бизнес | `/metrics` |
 | Продажи | `/leads` (карточка заявки — панель справа) |
-| Поддержка | `/tickets`, `/tickets/:id`, `/tickets-states`, `/tickets-priority`, `/ideas` |
-| Клиенты | `/orgs`, `/orgs/:id?tab=…`, `/orgs-new` (мастер из 5 шагов, демо), `/onboarding`, `/licenses`, `/accounts`, `/accounts/:login` |
+| Поддержка | `/tickets`, `/tickets/:id`, `/ideas`, `/moderation` |
+| Клиенты | `/orgs`, `/orgs/:id?tab=…`, `/orgs-new` (мастер из 5 шагов), `/onboarding`, `/licenses`, `/accounts`, `/accounts/:login` |
 | Биллинг | `/plans`, `/plans/:code`, `/subscriptions`, `/payments`, `/providers`, `/org-billing` |
 | Соцсети | `/channels`, `/inbox`, `/templates` |
 | Задачи | `/tasks` — канбан с drag-and-drop, список, редактор задачи с комментариями, колонки |
-| Контент | `/posts`, `/posts/editor`, `/dicts`, `/media` |
-| Платформа | `/audit`, `/logins`, `/system`, `/errors`, `/team`, `/denied` |
+| Контент | `/posts`, `/posts/editor[/:id]`, `/dicts`, `/media` |
+| Платформа | `/audit`, `/logins`, `/system`, `/errors`, `/team`, `/profile`, `/denied` |
 
 ## Архитектура — Feature-Sliced Design
 
@@ -51,16 +51,21 @@ src/
 ├── app/        точка входа, роутер, guards (авторизация и роли), глобальные стили и токены
 ├── pages/      страницы — по слайсу на экран
 ├── widgets/    app-shell (сайдбар + шапка), tickets-table, ticket-thread, task-board
-├── features/   действия пользователя: auth, change-password, link-profile, toggle-org-module,
-│               edit-license, task-editor, manage-columns, create-organization,
-│               refund-payment, add-org-payment, pick-media, edit-dictionary-entry
-├── entities/   ticket, organization, client-health, license, onboarding, metrics, lead, idea,
-│               account, plan, subscription, payment, org-billing, channel, task,
-│               article, platform, session
-└── shared/     ui-kit по дизайн-системе, api (http-клиент, mock + query client), lib, config (маршруты)
+├── features/   действия пользователя: auth, change-password, edit-my-profile, link-profile,
+│               toggle-org-module, edit-license, task-editor, manage-columns, manage-contracts,
+│               manage-operator, manage-organization, create-organization, add-person,
+│               refund-payment, add-org-payment
+├── entities/   session, operator, organization, contract, license, account, ticket, idea, lead,
+│               moderation, task, article, journal, platform, metrics, client-health, onboarding,
+│               plan, subscription, payment, org-billing, channel
+└── shared/     ui-kit по дизайн-системе, api (http-клиент, корни ключей запросов, mock + query client),
+                lib (форматтеры, хуки), config (маршруты)
 ```
 
 Слайс отдаёт наружу только `index.ts`. Правила импортов проверяет ESLint (`eslint.config.js`):
 
 1. Слой импортирует только из нижележащих слоёв: `app → pages → widgets → features → entities → shared`.
 2. Импорт слайса — только через его public API: `@/entities/ticket`, а не `@/entities/ticket/model`.
+3. Слайсы одного слоя не импортируют друг друга.
+
+Подробные правила для разработчиков и ИИ-агентов — в [AGENTS.md](AGENTS.md).
