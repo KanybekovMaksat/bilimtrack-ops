@@ -2,7 +2,6 @@ export const routes = {
   login: "/login",
   home: "/",
   metrics: "/metrics",
-  health: "/health",
   leads: "/leads",
   tickets: "/tickets",
   ticket: (id: string) => `/tickets/${id}`,

@@ -26,7 +26,7 @@ npm run lint     # ESLint, включая правила FSD
 | Раздел | Маршруты |
 |---|---|
 | Главная | `/` — очередь работы, события, график, сводка |
-| Бизнес | `/metrics`, `/health` |
+| Бизнес | `/metrics` |
 | Продажи | `/leads` (карточка заявки — панель справа) |
 | Поддержка | `/tickets`, `/tickets/:id`, `/tickets-states`, `/tickets-priority`, `/ideas` |
 | Клиенты | `/orgs`, `/orgs/:slug?tab=…`, `/orgs-new` (мастер из 5 шагов), `/onboarding`, `/licenses`, `/accounts`, `/accounts/:login`, `/accounts/:login/session` |

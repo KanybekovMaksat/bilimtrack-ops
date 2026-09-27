@@ -7,7 +7,6 @@ import { ChannelsPage } from "@/pages/channels";
 import { DeniedPage, NotFoundPage } from "@/pages/denied";
 import { DictsPage } from "@/pages/dicts";
 import { ErrorsPage } from "@/pages/errors";
-import { HealthPage } from "@/pages/health";
 import { HomePage } from "@/pages/home";
 import { IdeasPage } from "@/pages/ideas";
 import { InboxPage } from "@/pages/inbox";
@@ -61,7 +60,6 @@ export const router = createBrowserRouter([
       { index: true, element: <HomePage /> },
 
       { path: routes.metrics, element: <MetricsPage /> },
-      { path: routes.health, element: <HealthPage /> },
 
       { path: routes.leads, element: <LeadsPage /> },
 

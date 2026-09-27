@@ -10,7 +10,6 @@ export const NAV: NavGroup[] = [
     title: "Бизнес",
     items: [
       { to: routes.metrics, label: "Сводные метрики", icon: "chart-bar" },
-      { to: routes.health, label: "Здоровье клиентов", icon: "heart-rate-monitor", count: 4 },
     ],
   },
   {
