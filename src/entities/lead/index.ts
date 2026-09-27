@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { api, apiList } from "@/shared/api";
+import { api, apiList, QK } from "@/shared/api";
 import type { PillTone } from "@/shared/ui";
 
 /* Demo requests from the landing pages and the blog.
@@ -77,13 +77,13 @@ const toLead = (l: ApiLead): Lead => ({
   note: l.note ?? "",
 });
 
-const leadKeys = { all: ["leads"] as const };
+const leadKeys = { all: [QK.leads] as const };
 const fetchLeads = async () => (await apiList<ApiLead>("cms/demo-requests/")).map(toLead);
 
 export const useLeads = () => useSuspenseQuery({ queryKey: leadKeys.all, queryFn: fetchLeads }).data;
 
-/** Non-suspending variant for counters in the shell. */
-export const useLeadsSoft = () => useQuery({ queryKey: leadKeys.all, queryFn: fetchLeads });
+/** Non-suspending variant for counters in the shell. `enabled: false` without the `sales` privilege. */
+export const useLeadsSoft = ({ enabled = true }: { enabled?: boolean } = {}) => useQuery({ queryKey: leadKeys.all, queryFn: fetchLeads, enabled });
 
 type LeadPatch = { id: number; status?: LeadStatus; note?: string };
 

@@ -17,7 +17,7 @@ import {
   type TaskType,
 } from "@/entities/task";
 import { formatDate, formatDateTimeShort, initialsOf } from "@/shared/lib";
-import { Avatar, Button, Callout, Dropdown, Modal, ModalActions, Segmented, TextArea, TextInput } from "@/shared/ui";
+import { Avatar, Button, Callout, Dropdown, ErrorNote, Modal, ModalActions, Segmented, TextArea, TextInput } from "@/shared/ui";
 
 /** `task` — edit an existing task; `columnId` — create a new one in that column. */
 export type TaskEditorTarget = { task: Task } | { columnId: number } | null;
@@ -128,7 +128,7 @@ function TaskEditor({ board, target, onClose }: { board: Board; target: NonNulla
           {existing.completedAt && ` · выполнена ${formatDate(existing.completedAt)}`}
         </div>
       )}
-      {error && <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-xs text-red-600">{error.message}</div>}
+      <ErrorNote error={error} />
 
       {confirmDelete && existing ? (
         <Callout tone="danger">

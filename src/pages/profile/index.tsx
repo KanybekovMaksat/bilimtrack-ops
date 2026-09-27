@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
-import { PERMISSION_ICON, usePermissionCatalog, useUpdateMyProfile } from "@/entities/operator";
+import { PERMISSION_ICON, usePermissionCatalog } from "@/entities/operator";
+import { useUpdateMyProfile } from "@/features/edit-my-profile";
 import { useSession } from "@/entities/session";
-import { Button, Card, Field, Icon, PageHeader, TextInput, UserAvatar } from "@/shared/ui";
+import { Button, Card, ErrorNote, Field, Icon, PageHeader, TextInput, UserAvatar } from "@/shared/ui";
 
 /** The signed-in admin edits own name and avatar. Privileges are granted in «Команда». */
 export function ProfilePage() {
@@ -66,7 +67,7 @@ export function ProfilePage() {
             <TextInput look="plain" value={form.middleName} onChange={(e) => setForm({ ...form, middleName: e.target.value })} />
           </Field>
         </div>
-        {names.error && <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-xs text-red-600">{names.error.message}</div>}
+        <ErrorNote error={names.error} />
         <div className="flex items-center gap-3">
           <Button
             variant="primary"

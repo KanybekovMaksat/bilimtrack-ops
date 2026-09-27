@@ -2,9 +2,9 @@ import { CONNECT_STEPS, SERVICE_STATS, channelTone, useChannels } from "@/entiti
 import { Button, Card, Icon, PageHeader, Pill } from "@/shared/ui";
 
 const STEP_TONE = {
-  neutral: { bg: "#fff", bd: "#e5e5e5", fg: "#0a0a0a" },
-  brand: { bg: "#eff6ff", bd: "#155dfc", fg: "#155dfc" },
-  success: { bg: "#f0fdf4", bd: "#00c951", fg: "#00a63e" },
+  neutral: { bg: "var(--color-white)", bd: "var(--color-neutral-200)", fg: "var(--color-ink)" },
+  brand: { bg: "var(--color-brand-50)", bd: "var(--color-brand)", fg: "var(--color-brand)" },
+  success: { bg: "var(--color-green-50)", bd: "var(--color-green-500)", fg: "var(--color-green-600)" },
 };
 
 export function ChannelsPage() {
@@ -14,7 +14,7 @@ export function ChannelsPage() {
       <PageHeader title="Каналы" subtitle="Instagram и WhatsApp как рабочие каналы связи, не SMM" />
       <div className="grid grid-cols-3 items-start gap-3.5">
         {channels.map((c) => (
-          <div key={c.name} className="flex flex-col gap-3 rounded-2xl border p-[18px]" style={{ borderColor: c.status === "Подключён" ? "#e5e5e5" : "#fd9a00" }}>
+          <div key={c.name} className="flex flex-col gap-3 rounded-2xl border p-[18px]" style={{ borderColor: c.status === "Подключён" ? "var(--color-neutral-200)" : "var(--color-amber-500)" }}>
             <div className="flex items-center gap-2.5">
               <Icon name={c.icon} size={24} style={{ color: c.color }} />
               <div className="flex-1">

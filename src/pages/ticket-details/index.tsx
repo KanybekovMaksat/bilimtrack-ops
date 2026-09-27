@@ -7,14 +7,13 @@ import {
   SOURCE,
   STATUS,
   SlaPill,
-  formatDateTime,
-  formatRelative,
   useCloseTicket,
   useTicket,
   type Ticket,
 } from "@/entities/ticket";
 import { routes } from "@/shared/config";
-import { Avatar, Breadcrumbs, Button, Card, CardHeader, Icon, StatusDot } from "@/shared/ui";
+import { formatDateTimeShort, formatRelative } from "@/shared/lib";
+import { Avatar, Breadcrumbs, Button, Card, CardHeader, ErrorNote, Icon, StatusDot } from "@/shared/ui";
 import { TicketThread } from "@/widgets/ticket-thread";
 
 export function TicketDetailsPage() {
@@ -35,7 +34,7 @@ export function TicketDetailsPage() {
             <span>·</span>
             <PriorityPill priority={ticket.priority} compact />
             <span>·</span>
-            <span>Создан {formatDateTime(ticket.createdAt)}</span>
+            <span>Создан {formatDateTimeShort(ticket.createdAt)}</span>
             <span>·</span>
             <span>Обновлён {formatRelative(ticket.updatedAt)}</span>
             <span>·</span>
@@ -48,7 +47,7 @@ export function TicketDetailsPage() {
           </Button>
         )}
       </div>
-      {close.error && <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-xs text-red-600">{close.error.message}</div>}
+      <ErrorNote error={close.error} />
 
       <div className="grid grid-cols-[minmax(0,1fr)_380px] items-start gap-4">
         <TicketThread key={ticket.id} ticket={ticket} />

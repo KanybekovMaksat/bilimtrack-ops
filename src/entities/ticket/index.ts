@@ -5,8 +5,6 @@ export {
   SLA_POLICY,
   SOURCE,
   STATUS,
-  formatDateTime,
-  formatRelative,
   isOpen,
   type MessageKind,
   type Ticket,

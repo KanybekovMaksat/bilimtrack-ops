@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { api, apiList } from "@/shared/api";
+import { api, apiList, QK } from "@/shared/api";
+import type { IconName } from "@/shared/ui";
 
 /* Contract licenses vs. modules actually enabled for each organization.
    Backend: server/apps/ops (OrganizationLicense, use_cases/licenses.py), /api/v1/ops/licenses/. */
@@ -45,13 +46,13 @@ export type LicenseInput = {
 /** y = on per contract, n = not in contract, p = in contract but off, x = on without contract, u = no contract recorded. */
 export type LicenseCell = "y" | "n" | "p" | "x" | "u" | "o";
 
-export const LICENSE_CELL: Record<LicenseCell, { icon: string; color: string; bg: string; label: string }> = {
-  y: { icon: "circle-check-filled", color: "#00a63e", bg: "transparent", label: "Включено по договору" },
-  p: { icon: "circle-dashed", color: "#155dfc", bg: "#eff6ff", label: "В договоре, не включено" },
-  x: { icon: "alert-triangle", color: "#c2410c", bg: "#fffbeb", label: "Включено вне договора" },
-  n: { icon: "minus", color: "#d4d4d4", bg: "transparent", label: "Нет в договоре" },
-  o: { icon: "circle-check", color: "#737373", bg: "transparent", label: "Включено, договор не заведён" },
-  u: { icon: "minus", color: "#e5e5e5", bg: "transparent", label: "Выключено, договор не заведён" },
+export const LICENSE_CELL: Record<LicenseCell, { icon: IconName; color: string; bg: string; label: string }> = {
+  y: { icon: "circle-check-filled", color: "var(--color-green-600)", bg: "transparent", label: "Включено по договору" },
+  p: { icon: "circle-dashed", color: "var(--color-brand)", bg: "var(--color-brand-50)", label: "В договоре, не включено" },
+  x: { icon: "alert-triangle", color: "var(--color-warn)", bg: "var(--color-amber-50)", label: "Включено вне договора" },
+  n: { icon: "minus", color: "var(--color-neutral-300)", bg: "transparent", label: "Нет в договоре" },
+  o: { icon: "circle-check", color: "var(--color-neutral-500)", bg: "transparent", label: "Включено, договор не заведён" },
+  u: { icon: "minus", color: "var(--color-neutral-200)", bg: "transparent", label: "Выключено, договор не заведён" },
 };
 
 export function licenseCell(row: LicenseRow, code: string): LicenseCell {
@@ -62,7 +63,7 @@ export function licenseCell(row: LicenseRow, code: string): LicenseCell {
   return on ? "x" : "n";
 }
 
-export const licenseKeys = { rows: ["licenses"] as const, catalog: ["licenses", "catalog"] as const };
+export const licenseKeys = { rows: [QK.licenses] as const, catalog: [QK.licenses, "catalog"] as const };
 
 export const useLicenseCatalog = () =>
   useSuspenseQuery({ queryKey: licenseKeys.catalog, queryFn: () => api<LicenseCatalog>("ops/licenses/catalog/"), staleTime: 5 * 60_000 }).data;
@@ -77,7 +78,7 @@ export function useUpdateLicense(organizationId: number) {
     mutationFn: (input: LicenseInput) => api<LicenseRow>(`ops/organizations/${organizationId}/license/`, { method: "PUT", body: input }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: licenseKeys.rows });
-      qc.invalidateQueries({ queryKey: ["orgs"] });
+      qc.invalidateQueries({ queryKey: [QK.orgs] });
     },
   });
 }

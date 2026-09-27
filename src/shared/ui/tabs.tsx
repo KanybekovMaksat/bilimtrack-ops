@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "../lib";
-import { Icon } from "./icon";
+import { Icon, type IconName } from "./icon";
 
 export type TabItem<K extends string> = { key: K; label: ReactNode; count?: number | string };
 
@@ -51,7 +51,7 @@ export function Tabs<K extends string>({ items, value, onChange, countStyle = "p
   );
 }
 
-export type SegmentOption<K extends string> = { value: K; label: ReactNode; icon?: string; iconColor?: string };
+export type SegmentOption<K extends string> = { value: K; label: ReactNode; icon?: IconName; iconColor?: string };
 
 type SegmentedProps<K extends string> = {
   options: SegmentOption<K>[];

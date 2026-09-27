@@ -1,15 +1,17 @@
+import type { OpsPermission } from "@/entities/session";
 import { routes } from "@/shared/config";
+import type { IconName } from "@/shared/ui";
 
 /** `counter` = live badge from the API; `demo` = no backend yet, the screen runs on mock data;
     `perm` = Ops privilege (backend `OpsPermission`) the item needs — hidden without it. */
 export type NavItem = {
   to: string;
   label: string;
-  icon: string;
+  icon: IconName;
   counter?: "tickets" | "leads";
   demo?: boolean;
   also?: string[];
-  perm?: string;
+  perm?: OpsPermission;
 };
 export type NavGroup = { title: string; items: NavItem[] };
 
@@ -31,7 +33,7 @@ export const NAV: NavGroup[] = [
   {
     title: "Поддержка",
     items: [
-      { to: routes.tickets, label: "Тикеты", icon: "lifebuoy", counter: "tickets", also: [routes.ticketStates, routes.ticketPriority], perm: "support" },
+      { to: routes.tickets, label: "Тикеты", icon: "lifebuoy", counter: "tickets", perm: "support" },
       { to: routes.ideas, label: "Идеи", icon: "bulb", perm: "support" },
       { to: routes.moderation, label: "Модерация", icon: "shield-lock", perm: "moderation" },
     ],

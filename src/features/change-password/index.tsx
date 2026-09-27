@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useSession } from "@/entities/session";
 import { ApiError } from "@/shared/api";
-import { Button, Icon } from "@/shared/ui";
+import { Button, ErrorNote, Icon } from "@/shared/ui";
 
 /**
  * First sign-in with a temporary password (issued by `create_ops_admins`):
@@ -65,7 +65,7 @@ export function ChangePasswordForm() {
         {(mismatch || tooShort) && (
           <div className="text-xs text-warn">{tooShort ? "Пароль короче 8 символов" : "Пароли не совпадают"}</div>
         )}
-        {error && <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-xs text-red-600">{error}</div>}
+        <ErrorNote error={error} />
         <Button type="submit" variant="primary" size="2xl" disabled={pending || mismatch || tooShort}>
           {pending ? "Сохраняем…" : "Сменить пароль и войти"}
         </Button>

@@ -1,5 +1,5 @@
 import { useMockQuery } from "@/shared/api";
-import type { PillTone } from "@/shared/ui";
+import type { IconName, PillTone } from "@/shared/ui";
 
 /** Messaging channels (Instagram, WhatsApp, Telegram) used as work channels, not SMM. */
 export type ChannelStatus = "Подключён" | "Требует переподключения" | "Отключён";
@@ -12,7 +12,7 @@ export const channelTone: Record<ChannelStatus, PillTone> = {
 
 export type Channel = {
   name: string;
-  icon: string;
+  icon: IconName;
   color: string;
   account: string;
   status: ChannelStatus;
@@ -23,9 +23,9 @@ export type Channel = {
 };
 
 const CHANNELS: Channel[] = [
-  { name: "WhatsApp Business", icon: "brand-whatsapp", color: "#00a63e", account: "+996 555 10 20 30", status: "Требует переподключения", responders: "Айдана С., Ернар К.", note: "Токен доступа Meta истекает 24 сентября. После этого канал тихо перестанет принимать сообщения и служебные уведомления PRO.", service: true },
-  { name: "Instagram", icon: "brand-instagram", color: "#ad46ff", account: "@bilimtrack", status: "Подключён", responders: "Жанна М.", note: "Собираем Direct и комментарии. Из Direct чаще всего приходят заявки на демо.", service: false },
-  { name: "Telegram", icon: "brand-telegram", color: "#2b7fff", account: "@bilimtrack_bot", status: "Подключён", responders: "Айдана С.", note: "Работает через бота. Обращения из бота попадают в тикеты с источником Telegram.", service: false },
+  { name: "WhatsApp Business", icon: "brand-whatsapp", color: "var(--color-green-600)", account: "+996 555 10 20 30", status: "Требует переподключения", responders: "Айдана С., Ернар К.", note: "Токен доступа Meta истекает 24 сентября. После этого канал тихо перестанет принимать сообщения и служебные уведомления PRO.", service: true },
+  { name: "Instagram", icon: "brand-instagram", color: "var(--color-purple-500)", account: "@bilimtrack", status: "Подключён", responders: "Жанна М.", note: "Собираем Direct и комментарии. Из Direct чаще всего приходят заявки на демо.", service: false },
+  { name: "Telegram", icon: "brand-telegram", color: "var(--color-blue-500)", account: "@bilimtrack_bot", status: "Подключён", responders: "Айдана С.", note: "Работает через бота. Обращения из бота попадают в тикеты с источником Telegram.", service: false },
 ];
 
 export const SERVICE_STATS = [
@@ -52,10 +52,10 @@ export type Dialog = {
   messages: { from: "them" | "us"; text: string }[];
 };
 
-export const CHANNEL_GLYPH: Record<Dialog["channel"], { icon: string; color: string; label: string }> = {
-  instagram: { icon: "brand-instagram", color: "#ad46ff", label: "Instagram Direct" },
-  whatsapp: { icon: "brand-whatsapp", color: "#00a63e", label: "WhatsApp" },
-  telegram: { icon: "brand-telegram", color: "#2b7fff", label: "Telegram" },
+export const CHANNEL_GLYPH: Record<Dialog["channel"], { icon: IconName; color: string; label: string }> = {
+  instagram: { icon: "brand-instagram", color: "var(--color-purple-500)", label: "Instagram Direct" },
+  whatsapp: { icon: "brand-whatsapp", color: "var(--color-green-600)", label: "WhatsApp" },
+  telegram: { icon: "brand-telegram", color: "var(--color-blue-500)", label: "Telegram" },
 };
 
 const DIALOGS: Dialog[] = [

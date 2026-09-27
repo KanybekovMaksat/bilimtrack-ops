@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { api, apiList, apiUpload } from "@/shared/api";
+import { api, apiList, apiUpload, QK } from "@/shared/api";
 import type {
   Credentials,
   OrgMember,
@@ -15,11 +15,11 @@ import type {
 } from "./model";
 
 export const orgKeys = {
-  all: ["orgs"] as const,
-  detail: (id: number) => ["orgs", id] as const,
-  members: (id: number, q: string) => ["orgs", id, "members", q] as const,
-  roles: (id: number) => ["orgs", id, "roles"] as const,
-  summary: ["ops-summary"] as const,
+  all: [QK.orgs] as const,
+  detail: (id: number) => [QK.orgs, id] as const,
+  members: (id: number, q: string) => [QK.orgs, id, "members", q] as const,
+  roles: (id: number) => [QK.orgs, id, "roles"] as const,
+  summary: [QK.platformSummary] as const,
 };
 
 /** Every organization (the platform has dozens, not thousands): the list filters on the client. */
@@ -48,7 +48,7 @@ function useOrgMutation<V>(id: number, request: (v: V) => Promise<OrganizationDe
       qc.setQueryData(orgKeys.detail(id), detail);
       qc.invalidateQueries({ queryKey: orgKeys.all, exact: true });
       qc.invalidateQueries({ queryKey: orgKeys.summary });
-      qc.invalidateQueries({ queryKey: ["licenses"] });
+      qc.invalidateQueries({ queryKey: [QK.licenses] });
     },
   });
 }
@@ -83,7 +83,7 @@ export function useCreateOrganization() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: orgKeys.all, exact: true });
       qc.invalidateQueries({ queryKey: orgKeys.summary });
-      qc.invalidateQueries({ queryKey: ["licenses"] });
+      qc.invalidateQueries({ queryKey: [QK.licenses] });
     },
   });
 }
@@ -96,7 +96,7 @@ export function useDeleteOrganization(id: number) {
       qc.removeQueries({ queryKey: orgKeys.detail(id) });
       qc.invalidateQueries({ queryKey: orgKeys.all, exact: true });
       qc.invalidateQueries({ queryKey: orgKeys.summary });
-      qc.invalidateQueries({ queryKey: ["licenses"] });
+      qc.invalidateQueries({ queryKey: [QK.licenses] });
     },
   });
 }
@@ -109,8 +109,8 @@ export function useAddPerson(id: number) {
   return useMutation({
     mutationFn: (input: PersonInput) => api<PersonCreated>(`ops/organizations/${id}/people/`, { method: "POST", body: input }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["orgs", id] });
-      qc.invalidateQueries({ queryKey: ["accounts"] });
+      qc.invalidateQueries({ queryKey: [QK.orgs, id] });
+      qc.invalidateQueries({ queryKey: [QK.accounts] });
       qc.invalidateQueries({ queryKey: orgKeys.summary });
     },
   });
@@ -121,7 +121,7 @@ export function useUpdateMembership(id: number) {
   return useMutation({
     mutationFn: ({ membershipId, ...input }: { membershipId: number; roleIds?: number[]; status?: "active" | "suspended" }) =>
       api<OrgMember>(`ops/organizations/${id}/members/${membershipId}/`, { method: "PATCH", body: input }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["orgs", id, "members"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [QK.orgs, id, "members"] }),
   });
 }
 

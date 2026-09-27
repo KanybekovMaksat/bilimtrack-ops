@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLicenseCatalog, useUpdateLicense } from "@/entities/license";
 import { useSetOrgModules } from "@/entities/organization";
 import { toggleIn } from "@/shared/lib";
-import { Button, Callout, CheckBox, Field, Modal, ModalActions, TextArea, TextInput, ToggleChip } from "@/shared/ui";
+import { Button, Callout, CheckBox, ErrorNote, Field, Modal, ModalActions, TextArea, TextInput, ToggleChip } from "@/shared/ui";
 
 type Current = {
   plan: string | null;
@@ -97,9 +97,7 @@ export function EditLicenseModal({ organization, current, onClose }: Props) {
         </button>
       )}
       {badDates && <div className="text-xs text-warn">Дата окончания раньше даты начала.</div>}
-      {(update.error ?? applyModules.error) && (
-        <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-xs text-red-600">{(update.error ?? applyModules.error)?.message}</div>
-      )}
+      <ErrorNote error={update.error ?? applyModules.error} />
       <ModalActions>
         <Button size="xl" onClick={onClose}>
           Отмена

@@ -1,3 +1,6 @@
+import { formatTime } from "@/shared/lib";
+import type { IconName } from "@/shared/ui";
+
 /* Support tickets — backend: server/apps/support (SupportTicketViewSet, /api/v1/support-tickets/). */
 
 export type TicketPriority = "urgent" | "high" | "medium" | "normal" | "low";
@@ -77,25 +80,25 @@ export type Ticket = {
 
 /** Priority scale, variant A from the design review: only the top of the scale shouts. */
 export const PRIORITY: Record<TicketPriority, { label: string; bg: string; fg: string; weight: number; dot: boolean }> = {
-  urgent: { label: "Критический", bg: "#fb2c36", fg: "#ffffff", weight: 600, dot: false },
-  high: { label: "Высокий", bg: "#fff7ed", fg: "#c2410c", weight: 600, dot: true },
-  medium: { label: "Средний", bg: "#ffffff", fg: "#525252", weight: 500, dot: true },
-  normal: { label: "Обычный", bg: "transparent", fg: "#737373", weight: 400, dot: false },
-  low: { label: "Низкий", bg: "transparent", fg: "#a1a1a1", weight: 400, dot: false },
+  urgent: { label: "Критический", bg: "var(--color-red-500)", fg: "var(--color-white)", weight: 600, dot: false },
+  high: { label: "Высокий", bg: "var(--color-orange-50)", fg: "var(--color-warn)", weight: 600, dot: true },
+  medium: { label: "Средний", bg: "var(--color-white)", fg: "var(--color-neutral-600)", weight: 500, dot: true },
+  normal: { label: "Обычный", bg: "transparent", fg: "var(--color-neutral-500)", weight: 400, dot: false },
+  low: { label: "Низкий", bg: "transparent", fg: "var(--color-neutral-400)", weight: 400, dot: false },
 };
 
 export const STATUS: Record<TicketStatus, { label: string; color: string }> = {
-  open: { label: "Открыто", color: "#155dfc" },
-  in_progress: { label: "В работе", color: "#fd9a00" },
-  resolved: { label: "Решено", color: "#00c951" },
-  closed: { label: "Закрыто", color: "#a1a1a1" },
+  open: { label: "Открыто", color: "var(--color-brand)" },
+  in_progress: { label: "В работе", color: "var(--color-amber-500)" },
+  resolved: { label: "Решено", color: "var(--color-green-500)" },
+  closed: { label: "Закрыто", color: "var(--color-neutral-400)" },
 };
 
-export const SOURCE: Record<TicketSource, { label: string; icon: string; color: string }> = {
-  telegram: { label: "Telegram", icon: "brand-telegram", color: "#2b7fff" },
-  web_portal: { label: "Веб-портал", icon: "world", color: "#a1a1a1" },
-  admin_panel: { label: "Панель", icon: "layout-dashboard", color: "#a1a1a1" },
-  api: { label: "API", icon: "code", color: "#a1a1a1" },
+export const SOURCE: Record<TicketSource, { label: string; icon: IconName; color: string }> = {
+  telegram: { label: "Telegram", icon: "brand-telegram", color: "var(--color-blue-500)" },
+  web_portal: { label: "Веб-портал", icon: "world", color: "var(--color-neutral-400)" },
+  admin_panel: { label: "Панель", icon: "layout-dashboard", color: "var(--color-neutral-400)" },
+  api: { label: "API", icon: "code", color: "var(--color-neutral-400)" },
 };
 
 export const CATEGORY: Record<TicketCategory, string> = {
@@ -109,10 +112,10 @@ export const CATEGORY: Record<TicketCategory, string> = {
 };
 
 export const SLA_STYLE: Record<SlaState, { bg: string; fg: string; weight: number }> = {
-  over: { bg: "#fb2c36", fg: "#ffffff", weight: 600 },
-  soon: { bg: "#fffbeb", fg: "#c2410c", weight: 500 },
-  ok: { bg: "transparent", fg: "#737373", weight: 400 },
-  done: { bg: "transparent", fg: "#a1a1a1", weight: 400 },
+  over: { bg: "var(--color-red-500)", fg: "var(--color-white)", weight: 600 },
+  soon: { bg: "var(--color-amber-50)", fg: "var(--color-warn)", weight: 500 },
+  ok: { bg: "transparent", fg: "var(--color-neutral-500)", weight: 400 },
+  done: { bg: "transparent", fg: "var(--color-neutral-400)", weight: 400 },
 };
 
 /** First-response targets, hours. The backend has no SLA yet; the panel computes it. */
@@ -137,23 +140,6 @@ function slaOf(t: ApiTicket, now: number): Ticket["sla"] {
   if (left <= 0) return { label: `просрочен ${duration(-left)}`, state: "over" };
   if (left <= 60 * MIN) return { label: `осталось ${duration(left)}`, state: "soon" };
   return { label: `в норме · ${duration(left)}`, state: "ok" };
-}
-
-const dateTime = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-const timeOnly = new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" });
-
-export const formatDateTime = (iso: string) => dateTime.format(new Date(iso));
-
-/** "5 мин назад", "3 ч назад", "вчера, 18:40", "18 сен". */
-export function formatRelative(iso: string, now = Date.now()) {
-  const d = new Date(iso);
-  const diff = now - d.getTime();
-  if (diff < MIN) return "только что";
-  if (diff < 60 * MIN) return `${Math.round(diff / MIN)} мин назад`;
-  if (diff < 24 * 60 * MIN && new Date(now).getDate() === d.getDate()) return `${Math.round(diff / (60 * MIN))} ч назад`;
-  const yesterday = new Date(now - 24 * 60 * MIN);
-  if (yesterday.toDateString() === d.toDateString()) return `вчера, ${timeOnly.format(d)}`;
-  return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
 }
 
 export function toTicket(t: ApiTicket, now = Date.now()): Ticket {
@@ -184,7 +170,7 @@ export function toTicket(t: ApiTicket, now = Date.now()): Ticket {
       .map((m) => ({
         kind: m.senderType,
         who: m.senderType === "support" ? `Поддержка · ${m.senderName}` : m.senderName || (m.senderType === "bot" ? "Бот Lucky" : author),
-        time: timeOnly.format(new Date(m.createdAt)),
+        time: formatTime(m.createdAt),
         text: m.text,
         attachment: m.attachment ? { url: m.attachment, name: m.attachmentName || "Вложение" } : undefined,
       })),

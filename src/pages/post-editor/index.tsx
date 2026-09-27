@@ -1,7 +1,7 @@
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 import "./editor.css";
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from "react";
 import { ru } from "@blocknote/core/locales";
 import { BlockNoteView } from "@blocknote/mantine";
 import { useCreateBlockNote } from "@blocknote/react";
@@ -24,37 +24,15 @@ import {
 import { useSession } from "@/entities/session";
 import { BLOG_URL, routes } from "@/shared/config";
 import { cn, plural } from "@/shared/lib";
-import { Button, EmptyState, Icon, Modal, ModalActions, PageSkeleton, Toggle } from "@/shared/ui";
-
-type Draft = {
-  title: string;
-  excerpt: string;
-  category: string;
-  author: string;
-  status: ArticleStatus;
-  date: string;
-  slug: string;
-  cover: string;
-  seoTitle: string;
-  seoDesc: string;
-  featured: boolean;
-};
-
-const today = () => new Date().toISOString().slice(0, 10);
-
-const fromArticle = (a: Article | undefined): Draft => ({
-  title: a?.titleRu ?? "",
-  excerpt: a?.excerptRu ?? "",
-  category: a?.category ?? "",
-  author: a?.author ?? "",
-  status: a?.status ?? "draft",
-  date: a?.publishedAt?.slice(0, 10) ?? today(),
-  slug: a?.slug ?? "",
-  cover: a?.coverImageUrl ?? "",
-  seoTitle: a?.seoTitleRu ?? "",
-  seoDesc: a?.seoDescriptionRu ?? "",
-  featured: a?.isFeatured ?? false,
-});
+import { Button, EmptyState, Icon, type IconName, PageSkeleton } from "@/shared/ui";
+import { fromArticle, today, type Draft } from "./model";
+import { PreviewModal } from "./ui/preview-modal";
+import { RailBlock } from "./ui/rail-block";
+import { CoverBlock } from "./ui/cover-block";
+import { DeleteArticleModal } from "./ui/delete-article-modal";
+import { PublicationBlock } from "./ui/publication-block";
+import { SeoBlock } from "./ui/seo-block";
+import { Toast } from "./ui/toast";
 
 /** Route /posts/editor[/:id]: loads the article first, then mounts the editor once with its content. */
 export function PostEditorPage() {
@@ -80,7 +58,7 @@ function Editor({ article }: { article: Article | undefined }) {
   const [slugTouched, setSlugTouched] = useState(!!article);
   const [dirty, setDirty] = useState(false);
   const [words, setWords] = useState(0);
-  const [toast, setToast] = useState<{ text: string; icon: string } | null>(null);
+  const [toast, setToast] = useState<{ text: string; icon: IconName } | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -93,13 +71,16 @@ function Editor({ article }: { article: Article | undefined }) {
 
   // Existing HTML → blocks once, when the editor is ready; that load is not an edit.
   const hydrating = useRef(true);
-  useEffect(() => {
+  const hydrate = useEffectEvent(() => {
     if (article?.contentRu) editor.replaceBlocks(editor.document, editor.tryParseHTMLToBlocks(article.contentRu));
     countWords();
+  });
+  useEffect(() => {
+    hydrate();
     // BlockNote reports the initial replace through onChange a tick later.
     const t = setTimeout(() => (hydrating.current = false), 100);
     return () => clearTimeout(t);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   // Until chosen explicitly, the first category and author are used.
   const category = d.category || categories[0]?.id || "";
@@ -129,7 +110,7 @@ function Editor({ article }: { article: Article | undefined }) {
     setWords(text ? text.split(/\s+/).filter(Boolean).length : 0);
   }
 
-  const showToast = (text: string, icon = "check") => {
+  const showToast = (text: string, icon: IconName = "check") => {
     setToast({ text, icon });
     clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(null), 2600);
@@ -196,8 +177,6 @@ function Editor({ article }: { article: Article | undefined }) {
   const minutes = Math.max(1, Math.round(words / 200));
   const tone = categoryTone(categories, category);
   const categoryName = categories.find((c) => c.id === category)?.nameRu;
-  const seoTitleLen = (d.seoTitle || d.title).length;
-  const seoDescLen = (d.seoDesc || d.excerpt).length;
   const myName = me?.fullName || me?.username || "";
 
   return (
@@ -263,7 +242,7 @@ function Editor({ article }: { article: Article | undefined }) {
                 {categoryName ?? "Категория"}
               </span>
               {d.featured && (
-                <span className="ae-tag" style={{ background: "#fffbeb", color: "#b45309" }}>
+                <span className="ae-tag" style={{ background: "var(--color-amber-50)", color: "var(--color-amber-700)" }}>
                   На главной
                 </span>
               )}
@@ -373,75 +352,17 @@ function Editor({ article }: { article: Article | undefined }) {
           </div>
         </RailBlock>
 
-        <RailBlock label="Публикация" icon="calendar">
-          <div className="ae-stack">
-            <input type="date" className="ae-field" value={d.date} onChange={(e) => set({ date: e.target.value })} />
-            <div>
-              <div className="ae-slug">
-                <span>/blog/</span>
-                <input
-                  value={d.slug}
-                  placeholder="url-statyi"
-                  onChange={(e) => {
-                    setSlugTouched(true);
-                    set({ slug: slugify(e.target.value, 255) || e.target.value.toLowerCase() });
-                  }}
-                />
-              </div>
-              <div className="ae-hint">
-                <span>Канонический URL</span>
-                <span className={slugTouched ? undefined : "ok"}>{slugTouched ? "вручную" : "авто"}</span>
-              </div>
-            </div>
-            <label className="flex items-center gap-2.5 text-[13px]">
-              <Toggle size="sm" on={d.featured} onChange={(featured) => set({ featured })} label="На главной блога" />
-              Закрепить на главной блога
-            </label>
-          </div>
-        </RailBlock>
+        <PublicationBlock draft={d} onChange={set} slugTouched={slugTouched} onSlugTouched={() => setSlugTouched(true)} />
 
-        <RailBlock label="Обложка" icon="photo">
-          {covers.length ? (
-            <div className="ae-covers">
-              {[...new Set(covers)].slice(0, 9).map((url) => (
-                <button key={url} className={cn(d.cover === url && "is-active")} onClick={() => set({ cover: d.cover === url ? "" : url })} title="Использовать эту обложку">
-                  <img src={url} alt="" loading="lazy" />
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="text-xs text-neutral-400">Загруженные обложки статей появятся здесь.</div>
-          )}
-          <div className="mt-2.5 flex gap-2">
-            <Button size="sm" icon="upload" disabled={uploading} onClick={() => coverRef.current?.click()}>
-              Загрузить
-            </Button>
-            {d.cover && (
-              <Button size="sm" variant="ghost" icon="x" onClick={() => set({ cover: "" })}>
-                Убрать
-              </Button>
-            )}
-          </div>
-        </RailBlock>
+        <CoverBlock
+          covers={covers}
+          value={d.cover}
+          uploading={uploading}
+          onChange={(cover) => set({ cover })}
+          onUpload={() => coverRef.current?.click()}
+        />
 
-        <RailBlock label="SEO и превью">
-          <div className="ae-stack">
-            <div>
-              <input className="ae-field" placeholder={d.title || "Title для поиска"} value={d.seoTitle} onChange={(e) => set({ seoTitle: e.target.value })} />
-              <div className="ae-hint">
-                <span>Заголовок в Google</span>
-                <span className={seoTitleLen > 60 ? "over" : undefined}>{seoTitleLen} / 60</span>
-              </div>
-            </div>
-            <div>
-              <textarea className="ae-field" placeholder={d.excerpt || "Описание для Telegram и WhatsApp"} value={d.seoDesc} onChange={(e) => set({ seoDesc: e.target.value })} />
-              <div className="ae-hint">
-                <span>OG-описание</span>
-                <span className={seoDescLen > 160 ? "over" : undefined}>{seoDescLen} / 160</span>
-              </div>
-            </div>
-          </div>
-        </RailBlock>
+        <SeoBlock draft={d} onChange={set} />
 
         {id && (
           <RailBlock>
@@ -460,60 +381,23 @@ function Editor({ article }: { article: Article | undefined }) {
         )}
       </aside>
 
-      {toast && (
-        <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2.5 rounded-full bg-ink px-5 py-3 text-sm font-medium text-white shadow-pop">
-          <Icon name={toast.icon} size={18} className={toast.icon === "check" ? "text-green-400" : "text-amber-300"} />
-          {toast.text}
-        </div>
-      )}
+      {toast && <Toast text={toast.text} icon={toast.icon} />}
 
       {preview !== null && (
-        <Modal open onClose={() => setPreview(null)} width={860} className="gap-5 p-9">
-          {d.cover && <img src={d.cover} alt="" className="aspect-video w-full rounded-3xl object-cover" />}
-          <span className="ae-tag self-start" style={{ background: tone.bg, color: tone.fg }}>
-            {categoryName ?? "Категория"}
-          </span>
-          <h1 className="m-0 text-[38px] leading-[1.12] font-bold tracking-[-0.03em]">{d.title || "Без заголовка"}</h1>
-          {d.excerpt && <p className="m-0 text-lg leading-relaxed text-neutral-500">{d.excerpt}</p>}
-          <div className="text-xs text-neutral-400">
-            {authors.find((a) => a.id === author)?.name} · {minutes} мин чтения · /blog/{d.slug}
-          </div>
-          <div className="ae-prose" dangerouslySetInnerHTML={{ __html: preview }} />
-          <ModalActions>
-            <Button size="xl" onClick={() => setPreview(null)}>
-              Закрыть
-            </Button>
-          </ModalActions>
-        </Modal>
+        <PreviewModal
+          html={preview}
+          draft={d}
+          categoryName={categoryName}
+          tone={tone}
+          authorName={authors.find((a) => a.id === author)?.name}
+          minutes={minutes}
+          onClose={() => setPreview(null)}
+        />
       )}
 
       {confirmDelete && id && (
-        <Modal open onClose={() => setConfirmDelete(false)} width={460} title="Удалить статью?">
-          <div className="text-[13px] leading-5 text-neutral-700">Статья исчезнет из блога. Отменить нельзя — чтобы просто скрыть, снимите её с публикации.</div>
-          <ModalActions>
-            <Button size="xl" onClick={() => setConfirmDelete(false)}>
-              Отмена
-            </Button>
-            <Button size="xl" variant="danger" disabled={action.isPending} onClick={() => action.mutate({ id, action: "delete" }, { onSuccess: () => navigate(routes.posts, { replace: true }) })}>
-              Удалить
-            </Button>
-          </ModalActions>
-        </Modal>
+        <DeleteArticleModal id={id} onClose={() => setConfirmDelete(false)} onDeleted={() => navigate(routes.posts, { replace: true })} />
       )}
-    </div>
-  );
-}
-
-function RailBlock({ label, icon, children }: { label?: string; icon?: string; children: ReactNode }) {
-  return (
-    <div className="ae-block">
-      {label && (
-        <p className="ae-label">
-          {icon && <Icon name={icon} size={15} />}
-          {label}
-        </p>
-      )}
-      {children}
     </div>
   );
 }

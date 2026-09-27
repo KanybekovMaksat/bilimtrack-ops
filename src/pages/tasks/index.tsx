@@ -41,7 +41,7 @@ export function TasksPage() {
   const mine = operators.data?.find((o) => o.id === me?.id);
   const assigneeOptions = [
     { value: "me", label: "Мои задачи", avatar: { src: mine?.avatar ?? me?.avatar, initials: me?.initials ?? "?" } },
-    { value: "none", label: "Без исполнителя", icon: "user" },
+    { value: "none", label: "Без исполнителя", icon: "user" as const },
     ...operatorOptions((operators.data ?? []).filter((o) => o.id !== me?.id)),
   ];
   const avatars = Object.fromEntries((operators.data ?? []).map((o) => [o.id, o.avatar]));

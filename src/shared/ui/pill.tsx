@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "../lib";
-import { Icon } from "./icon";
+import { Icon, type IconName } from "./icon";
 
 export type PillTone =
   | "success"
@@ -32,7 +32,7 @@ const tones: Record<PillTone, string> = {
 type PillProps = {
   tone?: PillTone;
   size?: "sm" | "md" | "lg";
-  icon?: string;
+  icon?: IconName;
   dot?: string;
   className?: string;
   children: ReactNode;

@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { api, apiList } from "@/shared/api";
+import { api, apiList, QK } from "@/shared/api";
 import { toIdea, type ApiIdea, type Idea, type IdeaStatus } from "./model";
 
-export const ideaKeys = { all: ["ideas"] as const };
+export const ideaKeys = { all: [QK.ideas] as const };
 
 const fetchIdeas = async (): Promise<Idea[]> => (await apiList<ApiIdea>("ideas/")).map(toIdea);
 

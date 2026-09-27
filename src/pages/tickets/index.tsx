@@ -1,9 +1,7 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
 import { CATEGORY, SLA_POLICY, SOURCE, useTickets, type Ticket } from "@/entities/ticket";
-import { routes } from "@/shared/config";
 import { plural } from "@/shared/lib";
-import { Button, EmptyState, FilterChip, Icon, PageHeader, SearchInput, Tabs } from "@/shared/ui";
+import { EmptyState, FilterChip, Icon, type IconName, PageHeader, SearchInput, Tabs } from "@/shared/ui";
 import { TicketsTable } from "@/widgets/tickets-table";
 
 type TabKey = "open" | "in_progress" | "done" | "all";
@@ -24,7 +22,6 @@ function useCycle<T extends string>(values: T[]) {
 
 export function TicketsPage() {
   const tickets = useTickets();
-  const navigate = useNavigate();
   const [tab, setTab] = useState<TabKey>("open");
   const [query, setQuery] = useState("");
   const [urgentOnly, setUrgentOnly] = useState(false);
@@ -40,10 +37,10 @@ export function TicketsPage() {
     .filter((t) => !q || `${t.number} ${t.subject} ${t.author} ${t.contact}`.toLowerCase().includes(q));
 
   const active = tickets.filter((t) => t.status === "open" || t.status === "in_progress");
-  const strip = [
-    { n: active.filter((t) => t.sla.state === "over").length, l: "просрочено", icon: "alarm", c: "#fb2c36", bg: "#fef2f2" },
-    { n: active.filter((t) => t.sla.state === "soon").length, l: "истекает в течение часа", icon: "clock", c: "#c2410c", bg: "#fffbeb" },
-    { n: active.filter((t) => t.sla.state === "ok" || t.sla.state === "done").length, l: "в норме", icon: "circle-check", c: "#00a63e", bg: "#fafafa" },
+  const strip: { n: number; l: string; icon: IconName; c: string; bg: string }[] = [
+    { n: active.filter((t) => t.sla.state === "over").length, l: "просрочено", icon: "alarm", c: "var(--color-red-500)", bg: "var(--color-red-50)" },
+    { n: active.filter((t) => t.sla.state === "soon").length, l: "истекает в течение часа", icon: "clock", c: "var(--color-warn)", bg: "var(--color-amber-50)" },
+    { n: active.filter((t) => t.sla.state === "ok" || t.sla.state === "done").length, l: "в норме", icon: "circle-check", c: "var(--color-green-600)", bg: "var(--color-neutral-50)" },
   ];
 
   return (
@@ -51,11 +48,6 @@ export function TicketsPage() {
       <PageHeader
         title="Тикеты"
         subtitle="единый инбокс: обращения из всех учреждений"
-        actions={
-          <Button size="md" icon="layout-list" onClick={() => navigate(routes.ticketStates)}>
-            Состояния списка
-          </Button>
-        }
       />
       <Tabs
         value={tab}

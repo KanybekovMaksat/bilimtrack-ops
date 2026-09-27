@@ -1,11 +1,12 @@
 import { SERVICE_STATE, useSystemStatus } from "@/entities/platform";
+import { formatTime } from "@/shared/lib";
 import { Callout, Card, PageHeader, Pill } from "@/shared/ui";
 
 export function SystemPage() {
   const { services, checkedAt } = useSystemStatus();
   return (
     <div className="flex max-w-[820px] flex-col gap-4">
-      <PageHeader title="Статус системы" subtitle={`проверено в ${new Date(checkedAt).toLocaleTimeString("ru-RU")} · обновляется каждые 30 секунд`} />
+      <PageHeader title="Статус системы" subtitle={`проверено в ${formatTime(checkedAt, true)} · обновляется каждые 30 секунд`} />
       <Card className="overflow-hidden">
         {services.map((s) => {
           const st = SERVICE_STATE[s.state];

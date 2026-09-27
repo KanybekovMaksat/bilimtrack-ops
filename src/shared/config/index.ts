@@ -8,8 +8,6 @@ export const routes = {
   leads: "/leads",
   tickets: "/tickets",
   ticket: (id: string | number) => `/tickets/${id}`,
-  ticketStates: "/tickets-states",
-  ticketPriority: "/tickets-priority",
   ideas: "/ideas",
   orgs: "/orgs",
   org: (id: string | number) => `/orgs/${id}`,

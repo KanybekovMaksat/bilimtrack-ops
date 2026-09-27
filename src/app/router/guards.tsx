@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from "react";
-import { Navigate } from "react-router";
-import { useCan, useSession } from "@/entities/session";
+import { Navigate, Outlet } from "react-router";
+import { useCan, useSession, type OpsPermission } from "@/entities/session";
 import { ChangePasswordForm } from "@/features/change-password";
 import { DeniedPage } from "@/pages/denied";
 import { routes } from "@/shared/config";
@@ -25,8 +25,9 @@ export function GuestOnly({ children }: { children: ReactNode }) {
   return user ? <Navigate to={routes.home} replace /> : children;
 }
 
-/** A section behind an Ops privilege: without it the «Доступ закрыт» screen is shown instead. */
-export function RequirePermission({ perm, children }: { perm: string; children: ReactNode }) {
+/** Sections behind an Ops privilege (a layout route: its child routes render in the outlet).
+    Without the privilege the «Доступ закрыт» screen is shown instead. */
+export function RequirePermission({ perm }: { perm: OpsPermission }) {
   const can = useCan();
-  return can(perm) ? children : <DeniedPage description="У вас нет привилегии на этот раздел. Если доступ нужен для работы, попросите администратора выдать её в разделе «Команда»." />;
+  return can(perm) ? <Outlet /> : <DeniedPage description="У вас нет привилегии на этот раздел. Если доступ нужен для работы, попросите администратора выдать её в разделе «Команда»." />;
 }

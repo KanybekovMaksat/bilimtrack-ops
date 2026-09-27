@@ -13,10 +13,7 @@ import {
   type OrganizationDetail,
 } from "@/entities/organization";
 import { cn } from "@/shared/lib";
-import { Button, Callout, Field, Icon, Modal, ModalActions, OrgMark, SelectInput, TextInput } from "@/shared/ui";
-
-const Err = ({ error }: { error: Error | null }) =>
-  error ? <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-xs text-red-600">{error.message}</div> : null;
+import { Button, Callout, ErrorNote, Field, Icon, Modal, ModalActions, OrgMark, SelectInput, TextInput } from "@/shared/ui";
 
 /** Requisites, type, locale and category in one form. */
 export function EditOrganizationModal({ org, onClose }: { org: OrganizationDetail; onClose: () => void }) {
@@ -87,7 +84,7 @@ export function EditOrganizationModal({ org, onClose }: { org: OrganizationDetai
           Слаг — часть адресов организации. Старые ссылки со слагом «{org.slug}» перестанут работать.
         </Callout>
       )}
-      <Err error={update.error} />
+      <ErrorNote error={update.error} />
       <ModalActions>
         <Button size="xl" onClick={onClose}>
           Отмена
@@ -126,7 +123,7 @@ export function OrgStatusModal({ org, target, onClose }: { org: OrganizationDeta
       <div className="text-xs text-neutral-500">
         Сейчас: {orgStatusLabel[org.status]} → станет: {orgStatusLabel[target]}. Изменение запишется в аудит.
       </div>
-      <Err error={update.error} />
+      <ErrorNote error={update.error} />
       <ModalActions>
         <Button size="xl" onClick={onClose}>
           Отмена
@@ -152,7 +149,7 @@ export function DeleteOrganizationModal({ org, onClose, onDeleted }: { org: Orga
       <Field label={`Введите слаг «${org.slug}» для подтверждения`} strong>
         <TextInput look="plain" numeric value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder={org.slug} autoFocus />
       </Field>
-      <Err error={remove.error} />
+      <ErrorNote error={remove.error} />
       <ModalActions>
         <Button size="xl" onClick={onClose}>
           Отмена

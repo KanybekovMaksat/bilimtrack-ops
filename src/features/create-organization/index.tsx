@@ -2,11 +2,11 @@ import { Fragment, useState } from "react";
 import { useLicenseCatalog } from "@/entities/license";
 import { ORG_LOCALES, ORG_TIMEZONES, useCreateOrganization, type Credentials, type OrgCategory, type OwnerInput } from "@/entities/organization";
 import { cn } from "@/shared/lib";
-import { Button, Callout, Card, Field, Icon, KV, SecretValue, SelectInput, TextInput } from "@/shared/ui";
+import { Button, Callout, Card, ErrorNote, Field, Icon, type IconName, KV, SecretValue, SelectInput, TextInput } from "@/shared/ui";
 
 const STEPS = ["Основные данные", "Категория и лицензия", "Первый филиал", "Владелец", "Проверка и создание"];
 
-const TYPES = [
+const TYPES: { value: string; label: string; icon: IconName; desc: string }[] = [
   { value: "school", label: "Школа", icon: "school", desc: "четверти, классы, табели" },
   { value: "college", label: "Колледж", icon: "building-community", desc: "семестры, группы, практика" },
   { value: "university", label: "Университет", icon: "building-bank", desc: "кредиты, GPA, факультеты" },
@@ -214,7 +214,7 @@ export function CreateOrganizationWizard({ onDone }: Props) {
                 [
                   ["client", "Клиент", "Учитывается во всех метриках главной страницы", "building"],
                   ["beta", "Beta", "Тестовая или пилотная площадка — в основные метрики не попадает", "flask"],
-                ] as [OrgCategory, string, string, string][]
+                ] as [OrgCategory, string, string, IconName][]
               ).map(([value, label, desc, icon]) => {
                 const on = form.category === value;
                 return (
@@ -360,7 +360,7 @@ export function CreateOrganizationWizard({ onDone }: Props) {
               </Fragment>
             ))}
             {!canSubmit && <Callout tone="warn">Заполните обязательные поля на шагах «Основные данные» и «Владелец».</Callout>}
-            {create.error && <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-xs text-red-600">{create.error.message}</div>}
+            <ErrorNote error={create.error} />
           </div>
         )}
 

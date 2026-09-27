@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router";
-import { CATEGORY, PriorityPill, SlaPill, SourceLabel, TicketStatusLabel, formatRelative, type Ticket } from "@/entities/ticket";
+import { CATEGORY, PriorityPill, SlaPill, SourceLabel, TicketStatusLabel, type Ticket } from "@/entities/ticket";
 import { routes } from "@/shared/config";
+import { formatRelative } from "@/shared/lib";
 import { Cell, Num, Row, Table } from "@/shared/ui";
 
 const FULL = "118px minmax(260px,1fr) 170px 150px 100px 136px 104px 92px 96px";

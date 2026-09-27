@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import {
   ACCOUNTS_PAGE_SIZE,
@@ -11,8 +11,8 @@ import {
 } from "@/entities/account";
 import { useOrganizationsSoft } from "@/entities/organization";
 import { routes } from "@/shared/config";
-import { formatInt, orgShort, plural } from "@/shared/lib";
-import { Avatar, Button, Callout, Cell, EmptyState, FilterChip, OrgMark, PageHeader, Pill, Row, SearchInput, Table } from "@/shared/ui";
+import { formatInt, orgShort, plural, useDebouncedEffect } from "@/shared/lib";
+import { Avatar, Callout, Cell, EmptyState, FilterChip, OrgMark, PageHeader, Pager, Pill, Row, SearchInput, SelectInput, Table } from "@/shared/ui";
 
 // Platform admins live in «Команда», not among client accounts.
 const KINDS: AccountKind[] = ["employee", "learner", "guardian", "no_membership"];
@@ -40,17 +40,12 @@ export function AccountsPage() {
   }
 
   // Search as you type, debounced.
-  useEffect(() => {
-    const t = setTimeout(() => {
-      const next = query.trim();
-      if (next !== q) {
-        setQ(next);
-        setPage(1);
-        setParams(next ? { q: next } : {}, { replace: true });
-      }
-    }, 350);
-    return () => clearTimeout(t);
-  }, [query, q, setParams]);
+  useDebouncedEffect(query.trim(), 350, (next) => {
+    if (next === q) return;
+    setQ(next);
+    setPage(1);
+    setParams(next ? { q: next } : {}, { replace: true });
+  });
 
   const setFilter = (patch: Partial<typeof filters>) => {
     setFilters((f) => ({ ...f, ...patch }));
@@ -59,25 +54,19 @@ export function AccountsPage() {
 
   const list = useAccounts({ ...filters, q: q.length >= 2 ? q : undefined, page });
   const total = list.data?.count ?? 0;
-  const pages = Math.max(1, Math.ceil(total / ACCOUNTS_PAGE_SIZE));
 
   return (
     <div className="flex flex-col gap-4">
       <PageHeader title="Аккаунты" subtitle={list.data ? `${formatInt(total)} ${plural(total, ["учётная запись", "учётные записи", "учётных записей"])} по фильтрам` : "все учётные записи платформы"} />
       <div className="flex flex-wrap items-center gap-2">
         <SearchInput width={300} placeholder="Логин, почта, телефон или ФИО" value={query} onChange={setQuery} />
-        <select
+        <SelectInput
+          className="w-[240px]"
+          placeholder="Все организации"
           value={filters.organizationId ?? ""}
           onChange={(e) => setFilter({ organizationId: e.target.value ? Number(e.target.value) : undefined })}
-          className="h-[34px] max-w-[240px] rounded-full border border-neutral-200 bg-white px-3 text-[13px] outline-none"
-        >
-          <option value="">Все организации</option>
-          {(orgs.data ?? []).map((o) => (
-            <option key={o.id} value={o.id}>
-              {o.name}
-            </option>
-          ))}
-        </select>
+          options={(orgs.data ?? []).map((o) => ({ value: String(o.id), label: o.name }))}
+        />
         <FilterChip
           label={filters.kind ? accountKindLabel[filters.kind] : "Кто"}
           tone={filters.kind ? "active" : "default"}
@@ -146,19 +135,7 @@ export function AccountsPage() {
         </Table>
       )}
 
-      {pages > 1 && (
-        <div className="flex items-center justify-end gap-2 text-xs text-neutral-500">
-          <span>
-            Страница {page} из {pages}
-          </span>
-          <Button size="xs" icon="chevron-up" className="font-normal" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-            Назад
-          </Button>
-          <Button size="xs" iconRight="chevron-down" className="font-normal" disabled={page >= pages} onClick={() => setPage((p) => p + 1)}>
-            Дальше
-          </Button>
-        </div>
-      )}
+      {total > ACCOUNTS_PAGE_SIZE && <Pager page={page} pageSize={ACCOUNTS_PAGE_SIZE} total={total} onPage={setPage} />}
     </div>
   );
 }

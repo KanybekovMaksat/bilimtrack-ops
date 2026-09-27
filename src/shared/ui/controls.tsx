@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "../lib";
-import { Icon } from "./icon";
+import { Icon, type IconName } from "./icon";
 
 type ToggleProps = {
   on: boolean;
@@ -41,7 +41,7 @@ export function Toggle({ on, onChange, size = "md", disabled, label }: TogglePro
 type FilterChipProps = {
   label: ReactNode;
   tone?: "default" | "active" | "warn" | "danger";
-  icon?: string;
+  icon?: IconName;
   onClick?: () => void;
 };
 
@@ -70,7 +70,7 @@ export function FilterChip({ label, tone = "default", icon, onClick }: FilterChi
 }
 
 /** Multi-select chip with a check / plus glyph. */
-export function ToggleChip({ on, label, onClick, icon }: { on: boolean; label: ReactNode; onClick: () => void; icon?: string }) {
+export function ToggleChip({ on, label, onClick, icon }: { on: boolean; label: ReactNode; onClick: () => void; icon?: IconName }) {
   return (
     <button
       onClick={onClick}

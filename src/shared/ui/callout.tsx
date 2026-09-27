@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "../lib";
-import { Icon } from "./icon";
+import { Icon, type IconName } from "./icon";
 
 const tones = {
   warn: "border border-amber-500 bg-amber-50 text-ink",
@@ -15,7 +15,7 @@ const tones = {
 
 type CalloutProps = {
   tone?: keyof typeof tones;
-  icon?: string;
+  icon?: IconName;
   iconClassName?: string;
   className?: string;
   children: ReactNode;

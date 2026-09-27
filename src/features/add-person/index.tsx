@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useAddPerson, useOrgRoles, useUpdateMembership, type OrgMember, type OrganizationDetail, type PersonCreated, type PersonKind } from "@/entities/organization";
 import { cn, toggleIn } from "@/shared/lib";
-import { Button, Callout, Field, Icon, Modal, ModalActions, SecretValue, SelectInput, TextInput, ToggleChip } from "@/shared/ui";
+import { Button, Callout, ErrorNote, Field, Icon, type IconName, Modal, ModalActions, SecretValue, SelectInput, TextInput, ToggleChip } from "@/shared/ui";
 
-const KINDS: { value: PersonKind; label: string; icon: string; desc: string }[] = [
+const KINDS: { value: PersonKind; label: string; icon: IconName; desc: string }[] = [
   { value: "employee", label: "Сотрудник", icon: "user-shield", desc: "карточка, логин и роли (преподаватель, завуч, админ…)" },
   { value: "learner", label: "Студент", icon: "school", desc: "карточка студента и логин с ролью «Студент»" },
   { value: "existing", label: "Уже есть аккаунт", icon: "user-search", desc: "дать существующему логину доступ и роли" },
@@ -145,7 +145,7 @@ export function AddPersonModal({ org, onClose }: { org: OrganizationDetail; onCl
         </div>
       )}
 
-      {add.error && <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-xs text-red-600">{add.error.message}</div>}
+      <ErrorNote error={add.error} />
       <ModalActions>
         <Button size="xl" onClick={onClose}>
           Отмена
@@ -186,7 +186,7 @@ export function EditMembershipModal({ org, member, onClose }: { org: Organizatio
           Приостановить
         </Button>
       </div>
-      {update.error && <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-xs text-red-600">{update.error.message}</div>}
+      <ErrorNote error={update.error} />
       <ModalActions>
         <Button size="xl" onClick={onClose}>
           Отмена

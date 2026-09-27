@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { api, apiList, apiUpload } from "@/shared/api";
+import { api, apiList, apiUpload, QK } from "@/shared/api";
 import type { PillTone } from "@/shared/ui";
 
 /* Blog content (admin side only). Backend: server/apps/blog, CMS API /api/v1/cms/*:
@@ -63,11 +63,11 @@ export type BlogAuthor = { id: string; name: string; bioRu: string; bioEn: strin
 export type BlogTag = { id: string; nameRu: string; nameEn: string; slug: string };
 
 export const blogKeys = {
-  articles: ["cms", "articles"] as const,
-  article: (id: string) => ["cms", "articles", id] as const,
-  categories: ["cms", "categories"] as const,
-  authors: ["cms", "authors"] as const,
-  tags: ["cms", "tags"] as const,
+  articles: [QK.cms, "articles"] as const,
+  article: (id: string) => [QK.cms, "articles", id] as const,
+  categories: [QK.cms, "categories"] as const,
+  authors: [QK.cms, "authors"] as const,
+  tags: [QK.cms, "tags"] as const,
 };
 
 export const useArticles = () => useSuspenseQuery({ queryKey: blogKeys.articles, queryFn: () => apiList<ArticleRow>("cms/articles/") }).data;
@@ -82,7 +82,7 @@ export const useTags = () => useQuery({ queryKey: blogKeys.tags, queryFn: () => 
 
 function useInvalidate() {
   const qc = useQueryClient();
-  return () => qc.invalidateQueries({ queryKey: ["cms"] });
+  return () => qc.invalidateQueries({ queryKey: [QK.cms] });
 }
 
 /** Create (no id) or update an article; answers with the saved article. */
@@ -147,10 +147,10 @@ export const slugify = (s: string, max = 80) =>
 
 /** Category tag colours of the blog design, rotated by position. */
 const TAG_TONES = [
-  { bg: "#dcfce7", fg: "#008236" },
-  { bg: "#eff6ff", fg: "#155dfc" },
-  { bg: "#faf5ff", fg: "#9333ea" },
-  { bg: "#fff7ed", fg: "#ea580c" },
+  { bg: "var(--color-green-100)", fg: "var(--color-green-700)" },
+  { bg: "var(--color-brand-50)", fg: "var(--color-brand)" },
+  { bg: "var(--color-purple-50)", fg: "var(--color-purple-600)" },
+  { bg: "var(--color-orange-50)", fg: "var(--color-orange-600)" },
 ];
 
 export const categoryTone = (categories: { id: string }[], id: string) => TAG_TONES[Math.max(0, categories.findIndex((c) => c.id === id)) % TAG_TONES.length];

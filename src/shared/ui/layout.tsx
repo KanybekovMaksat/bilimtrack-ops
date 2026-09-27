@@ -1,7 +1,7 @@
 import { Fragment, type ReactNode } from "react";
 import { Link } from "react-router";
 import { cn } from "../lib";
-import { Icon } from "./icon";
+import { Icon, type IconName } from "./icon";
 
 type PageHeaderProps = { title: ReactNode; subtitle?: ReactNode; actions?: ReactNode; className?: string };
 
@@ -46,7 +46,7 @@ export function Breadcrumbs({ items }: { items: Crumb[] }) {
 }
 
 type EmptyStateProps = {
-  icon: string;
+  icon: IconName;
   iconClassName?: string;
   title: ReactNode;
   description?: ReactNode;
@@ -93,7 +93,7 @@ export function LineChart({ width, height, guides, series }: LineChartProps) {
   return (
     <svg viewBox={`0 0 ${width} ${height}`} className="block w-full" style={{ height }} preserveAspectRatio="none">
       {guides.map((y, i) => (
-        <line key={y} x1="0" y1={y} x2={width} y2={y} stroke={i === guides.length - 1 ? "#e5e5e5" : "#f5f5f5"} />
+        <line key={y} x1="0" y1={y} x2={width} y2={y} stroke={i === guides.length - 1 ? "var(--color-neutral-200)" : "var(--color-neutral-100)"} />
       ))}
       {series.map((s, i) => (
         <polyline key={i} points={s.points} fill="none" stroke={s.color} strokeWidth="2" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />

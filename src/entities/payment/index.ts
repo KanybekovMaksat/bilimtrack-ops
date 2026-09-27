@@ -46,9 +46,9 @@ export const usePayments = () => useMockQuery(["payments"], () => PAYMENTS);
 export type ProviderHealth = "Норма" | "Деградация" | "Сбой";
 
 export const PROVIDER_HEALTH: Record<ProviderHealth, { dot: string; fg: string }> = {
-  Норма: { dot: "#00c951", fg: "#00a63e" },
-  Деградация: { dot: "#fd9a00", fg: "#c2410c" },
-  Сбой: { dot: "#fb2c36", fg: "#e7000b" },
+  Норма: { dot: "var(--color-green-500)", fg: "var(--color-green-600)" },
+  Деградация: { dot: "var(--color-amber-500)", fg: "var(--color-warn)" },
+  Сбой: { dot: "var(--color-red-500)", fg: "var(--color-red-600)" },
 };
 
 export type PaymentProvider = { name: string; status: ProviderHealth; lastWebhook: string; errors: string; share: string; enabled: boolean };

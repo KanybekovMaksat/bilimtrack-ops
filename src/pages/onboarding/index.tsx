@@ -50,7 +50,7 @@ export function OnboardingPage() {
                     {count}/{TOTAL}
                   </span>
                 </div>
-                <Meter className="w-full" value={Math.round((count / TOTAL) * 100)} color={o.late ? "#fd9a00" : "#155dfc"} />
+                <Meter className="w-full" value={Math.round((count / TOTAL) * 100)} color={o.late ? "var(--color-amber-500)" : "var(--color-brand)"} />
                 <div className="flex w-full justify-between text-[11px]">
                   <span className="text-neutral-500">Этап: {next ? next.stage : "Запущен"}</span>
                   <span className={o.late ? "font-semibold text-red-600" : "text-neutral-400"}>{o.late ? `просрочен · срок ${o.due}` : `запуск до ${o.due}`}</span>

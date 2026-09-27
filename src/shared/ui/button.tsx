@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes } from "react";
 import { cn } from "../lib";
-import { Icon } from "./icon";
+import { Icon, type IconName } from "./icon";
 
 const variants = {
   primary: "border border-transparent bg-brand text-white hover:bg-brand-hover",
@@ -27,8 +27,8 @@ const iconSize = { xs: 15, sm: 16, md: 16, lg: 17, xl: 18, "2xl": 18 };
 export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: keyof typeof variants;
   size?: keyof typeof sizes;
-  icon?: string;
-  iconRight?: string;
+  icon?: IconName;
+  iconRight?: IconName;
 };
 
 export function Button({

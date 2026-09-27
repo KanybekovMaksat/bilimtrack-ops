@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useDeleteColumn, useSaveColumn, type Board } from "@/entities/task";
-import { Button, Modal, ModalActions, TextInput, Toggle } from "@/shared/ui";
+import { Button, ErrorNote, Modal, ModalActions, TextInput, Toggle } from "@/shared/ui";
 
+// Stored on the board column (server data), so these stay literal hex values, not theme variables.
 const COLORS = ["#a1a1a1", "#155dfc", "#fd9a00", "#00c951", "#fb2c36", "#8e51ff"];
 
 /** Board columns: add, rename, recolor, reorder, mark as «done», delete empty ones. */
@@ -42,7 +43,7 @@ export function ManageColumnsModal({ board, onClose }: { board: Board; onClose: 
           Добавить
         </Button>
       </form>
-      {error && <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-xs text-red-600">{error.message}</div>}
+      <ErrorNote error={error} />
       <div className="text-xs text-neutral-400">Задача в колонке «готово» считается выполненной. Удалить можно только пустую колонку.</div>
       <ModalActions>
         <Button size="xl" onClick={onClose}>
@@ -77,7 +78,7 @@ function ColumnRow({ name, color, isDone, count, first, last, busy, onSave, onMo
             aria-label={`Цвет ${c}`}
             onClick={() => onSave({ color: c })}
             className="size-3.5 rounded-full border-0 p-0"
-            style={{ background: c, outline: c === color ? "2px solid #0a0a0a" : "none", outlineOffset: 1 }}
+            style={{ background: c, outline: c === color ? "2px solid var(--color-ink)" : "none", outlineOffset: 1 }}
           />
         ))}
       </div>

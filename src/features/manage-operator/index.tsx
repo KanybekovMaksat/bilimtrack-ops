@@ -2,7 +2,7 @@ import { useState } from "react";
 import { PERMISSION_ICON, useCreateOperator, usePermissionCatalog, useResetOperatorPassword, useUpdateOperator, type Operator } from "@/entities/operator";
 import { useSession } from "@/entities/session";
 import { cn, toggleIn } from "@/shared/lib";
-import { Button, Callout, CheckBox, Field, Icon, Modal, ModalActions, SecretValue, TextInput, Toggle } from "@/shared/ui";
+import { Button, Callout, CheckBox, ErrorNote, Field, Icon, Modal, ModalActions, SecretValue, TextInput, Toggle } from "@/shared/ui";
 
 type Props = { operator: Operator | null; onClose: () => void };
 
@@ -140,7 +140,7 @@ export function OperatorFormModal({ operator, onClose }: Props) {
           Пароль сгенерируется автоматически и покажется один раз. У администратора нет членства в организациях — он работает поверх всех клиентов.
         </div>
       )}
-      {error && <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-xs text-red-600">{error.message}</div>}
+      <ErrorNote error={error} />
       <ModalActions>
         <Button size="xl" onClick={onClose}>
           Отмена
@@ -171,7 +171,7 @@ export function ResetPasswordModal({ operator, onClose }: { operator: Operator; 
           Текущий пароль {operator.username} перестанет работать сразу. Действие попадёт в аудит.
         </div>
       )}
-      {reset.error && <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-xs text-red-600">{reset.error.message}</div>}
+      <ErrorNote error={reset.error} />
       <ModalActions>
         <Button size="xl" onClick={onClose}>
           {reset.data ? "Готово" : "Отмена"}

@@ -63,18 +63,3 @@ export function toIdea(raw: ApiIdea): Idea {
     updatedAt: raw.updatedAt,
   };
 }
-
-const MIN = 60_000;
-const timeOnly = new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" });
-
-export function formatRelative(iso: string, now = Date.now()) {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  const diff = now - d.getTime();
-  if (diff < MIN) return "только что";
-  if (diff < 60 * MIN) return `${Math.round(diff / MIN)} мин назад`;
-  if (new Date(now).toDateString() === d.toDateString()) return `сегодня, ${timeOnly.format(d)}`;
-  const yesterday = new Date(now - 24 * 60 * MIN);
-  if (yesterday.toDateString() === d.toDateString()) return `вчера, ${timeOnly.format(d)}`;
-  return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short", year: d.getFullYear() === new Date(now).getFullYear() ? undefined : "numeric" });
-}

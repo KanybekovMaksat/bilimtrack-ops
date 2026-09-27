@@ -2,10 +2,11 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { leadStatusLabel, useLeadsSoft } from "@/entities/lead";
 import { orgCategory, useOrganizationsSoft, usePlatformSummary } from "@/entities/organization";
-import { SOURCE, formatRelative, isOpen, useTicketsSoft } from "@/entities/ticket";
+import { useCan } from "@/entities/session";
+import { SOURCE, isOpen, useTicketsSoft } from "@/entities/ticket";
 import { routes } from "@/shared/config";
-import { formatInt, toPoints } from "@/shared/lib";
-import { Card, CardHeader, Icon, LineChart, SectionLabel } from "@/shared/ui";
+import { formatDayMonth, formatInt, formatRelative, formatWeekdayDate, toPoints } from "@/shared/lib";
+import { Card, CardHeader, Icon, type IconName, LineChart, SectionLabel } from "@/shared/ui";
 
 const DAY = 86_400_000;
 
@@ -20,11 +21,12 @@ function perDay(dates: string[], days: number, now: number) {
   return buckets;
 }
 
-const dayLabel = (ms: number) => new Date(ms).toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
+const dayLabel = (ms: number) => formatDayMonth(ms);
 
 export function HomePage() {
-  const tickets = useTicketsSoft().data ?? [];
-  const leads = useLeadsSoft().data ?? [];
+  const can = useCan();
+  const tickets = useTicketsSoft({ enabled: can("support") }).data ?? [];
+  const leads = useLeadsSoft({ enabled: can("sales") }).data ?? [];
   const orgs = useOrganizationsSoft().data;
   const platform = usePlatformSummary();
   // Beta organizations never count in the main metrics. Until ops/summary is deployed, the org list stands in.
@@ -38,44 +40,45 @@ export function HomePage() {
   });
   const users = platform.data?.users;
   const metrics = [
-    { label: "Пользователей в организациях", n: users?.inClients, sub: users ? `всего аккаунтов ${formatInt(users.total)}` : "без beta-организаций", icon: "users", color: "#155dfc", to: routes.accounts },
-    { label: "Активны за 30 дней", n: users?.active30d, sub: users ? `учащихся ${formatInt(users.learners)} · сотрудников ${formatInt(users.employees)}` : "входили хотя бы раз", icon: "heartbeat", color: "#00a63e", to: routes.logins },
-    { label: "Организаций активно", n: orgStats?.active, sub: orgStats ? `из ${formatInt(orgStats.total)} клиентов` : "", icon: "building", color: "#00a63e", to: routes.orgs },
-    { label: "Организаций неактивно", n: orgStats?.inactive, sub: orgStats ? `в архиве ${formatInt(orgStats.archived)}` : "", icon: "power", color: "#fd9a00", to: routes.orgs },
-  ];
+    { label: "Пользователей в организациях", n: users?.inClients, sub: users ? `всего аккаунтов ${formatInt(users.total)}` : "без beta-организаций", icon: "users", color: "var(--color-brand)", to: routes.accounts },
+    { label: "Активны за 30 дней", n: users?.active30d, sub: users ? `учащихся ${formatInt(users.learners)} · сотрудников ${formatInt(users.employees)}` : "входили хотя бы раз", icon: "heartbeat", color: "var(--color-green-600)", to: routes.logins },
+    { label: "Организаций активно", n: orgStats?.active, sub: orgStats ? `из ${formatInt(orgStats.total)} клиентов` : "", icon: "building", color: "var(--color-green-600)", to: routes.orgs },
+    { label: "Организаций неактивно", n: orgStats?.inactive, sub: orgStats ? `в архиве ${formatInt(orgStats.archived)}` : "", icon: "power", color: "var(--color-amber-500)", to: routes.orgs },
+  ] as const;
   const summary = clients
     ? [
-        { n: formatInt(clients.reduce((a, o) => a + o.learnersCount, 0)), label: "Учащихся у клиентов", color: "#0a0a0a" },
-        { n: formatInt(clients.reduce((a, o) => a + o.employeesCount, 0)), label: "Сотрудников у клиентов", color: "#0a0a0a" },
-        { n: formatInt(clients.reduce((a, o) => a + o.openTicketsCount, 0)), label: "Открытых тикетов", color: "#fb2c36" },
-        { n: formatInt(orgStats?.beta ?? 0), label: "Beta-организаций (вне метрик)", color: "#8e51ff" },
+        { n: formatInt(clients.reduce((a, o) => a + o.learnersCount, 0)), label: "Учащихся у клиентов", color: "var(--color-ink)" },
+        { n: formatInt(clients.reduce((a, o) => a + o.employeesCount, 0)), label: "Сотрудников у клиентов", color: "var(--color-ink)" },
+        { n: formatInt(clients.reduce((a, o) => a + o.openTicketsCount, 0)), label: "Открытых тикетов", color: "var(--color-red-500)" },
+        { n: formatInt(orgStats?.beta ?? 0), label: "Beta-организаций (вне метрик)", color: "var(--color-violet-500)" },
       ]
     : [];
   const navigate = useNavigate();
   const [now] = useState(() => Date.now());
 
-  const queue = [
-    { n: leads.filter((l) => l.status === "new").length, label: "Новые заявки на демо", icon: "inbox", color: "#155dfc", to: routes.leads },
-    { n: tickets.filter(isOpen).length, label: "Открытые тикеты", icon: "lifebuoy", color: "#0a0a0a", to: routes.tickets },
-    { n: tickets.filter((t) => isOpen(t) && t.sla.state === "over").length, label: "Просрочен первый ответ", icon: "clock-exclamation", color: "#fb2c36", to: routes.tickets },
-    { n: tickets.filter((t) => t.status === "open" && !t.hasAccount).length, label: "Обращения без аккаунта", icon: "user-search", color: "#fd9a00", to: routes.tickets },
-  ];
+  // Only the queues this admin may open.
+  const queue = ([
+    { n: leads.filter((l) => l.status === "new").length, label: "Новые заявки на демо", icon: "inbox", color: "var(--color-brand)", to: routes.leads, perm: "sales" },
+    { n: tickets.filter(isOpen).length, label: "Открытые тикеты", icon: "lifebuoy", color: "var(--color-ink)", to: routes.tickets, perm: "support" },
+    { n: tickets.filter((t) => isOpen(t) && t.sla.state === "over").length, label: "Просрочен первый ответ", icon: "clock-exclamation", color: "var(--color-red-500)", to: routes.tickets, perm: "support" },
+    { n: tickets.filter((t) => t.status === "open" && !t.hasAccount).length, label: "Обращения без аккаунта", icon: "user-search", color: "var(--color-amber-500)", to: routes.tickets, perm: "support" },
+  ] as const).filter((q) => can(q.perm));
 
   const events = [
     ...tickets.map((t) => ({
       at: t.createdAt,
-      icon: SOURCE[t.source]?.icon ?? "lifebuoy",
-      tint: "#eff6ff",
-      color: "#155dfc",
+      icon: (SOURCE[t.source]?.icon ?? "lifebuoy") as IconName,
+      tint: "var(--color-brand-50)",
+      color: "var(--color-brand)",
       text: `Тикет ${t.number}: «${t.subject}»`,
       sub: `${t.author} · ${SOURCE[t.source]?.label ?? ""}`,
       to: routes.ticket(t.id),
     })),
     ...leads.map((l) => ({
       at: l.createdAt,
-      icon: "inbox",
-      tint: "#fff7ed",
-      color: "#fd9a00",
+      icon: "inbox" as IconName,
+      tint: "var(--color-orange-50)",
+      color: "var(--color-amber-500)",
       text: `Заявка на демо: ${l.org !== "—" ? l.org : l.name}`,
       sub: `${l.name} · ${leadStatusLabel[l.status]}`,
       to: routes.leads,
@@ -93,7 +96,7 @@ export function HomePage() {
     <div className="flex max-w-[1280px] flex-col gap-[22px]">
       <div className="flex items-baseline gap-3">
         <h1 className="m-0 text-xl leading-[26px] font-semibold tracking-[-.01em]">Главная</h1>
-        <span className="text-[13px] text-neutral-400">{new Date(now).toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" })}</span>
+        <span className="text-[13px] text-neutral-400">{formatWeekdayDate(now)}</span>
       </div>
 
       <div>
@@ -180,8 +183,8 @@ export function HomePage() {
               height={130}
               guides={[10, 55, 100]}
               series={[
-                { points: toPoints(ticketSeries, 560, y), color: "#ff8904" },
-                { points: toPoints(leadsSeries, 560, y), color: "#155dfc" },
+                { points: toPoints(ticketSeries, 560, y), color: "var(--color-orange-400)" },
+                { points: toPoints(leadsSeries, 560, y), color: "var(--color-brand)" },
               ]}
             />
             <div className="mt-1 flex justify-between text-[10px] text-neutral-400">

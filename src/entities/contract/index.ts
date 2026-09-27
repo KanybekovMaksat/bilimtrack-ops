@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, apiBlob, apiUpload } from "@/shared/api";
+import { api, apiBlob, apiUpload, QK } from "@/shared/api";
 import type { PillTone } from "@/shared/ui";
 
 /* Contracts Bilimtrack signed with an organization, with attached scans.
@@ -51,7 +51,7 @@ export type ContractInput = Partial<{
 }>;
 
 const base = (orgId: number) => `ops/organizations/${orgId}/contracts`;
-export const contractKeys = { list: (orgId: number) => ["orgs", orgId, "contracts"] as const };
+export const contractKeys = { list: (orgId: number) => [QK.orgs, orgId, "contracts"] as const };
 
 export const useContracts = (orgId: number) => useQuery({ queryKey: contractKeys.list(orgId), queryFn: () => api<Contract[]>(`${base(orgId)}/`) });
 
@@ -103,9 +103,6 @@ export async function openContractFile(orgId: number, contractId: number, file: 
   }
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
-
-export const fileSize = (bytes: number) =>
-  bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} МБ` : `${Math.max(1, Math.round(bytes / 1024))} КБ`;
 
 export const fileIcon = (f: Pick<ContractFile, "name" | "contentType">) =>
   f.contentType.startsWith("image/") ? "photo" : /\.(zip|rar|7z)$/i.test(f.name) ? "archive" : "file-text";

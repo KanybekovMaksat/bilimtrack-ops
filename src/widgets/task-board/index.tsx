@@ -1,7 +1,7 @@
 import { useRef, useState, type DragEvent } from "react";
 import { priorityStyle, typeGlyph, useMoveTask, type Board, type Task } from "@/entities/task";
 import { cn, formatDate, initialsOf } from "@/shared/lib";
-import { Avatar, Icon, UserAvatar } from "@/shared/ui";
+import { Avatar, ErrorNote, Icon, UserAvatar } from "@/shared/ui";
 
 type DropTarget = { column: number; before: number | null } | null;
 
@@ -115,7 +115,7 @@ export function TaskBoard({ board, tasks, onAdd, onOpen, avatars = {} }: Props) 
 
   return (
     <div className="flex flex-col gap-2">
-      {move.error && <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-xs text-red-600">Задача не перенесена: {move.error.message}</div>}
+      <ErrorNote error={move.error} prefix="Задача не перенесена" />
       <div className="grid items-start gap-3" style={{ gridTemplateColumns: `repeat(${board.columns.length}, minmax(240px, 1fr))` }}>
         {board.columns.map((c) => {
           const items = tasks.filter((t) => t.column.id === c.id);
@@ -133,7 +133,7 @@ export function TaskBoard({ board, tasks, onAdd, onOpen, avatars = {} }: Props) 
               }}
               className={cn(
                 "flex min-h-[280px] flex-col gap-2.5 rounded-2xl p-3 transition-colors",
-                over ? "bg-brand-50 shadow-[inset_0_0_0_1px_#155dfc]" : "bg-neutral-50",
+                over ? "bg-brand-50 shadow-[inset_0_0_0_1px_var(--color-brand)]" : "bg-neutral-50",
               )}
             >
               <div className="flex items-center gap-2 px-1">

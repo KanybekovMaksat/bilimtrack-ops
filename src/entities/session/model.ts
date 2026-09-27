@@ -6,6 +6,10 @@ import { initialsOf } from "@/shared/lib";
 /* Panel access = an active platform operator (backend: server/apps/ops, GET ops/me/).
    Organization owners, the old helpdesk login and everyone else get 403 there and are signed out. */
 
+/** Ops privileges (backend `OpsPermission`): each opens a group of panel sections. */
+export const OPS_PERMISSIONS = ["sales", "support", "organizations", "licenses", "accounts", "moderation", "tasks", "content", "audit", "team"] as const;
+export type OpsPermission = (typeof OPS_PERMISSIONS)[number];
+
 export type SessionUser = {
   id: number;
   username: string;
@@ -56,7 +60,7 @@ export function toSessionUser(me: OperatorResponse): SessionUser {
     middleName: me.middleName ?? "",
     avatar: me.avatar ?? null,
     // Older backend without privileges: everything stays open.
-    permissions: me.permissions ?? ["sales", "support", "organizations", "licenses", "accounts", "moderation", "tasks", "content", "audit", "team"],
+    permissions: me.permissions ?? [...OPS_PERMISSIONS],
     mustChangePassword: me.mustChangePassword,
   };
 }
@@ -144,12 +148,13 @@ export const useSession = create<SessionState>()(
     }),
     // v3: the session comes from ops/me (older persisted shapes are dropped). A v3 session saved
     // before privileges existed has no `permissions` yet; `revalidate` fills it on load.
-    { name: "bilimtrack-ops.session", version: 3, migrate: () => ({ user: null }) as never },
+    // Only the operator is persisted; actions are recreated on load.
+    { name: "bilimtrack-ops.session", version: 3, partialize: (s) => ({ user: s.user }), migrate: () => ({ user: null }) },
   ),
 );
 
 /** Does the signed-in admin hold this Ops privilege? */
 export const useCan = () => {
   const permissions = useSession((s) => s.user?.permissions);
-  return (code?: string) => !code || !permissions || permissions.includes(code);
+  return (code?: OpsPermission) => !code || !permissions || permissions.includes(code);
 };

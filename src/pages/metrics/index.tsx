@@ -38,7 +38,7 @@ export function MetricsPage() {
                 <span className="font-num text-[10px] text-neutral-500">{v.toFixed(1).replace(".", ",")}</span>
                 <div
                   className="w-full rounded-[6px_6px_2px_2px]"
-                  style={{ height: Math.round(((v - 8) / 5) * 140), background: i === m.revenue.length - 1 ? "#155dfc" : "#dbeafe" }}
+                  style={{ height: Math.round(((v - 8) / 5) * 140), background: i === m.revenue.length - 1 ? "var(--color-brand)" : "var(--color-brand-100)" }}
                 />
                 <span className="text-[11px] text-neutral-400">{m.months[i]}</span>
               </div>
@@ -59,7 +59,7 @@ export function MetricsPage() {
                   <span className="w-10 text-right text-xs text-neutral-500">{i ? `${Math.round((f.n / m.funnel[i - 1].n) * 100)}%` : ""}</span>
                 </span>
               </div>
-              <Meter height={8} value={Math.max(4, Math.round((f.n / top) * 100))} color={i === m.funnel.length - 1 ? "#00a63e" : "#155dfc"} />
+              <Meter height={8} value={Math.max(4, Math.round((f.n / top) * 100))} color={i === m.funnel.length - 1 ? "var(--color-green-600)" : "var(--color-brand)"} />
             </div>
           ))}
           <div className="mt-auto text-xs leading-[17px] text-neutral-500">Пилот → договор: 5 из 12 (42%). Среднее время от пилота до подписания — 38 дней.</div>

@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router";
 import { JOURNAL_PAGE, diffRows, useAudit, useJournalChoices, type AuditFilters } from "@/entities/journal";
 import { useOrganizationsSoft } from "@/entities/organization";
 import { routes } from "@/shared/config";
-import { formatDateTimeShort } from "@/shared/lib";
+import { formatDateTimeShort, useDebouncedEffect } from "@/shared/lib";
 import { Callout, Cell, EmptyState, FilterChip, Icon, PageHeader, Pager, Pill, SearchInput, SelectInput, TextInput } from "@/shared/ui";
 
 const COLS = "24px 128px 170px 170px minmax(220px,1fr) 150px 130px";
@@ -30,12 +30,9 @@ export function AuditPage() {
     setFilters((f) => ({ ...f, ...patch }));
     setPage(1);
   };
-  useEffect(() => {
-    const t = setTimeout(() => {
-      if ((filters.q ?? "") !== search.trim()) update({ q: search.trim() || undefined });
-    }, 350);
-    return () => clearTimeout(t);
-  }, [search]); // eslint-disable-line react-hooks/exhaustive-deps
+  useDebouncedEffect(search.trim(), 350, (q) => {
+    if ((filters.q ?? "") !== q) update({ q: q || undefined });
+  });
 
   const rows = audit.data?.rows ?? [];
 
@@ -128,7 +125,7 @@ export function AuditPage() {
                           <span>Стало</span>
                         </div>
                         {diff.map((d) => (
-                          <div key={d.field} className="grid grid-cols-[220px_minmax(0,1fr)_minmax(0,1fr)] items-center gap-3 border-t border-[#f0f0f0] py-[7px] text-[13px]">
+                          <div key={d.field} className="grid grid-cols-[220px_minmax(0,1fr)_minmax(0,1fr)] items-center gap-3 border-t border-[var(--color-neutral-100)] py-[7px] text-[13px]">
                             <span className="font-num text-xs text-neutral-500">{d.field}</span>
                             <span className="justify-self-start rounded-lg bg-red-50 px-2.5 py-[3px] break-all text-red-600">{d.was}</span>
                             <span className="justify-self-start rounded-lg bg-green-50 px-2.5 py-[3px] break-all text-green-600">{d.now}</span>

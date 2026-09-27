@@ -43,13 +43,51 @@ export const initialsOf = (s: string) =>
     .toUpperCase() || "?";
 
 const dateFmt = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", year: "numeric" });
+const dateLongFmt = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", year: "numeric" });
 const dateTimeFmt = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+const dateTimeFullFmt = new Intl.DateTimeFormat("ru-RU", { dateStyle: "short", timeStyle: "medium" });
+const dayMonthFmt = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short" });
+const dayMonthYearFmt = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", year: "numeric" });
+const weekdayFmt = new Intl.DateTimeFormat("ru-RU", { weekday: "long", day: "numeric", month: "long" });
+const timeFmt = new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" });
+const timeSecFmt = new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+type DateInput = string | number | Date;
 
 /** «12 мар. 2024 г.» or «—». */
 export const formatDate = (iso: string | null | undefined) => (iso ? dateFmt.format(new Date(iso)) : "—");
 
+/** «12 марта 2024 г.» or `empty`. */
+export const formatDateLong = (iso: string | null | undefined, empty = "—") => (iso ? dateLongFmt.format(new Date(iso)) : empty);
+
 /** «12 мар., 09:41» or «—». */
 export const formatDateTimeShort = (iso: string | null | undefined) => (iso ? dateTimeFmt.format(new Date(iso)) : "—");
+
+/** «12.03.2024, 09:41:05» — exact moment, for tooltips. */
+export const formatDateTimeFull = (d: DateInput) => dateTimeFullFmt.format(new Date(d));
+
+/** «12 мар.» */
+export const formatDayMonth = (d: DateInput) => dayMonthFmt.format(new Date(d));
+
+/** «понедельник, 28 сентября». */
+export const formatWeekdayDate = (d: DateInput) => weekdayFmt.format(new Date(d));
+
+/** «09:41», or «09:41:05» with `seconds`. */
+export const formatTime = (d: DateInput, seconds = false) => (seconds ? timeSecFmt : timeFmt).format(new Date(d));
+
+const MIN = 60_000;
+
+/** «только что», «5 мин назад», «3 ч назад» (today), «вчера, 18:40», «18 сент.», «18 сент. 2025 г.» (another year). */
+export function formatRelative(iso: string, now = Date.now()) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const diff = now - d.getTime();
+  if (diff < MIN) return "только что";
+  if (diff < 60 * MIN) return `${Math.round(diff / MIN)} мин назад`;
+  if (new Date(now).toDateString() === d.toDateString()) return `${Math.round(diff / (60 * MIN))} ч назад`;
+  if (new Date(now - 24 * 60 * MIN).toDateString() === d.toDateString()) return `вчера, ${timeFmt.format(d)}`;
+  return (d.getFullYear() === new Date(now).getFullYear() ? dayMonthFmt : dayMonthYearFmt).format(d);
+}
 
 /** «3 часа назад», «вчера», «22 дня назад» — for activity columns. */
 export function formatAgo(iso: string | null | undefined, now = Date.now()) {
@@ -70,3 +108,12 @@ export const daysSince = (iso: string | null | undefined, now = Date.now()) =>
   iso ? Math.floor((now - new Date(iso).getTime()) / 86_400_000) : null;
 
 export const formatInt = (n: number) => n.toLocaleString("ru-RU");
+
+/** «1 234,5» — up to `fractionDigits` decimals. */
+export const formatNumber = (n: number, fractionDigits = 2) => n.toLocaleString("ru-RU", { maximumFractionDigits: fractionDigits });
+
+/** «340 КБ», «2.4 МБ». */
+export const formatBytes = (bytes: number) =>
+  bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} МБ` : `${Math.max(1, Math.round(bytes / 1024))} КБ`;
+
+export { useDebouncedEffect } from "./use-debounced-effect";

@@ -18,10 +18,10 @@ export function ErrorsPage() {
   const max = ERRORS_BY_ORG[0].n;
 
   const kpi = [
-    { l: "События за 24 часа", n: "1 284", c: "#0a0a0a", d: "▲ 18%", dc: "#e7000b" },
-    { l: "Затронуто пользователей", n: "312", c: "#0a0a0a", d: "▲ 41", dc: "#e7000b" },
-    { l: "Новые ошибки", n: "3", c: "#fb2c36", d: "за сутки", dc: "#a1a1a1" },
-    { l: "Без задачи и тикета", n: String(unlinked), c: "#0a0a0a", d: "требуют разбора", dc: "#a1a1a1" },
+    { l: "События за 24 часа", n: "1 284", c: "var(--color-ink)", d: "▲ 18%", dc: "var(--color-red-600)" },
+    { l: "Затронуто пользователей", n: "312", c: "var(--color-ink)", d: "▲ 41", dc: "var(--color-red-600)" },
+    { l: "Новые ошибки", n: "3", c: "var(--color-red-500)", d: "за сутки", dc: "var(--color-neutral-400)" },
+    { l: "Без задачи и тикета", n: String(unlinked), c: "var(--color-ink)", d: "требуют разбора", dc: "var(--color-neutral-400)" },
   ];
 
   return (
@@ -68,7 +68,7 @@ export function ErrorsPage() {
                   <span className={on ? "font-semibold text-brand" : ""}>{o.org}</span>
                   <span className="font-num text-xs text-neutral-600">{o.n}</span>
                 </div>
-                <Meter className="w-full" value={Math.round((o.n / max) * 100)} color={on ? "#155dfc" : "#d4d4d4"} />
+                <Meter className="w-full" value={Math.round((o.n / max) * 100)} color={on ? "var(--color-brand)" : "var(--color-neutral-300)"} />
               </button>
             );
           })}

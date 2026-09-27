@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link } from "react-router";
 import {
   IDEA_STATUSES,
-  formatRelative,
   ideaStatusLabel,
   ideaStatusTone,
   useIdeas,
@@ -11,8 +10,8 @@ import {
   type IdeaStatus,
 } from "@/entities/idea";
 import { routes } from "@/shared/config";
-import { cn, initialsOf, orgShort } from "@/shared/lib";
-import { Avatar, Button, Card, EmptyState, Icon, OrgMark, PageHeader, Pill, SearchInput, Tabs } from "@/shared/ui";
+import { cn, formatDateTimeFull, formatRelative, initialsOf, orgShort } from "@/shared/lib";
+import { Avatar, Button, Card, EmptyState, ErrorNote, Icon, OrgMark, PageHeader, Pill, SearchInput, SelectInput, Tabs } from "@/shared/ui";
 
 type TabKey = IdeaStatus | "all";
 
@@ -42,22 +41,17 @@ export function IdeasPage() {
       />
       <div className="flex flex-wrap items-center gap-2">
         <SearchInput placeholder="Текст идеи или автор" value={query} onChange={setQuery} width={260} />
-        <select
+        <SelectInput
+          className="w-[240px]"
+          placeholder={`Все организации · ${orgs.length}`}
           value={orgId ?? ""}
           onChange={(e) => setOrgId(e.target.value ? Number(e.target.value) : null)}
-          className="h-[34px] rounded-full border border-neutral-200 bg-white px-3 text-[13px] outline-none"
-        >
-          <option value="">Все организации · {orgs.length}</option>
-          {orgs.map((o) => (
-            <option key={o.id} value={o.id}>
-              {o.name}
-            </option>
-          ))}
-        </select>
+          options={orgs.map((o) => ({ value: String(o.id), label: o.name }))}
+        />
         <div className="flex-1" />
         <span className="text-xs text-neutral-400">Новые сверху · обновляется раз в минуту</span>
       </div>
-      {update.error && <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-xs text-red-600">Статус не сохранён: {update.error.message}</div>}
+      <ErrorNote error={update.error} prefix="Статус не сохранён" />
 
       {rows.length ? (
         rows.map((idea) => (
@@ -116,7 +110,7 @@ function IdeaCard({ idea, onStatus, onPreview }: { idea: Idea; onStatus: (s: Ide
           </div>
         </div>
         <Pill tone={ideaStatusTone[idea.status]}>{ideaStatusLabel[idea.status]}</Pill>
-        <span className="text-[11px] text-neutral-400" title={new Date(idea.createdAt).toLocaleString("ru-RU")}>
+        <span className="text-[11px] text-neutral-400" title={formatDateTimeFull(idea.createdAt)}>
           {formatRelative(idea.createdAt)}
         </span>
       </div>

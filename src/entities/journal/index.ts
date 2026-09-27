@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { api, apiPage } from "@/shared/api";
+import { api, apiPage, QK } from "@/shared/api";
 
 /* Platform-wide journals. Backend: server/apps/ops (use_cases/journal.py) over audit.AuditLog / audit.AccessLog:
    /api/v1/ops/audit/, /ops/audit/choices/, /ops/access-logs/. */
@@ -68,21 +68,21 @@ const flags = (f: Record<string, unknown>) =>
 
 export const useAudit = (filters: AuditFilters, page: number) =>
   useQuery({
-    queryKey: ["ops-audit", filters, page],
+    queryKey: [QK.audit, filters, page],
     queryFn: () => apiPage<AuditEntry>("ops/audit/", { ...flags(filters), page, page_size: JOURNAL_PAGE }),
     placeholderData: keepPreviousData,
   });
 
 export const useAccessLogs = (filters: AccessFilters, page: number) =>
   useQuery({
-    queryKey: ["ops-access-logs", filters, page],
+    queryKey: [QK.accessLogs, filters, page],
     queryFn: () => apiPage<AccessEntry>("ops/access-logs/", { ...flags(filters), page, page_size: JOURNAL_PAGE }),
     placeholderData: keepPreviousData,
     refetchInterval: 60_000,
   });
 
 export const useJournalChoices = () =>
-  useQuery({ queryKey: ["ops-audit-choices"], queryFn: () => api<JournalChoices>("ops/audit/choices/"), staleTime: 30 * 60_000 });
+  useQuery({ queryKey: [QK.auditChoices], queryFn: () => api<JournalChoices>("ops/audit/choices/"), staleTime: 30 * 60_000 });
 
 /** Keys of before/after as rows «поле · было · стало». */
 export function diffRows(entry: Pick<AuditEntry, "before" | "after">) {

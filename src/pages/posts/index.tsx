@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { ARTICLE_STATUS, categoryTone, useArticleAction, useArticles, useCategories, type ArticleRow, type ArticleStatus } from "@/entities/article";
 import { routes } from "@/shared/config";
 import { formatDate, formatInt } from "@/shared/lib";
-import { Button, Cell, EmptyState, Icon, Modal, ModalActions, PageHeader, Pill, Row, SearchInput, SelectInput, Table, Tabs } from "@/shared/ui";
+import { Button, Cell, EmptyState, ErrorNote, Icon, Modal, ModalActions, PageHeader, Pill, Row, SearchInput, SelectInput, Table, Tabs } from "@/shared/ui";
 
 type Tab = ArticleStatus | "all";
 
@@ -49,7 +49,7 @@ export function PostsPage() {
         <SearchInput placeholder="Заголовок, слаг, автор" value={query} onChange={setQuery} />
         <SelectInput className="w-[220px]" placeholder="Все категории" value={category} onChange={(e) => setCategory(e.target.value)} options={categories.map((c) => ({ value: c.id, label: c.nameRu }))} />
       </div>
-      {action.error && <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-xs text-red-600">{action.error.message}</div>}
+      <ErrorNote error={action.error} />
       {rows.length ? (
         <Table cols="96px minmax(260px,1fr) 150px 140px 120px 90px 130px 104px" minWidth={1100} head={["Обложка", "Заголовок", "Категория", "Автор", "Публикация", "Просмотры", "Статус", ""]}>
           {rows.map((a) => {

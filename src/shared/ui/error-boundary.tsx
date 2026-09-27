@@ -1,3 +1,4 @@
+import type { IconName } from "./icon";
 import { Component, type ReactNode } from "react";
 import { ApiError } from "../api";
 import { Button } from "./button";
@@ -6,14 +7,14 @@ import { EmptyState } from "./layout";
 type Props = { children: ReactNode; onReset?: () => void };
 type State = { error: Error | null };
 
-function describe(error: Error): { icon: string; title: string; text: string } {
+function describe(error: Error): { icon: IconName; title: string; text: string } {
   if (error instanceof ApiError) {
     if (error.status === 401) return { icon: "lock", title: "Сессия истекла", text: "Войдите заново." };
     if (error.status === 403)
       return {
         icon: "lock",
         title: "Нет доступа",
-        text: "Раздел работает под аккаунтом поддержки Bilimtrack (bilimtrack_tech_support) или сотрудника с правами staff. Войдите под таким аккаунтом.",
+        text: "Сервер не дал доступа к этим данным. Если он нужен для работы, попросите администратора выдать привилегию в разделе «Команда».",
       };
     if (error.status === 404) return { icon: "filter-off", title: "Не найдено", text: "Такой записи нет или она удалена." };
     if (error.status === 0) return { icon: "alert-circle", title: "Нет связи с сервером", text: error.message };

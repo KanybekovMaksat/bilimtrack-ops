@@ -1,3 +1,5 @@
+import type { IconName } from "@/shared/ui";
+
 /* Client organizations across the platform.
    Backend: server/apps/ops (use_cases/organizations.py), /api/v1/ops/organizations/. */
 
@@ -202,7 +204,7 @@ export const orgMark = (o: Pick<Organization, "shortName" | "name">) => {
 
 /** Branches and academic units as one indented tree (branches first, units under their branch). */
 export function structureTree(detail: Pick<OrganizationDetail, "branches" | "academicUnits">) {
-  type Node = { key: string; level: number; name: string; kind: string; icon: string };
+  type Node = { key: string; level: number; name: string; kind: string; icon: IconName };
   const out: Node[] = [];
   const walkUnits = (parentId: number | null, branchId: number | null, level: number) => {
     for (const u of detail.academicUnits.filter((x) => x.parentId === parentId && (parentId !== null || x.branchId === branchId))) {

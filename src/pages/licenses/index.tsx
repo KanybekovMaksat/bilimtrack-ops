@@ -115,7 +115,7 @@ export function LicensesPage() {
                     key={m.code}
                     title={`${m.name}: ${c.label.toLowerCase()}`}
                     onClick={() => navigate(`${routes.org(r.organization.id)}?tab=modules`)}
-                    className="flex h-[30px] items-center justify-center rounded-lg border-0 hover:shadow-[inset_0_0_0_1px_#d4d4d4]"
+                    className="flex h-[30px] items-center justify-center rounded-lg border-0 hover:shadow-[inset_0_0_0_1px_var(--color-neutral-300)]"
                     style={{ background: c.bg }}
                   >
                     <Icon name={c.icon} size={17} style={{ color: c.color }} />

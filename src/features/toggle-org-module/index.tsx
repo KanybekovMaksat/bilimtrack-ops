@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useSetOrgModules, type OrgModuleState } from "@/entities/organization";
 import { formatInt } from "@/shared/lib";
-import { Button, Callout, Modal, ModalActions, Toggle } from "@/shared/ui";
+import { Button, Callout, ErrorNote, Modal, ModalActions, Toggle } from "@/shared/ui";
 
 type Props = {
   organizationId: number;
@@ -32,7 +32,7 @@ export function OrgModuleToggle({ organizationId, module, orgName, staff, learne
         </div>
         <Callout tone="danger">Перестанет работать: {module.description.toLowerCase()}.</Callout>
         {module.isLicensed && <Callout tone="warn">Модуль есть в договоре — после выключения появится расхождение с лицензией.</Callout>}
-        {setModules.error && <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-xs text-red-600">{setModules.error.message}</div>}
+        <ErrorNote error={setModules.error} />
         <ModalActions>
           <Button size="xl" onClick={() => setConfirming(false)}>
             Оставить включённым

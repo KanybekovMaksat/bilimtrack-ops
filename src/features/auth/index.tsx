@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useSession } from "@/entities/session";
 import { ApiError } from "@/shared/api";
-import { Button, Icon } from "@/shared/ui";
+import { Button, ErrorNote, Icon } from "@/shared/ui";
 
 const MESSAGES: Record<string, string> = {
   no_active_account: "Неверный логин или пароль",
@@ -65,7 +65,7 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
           </button>
         </span>
       </label>
-      {error && <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-xs text-red-600">{error}</div>}
+      <ErrorNote error={error} />
       <Button type="submit" variant="primary" size="2xl" disabled={pending}>
         {pending ? "Входим…" : "Войти"}
       </Button>

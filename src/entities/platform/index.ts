@@ -1,14 +1,15 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { HEALTH_URL, api, useMockQuery } from "@/shared/api";
+import { api, HEALTH_URL, QK, useMockQuery } from "@/shared/api";
+import { formatDateTimeFull } from "@/shared/lib";
 
 /** Platform observability: service status and errors. Audit, sign-ins and the team live in `journal` and `operator`. */
 
 export type ServiceState = "Норма" | "Деградация" | "Сбой";
 
 export const SERVICE_STATE: Record<ServiceState, { dot: string; tone: "success" | "warn" | "danger" }> = {
-  Норма: { dot: "#00c951", tone: "success" },
-  Деградация: { dot: "#fd9a00", tone: "warn" },
-  Сбой: { dot: "#fb2c36", tone: "danger" },
+  Норма: { dot: "var(--color-green-500)", tone: "success" },
+  Деградация: { dot: "var(--color-amber-500)", tone: "warn" },
+  Сбой: { dot: "var(--color-red-500)", tone: "danger" },
 };
 
 type SystemService = { name: string; state: ServiceState; detail: string };
@@ -28,7 +29,7 @@ async function fetchSystemStatus(): Promise<{ services: SystemService[]; checked
     services.push({ name: "API", state: "Норма", detail: `отвечает за ${ms} мс` });
     services.push(
       status.maintenance
-        ? { name: "Режим обслуживания", state: "Деградация", detail: status.message || `включён${status.estimatedEnd ? ` до ${new Date(status.estimatedEnd).toLocaleString("ru-RU")}` : ""}` }
+        ? { name: "Режим обслуживания", state: "Деградация", detail: status.message || `включён${status.estimatedEnd ? ` до ${formatDateTimeFull(status.estimatedEnd)}` : ""}` }
         : { name: "Режим обслуживания", state: "Норма", detail: "выключен, пользователи работают как обычно" },
     );
   } catch (e) {
@@ -48,18 +49,18 @@ async function fetchSystemStatus(): Promise<{ services: SystemService[]; checked
 }
 
 export const useSystemStatus = () =>
-  useSuspenseQuery({ queryKey: ["system-status"], queryFn: fetchSystemStatus, refetchInterval: 30_000, staleTime: 0 }).data;
+  useSuspenseQuery({ queryKey: [QK.systemStatus], queryFn: fetchSystemStatus, refetchInterval: 30_000, staleTime: 0 }).data;
 
 export type ErrorLevel = "fatal" | "error" | "warning";
 export type ErrorState = "Новая" | "Не решена" | "Решена";
 
 export const ERROR_LEVEL: Record<ErrorLevel, { label: string; bg: string; fg: string }> = {
-  fatal: { label: "Fatal", bg: "#fb2c36", fg: "#ffffff" },
-  error: { label: "Error", bg: "#fef2f2", fg: "#e7000b" },
-  warning: { label: "Warning", bg: "#fffbeb", fg: "#c2410c" },
+  fatal: { label: "Fatal", bg: "var(--color-red-500)", fg: "var(--color-white)" },
+  error: { label: "Error", bg: "var(--color-red-50)", fg: "var(--color-red-600)" },
+  warning: { label: "Warning", bg: "var(--color-amber-50)", fg: "var(--color-warn)" },
 };
 
-export const ERROR_STATE_COLOR: Record<ErrorState, string> = { Новая: "#155dfc", "Не решена": "#fd9a00", Решена: "#00c951" };
+export const ERROR_STATE_COLOR: Record<ErrorState, string> = { Новая: "var(--color-brand)", "Не решена": "var(--color-amber-500)", Решена: "var(--color-green-500)" };
 
 export type ErrorIssue = {
   id: number;

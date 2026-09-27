@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useCloseTicket, useReplyToTicket, type Ticket, type TicketMessage } from "@/entities/ticket";
 import { cn } from "@/shared/lib";
-import { Button, Card, Icon } from "@/shared/ui";
+import { Button, Card, ErrorNote, Icon } from "@/shared/ui";
 
 const STYLE = {
   user: { wrap: "justify-start", box: "max-w-[82%] border-neutral-200 bg-white", accent: "text-ink", icon: "user" },
@@ -75,7 +75,7 @@ export function TicketThread({ ticket }: { ticket: Ticket }) {
             rows={3}
             className="resize-none border-0 bg-transparent font-sans text-sm outline-none placeholder:text-neutral-400"
           />
-          {error && <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{error.message}</div>}
+          <ErrorNote error={error} />
           <div className="flex items-center gap-2">
             <span className="text-[11px] text-neutral-400">Ctrl + Enter — отправить</span>
             <div className="flex-1" />

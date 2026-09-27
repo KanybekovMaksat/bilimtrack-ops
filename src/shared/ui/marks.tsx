@@ -1,5 +1,5 @@
 import { cn } from "../lib";
-import { Icon } from "./icon";
+import { Icon, type IconName } from "./icon";
 
 const markFont: Record<number, number> = { 16: 8, 18: 9, 20: 9, 22: 10, 24: 10, 52: 17 };
 const markRadius: Record<number, number> = { 16: 5, 18: 5, 20: 6, 22: 6, 24: 7, 52: 14 };
@@ -28,7 +28,7 @@ export function OrgLabel({ short, name, size = 18, className }: { short: string;
 
 type AvatarProps = {
   initials?: string;
-  icon?: string;
+  icon?: IconName;
   size?: number;
   tone?: "neutral" | "brand";
   className?: string;

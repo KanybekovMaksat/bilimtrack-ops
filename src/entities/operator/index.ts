@@ -1,16 +1,33 @@
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { useSession, type OperatorResponse } from "@/entities/session";
-import { api, apiUpload } from "@/shared/api";
+import { api, QK } from "@/shared/api";
+import type { IconName } from "@/shared/ui";
 
 /* Bilimtrack team: platform admins and their privileges.
    Backend: server/apps/ops (PlatformOperator, use_cases/team.py), /api/v1/ops/team/, /ops/me/. */
 
-export type Operator = OperatorResponse;
+/** OperatorSerializer (ops/team/, ops/me/). */
+export type Operator = {
+  id: number;
+  username: string;
+  email: string;
+  fullName: string;
+  lastName: string;
+  firstName: string;
+  middleName: string;
+  avatar: string | null;
+  role: string;
+  roleLabel: string;
+  permissions: string[];
+  isActive: boolean;
+  lastLogin: string | null;
+  mustChangePassword: boolean;
+  createdAt: string;
+};
 
 export type OpsPermission = { code: string; label: string };
 
 /** Section → the privilege it needs (mirrors backend `OpsPermission`). */
-export const PERMISSION_ICON: Record<string, string> = {
+export const PERMISSION_ICON: Record<string, IconName> = {
   sales: "inbox",
   support: "lifebuoy",
   organizations: "building",
@@ -23,7 +40,7 @@ export const PERMISSION_ICON: Record<string, string> = {
   team: "users",
 };
 
-export const teamKeys = { list: ["ops-team"] as const, permissions: ["ops-permissions"] as const };
+export const teamKeys = { list: [QK.team] as const, permissions: [QK.permissions] as const };
 
 export const useTeam = () => useSuspenseQuery({ queryKey: teamKeys.list, queryFn: () => api<Operator[]>("ops/team/") }).data;
 
@@ -55,7 +72,7 @@ export function useUpdateOperator() {
     mutationFn: ({ id, ...input }: OperatorInput & { id: number }) => api<Operator>(`ops/team/${id}/`, { method: "PATCH", body: input }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: teamKeys.list });
-      qc.invalidateQueries({ queryKey: ["ops-operators"] });
+      qc.invalidateQueries({ queryKey: [QK.operators] });
     },
   });
 }
@@ -64,23 +81,3 @@ export const useResetOperatorPassword = () =>
   useMutation({
     mutationFn: (id: number) => api<{ temporaryPassword: string }>(`ops/team/${id}/reset-password/`, { method: "POST", body: {} }),
   });
-
-/** Own profile: name and avatar. The session picks up the fresh operator. */
-export function useUpdateMyProfile() {
-  const setOperator = useSession((s) => s.setOperator);
-  const qc = useQueryClient();
-  const done = (me: Operator) => {
-    setOperator(me);
-    qc.invalidateQueries({ queryKey: teamKeys.list });
-  };
-  const names = useMutation({
-    mutationFn: (input: { lastName: string; firstName: string; middleName: string }) =>
-      api<Operator>("ops/me/profile/", { method: "PATCH", body: input }),
-    onSuccess: done,
-  });
-  const avatar = useMutation({
-    mutationFn: (file: File | null) => (file ? apiUpload<Operator>("ops/me/avatar/", file) : api<Operator>("ops/me/avatar/", { method: "DELETE" })),
-    onSuccess: done,
-  });
-  return { names, avatar };
-}

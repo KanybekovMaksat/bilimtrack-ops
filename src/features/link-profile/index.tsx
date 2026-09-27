@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { accountKeys, profileTypeLabel, searchAccounts, useLinkProfile, type Account, type Profile } from "@/entities/account";
 import { cn } from "@/shared/lib";
-import { Button, Callout, Icon, Modal, ModalActions, SearchInput } from "@/shared/ui";
+import { Button, Callout, ErrorNote, Icon, Modal, ModalActions, SearchInput } from "@/shared/ui";
 
 /**
  * Finds an active profile that has no account (the usual "can't sign in" case)
@@ -52,7 +52,7 @@ function LinkProfileModal({ account, onClose }: { account: Account; onClose: () 
 
       <div className="flex max-h-[260px] flex-col gap-1.5 overflow-auto">
         {found.isFetching && <div className="py-4 text-center text-[13px] text-neutral-400">Ищем профили…</div>}
-        {found.error && <div className="rounded-xl bg-red-50 px-3 py-2 text-xs text-red-600">{found.error.message}</div>}
+        <ErrorNote error={found.error} />
         {found.data && !candidates.length && !found.isFetching && (
           <div className="rounded-xl border border-dashed border-neutral-200 p-4 text-center text-[13px] text-neutral-500">
             Профилей без аккаунта не найдено. Попробуйте ФИО или другой контакт.
@@ -86,7 +86,7 @@ function LinkProfileModal({ account, onClose }: { account: Account; onClose: () 
           типа «{profileTypeLabel[picked.profileType]}». <b>Пароль не меняется.</b>
         </Callout>
       )}
-      {link.error && <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-xs text-red-600">{link.error.message}</div>}
+      <ErrorNote error={link.error} />
 
       <ModalActions>
         <Button size="xl" onClick={onClose}>

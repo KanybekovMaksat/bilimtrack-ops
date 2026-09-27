@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, apiPage } from "@/shared/api";
+import { api, apiPage, QK } from "@/shared/api";
 
 /* Content moderation across all organizations — ported from bilimtrack-admin (pages/support/moderation).
    Backend: server/apps/support (use_cases/moderation.py), /api/v1/support/moderation/*.
@@ -111,11 +111,11 @@ export type ModerationQuery = Record<string, string | number | undefined>;
 
 const BASE = "support/moderation";
 const keys = {
-  all: ["moderation"] as const,
-  list: (kind: string, q: ModerationQuery) => ["moderation", kind, q] as const,
-  chat: (id: number) => ["moderation", "chat", id] as const,
-  messages: (id: number, q: ModerationQuery) => ["moderation", "chat", id, "messages", q] as const,
-  user: (id: number) => ["moderation", "user", id] as const,
+  all: [QK.moderation] as const,
+  list: (kind: string, q: ModerationQuery) => [QK.moderation, kind, q] as const,
+  chat: (id: number) => [QK.moderation, "chat", id] as const,
+  messages: (id: number, q: ModerationQuery) => [QK.moderation, "chat", id, "messages", q] as const,
+  user: (id: number) => [QK.moderation, "user", id] as const,
 };
 
 function useModerationList<T>(kind: string, path: string, q: ModerationQuery) {

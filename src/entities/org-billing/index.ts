@@ -51,10 +51,10 @@ const DATA = {
     { org: "Учебный центр «Зерде»", orgShort: "УЗ", plan: "Базовый", students: "140", calc: "—", period: "—", paidTo: "—", sum: "0 KGS", status: "Бесплатно" },
   ] as OrgBillingRow[],
   summary: [
-    { n: "1 845 600 KGS", label: "внесено за сентябрь", color: "#0a0a0a" },
-    { n: "14 700 KGS", label: "ожидает оплаты", color: "#155dfc" },
-    { n: "18 150 KGS", label: "просрочено", color: "#e7000b" },
-    { n: "23", label: "платных организаций", color: "#0a0a0a" },
+    { n: "1 845 600 KGS", label: "внесено за сентябрь", color: "var(--color-ink)" },
+    { n: "14 700 KGS", label: "ожидает оплаты", color: "var(--color-brand)" },
+    { n: "18 150 KGS", label: "просрочено", color: "var(--color-red-600)" },
+    { n: "23", label: "платных организаций", color: "var(--color-ink)" },
   ],
 };
 

@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { LEAD_STATUSES, leadStatusLabel, leadStatusTone, useLeads, useUpdateLead, type Lead, type LeadStatus } from "@/entities/lead";
-import { formatDateTime } from "@/entities/ticket";
-import { cn } from "@/shared/lib";
-import { Button, Cell, Drawer, EmptyState, FilterChip, Icon, KV, Num, PageHeader, Pill, Row, SearchInput, Table, TextArea } from "@/shared/ui";
+import { cn, formatDateTimeShort } from "@/shared/lib";
+import { Button, Cell, Drawer, EmptyState, ErrorNote, FilterChip, Icon, KV, Num, PageHeader, Pill, Row, SearchInput, Table, TextArea } from "@/shared/ui";
 
 const COLS = "112px 148px 168px minmax(200px,1fr) 104px 96px 190px 128px";
 
@@ -29,12 +28,12 @@ export function LeadsPage() {
         <div className="flex-1" />
         <span className="text-[13px] text-neutral-500">Новых: {leads.filter((l) => l.status === "new").length}</span>
       </div>
-      {update.error && <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-xs text-red-600">Изменение не сохранено: {update.error.message}</div>}
+      <ErrorNote error={update.error} prefix="Изменение не сохранено" />
       {rows.length ? (
         <Table cols={COLS} minWidth={1140} head={["Дата", "Имя", "Контакт", "Организация", "Тип", "Размер", "Источник", "Статус"]}>
           {rows.map((l) => (
             <Row key={l.id} onClick={() => setOpenId(l.id)}>
-              <span className="text-xs text-neutral-500">{formatDateTime(l.createdAt)}</span>
+              <span className="text-xs text-neutral-500">{formatDateTimeShort(l.createdAt)}</span>
               <Cell className="text-brand">
                 {l.name}
                 {l.note && <Icon name="message" size={13} className="ml-1.5 text-neutral-400" />}
@@ -161,7 +160,7 @@ function LeadDrawer({ lead, onClose, onPrev, onNext, onStatus, onNote }: DrawerP
         </div>
         <div className="flex flex-col gap-2.5">
           <KV k="Дата" width={120}>
-            {formatDateTime(lead.createdAt)}
+            {formatDateTimeShort(lead.createdAt)}
           </KV>
           <KV k="Контакт" width={120}>
             {lead.contact}
@@ -179,7 +178,7 @@ function LeadDrawer({ lead, onClose, onPrev, onNext, onStatus, onNote }: DrawerP
             {lead.source}
           </KV>
           <KV k="Изменена" width={120}>
-            {formatDateTime(lead.updatedAt)}
+            {formatDateTimeShort(lead.updatedAt)}
           </KV>
         </div>
         <label className="flex flex-col gap-1.5">

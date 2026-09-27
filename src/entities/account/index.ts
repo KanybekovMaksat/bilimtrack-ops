@@ -1,5 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { ApiError, api, apiPage } from "@/shared/api";
+import { api, ApiError, apiPage, QK } from "@/shared/api";
+import { formatDateLong } from "@/shared/lib";
 
 /* Every login account on the platform.
    Registry: server/apps/ops (use_cases/accounts.py), /api/v1/ops/accounts/.
@@ -75,9 +76,9 @@ export type AccountFilters = {
 export const ACCOUNTS_PAGE_SIZE = 50;
 
 export const accountKeys = {
-  list: (f: AccountFilters) => ["accounts", "list", f] as const,
-  byUsername: (username: string) => ["accounts", "by-username", username] as const,
-  search: (q: string) => ["account-search", q] as const,
+  list: (f: AccountFilters) => [QK.accounts, "list", f] as const,
+  byUsername: (username: string) => [QK.accounts, "by-username", username] as const,
+  search: (q: string) => [QK.accountSearch, q] as const,
 };
 
 /** GET ops/accounts/ — one page with the total count. */
@@ -121,8 +122,8 @@ export function useLinkProfile(userId: number) {
     mutationFn: (p: Pick<Profile, "id" | "profileType">) =>
       api<Account>(`support/accounts/${userId}/link-profile/`, { method: "POST", body: { profileType: p.profileType, profileId: p.id } }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["account-search"] });
-      qc.invalidateQueries({ queryKey: ["accounts"] });
+      qc.invalidateQueries({ queryKey: [QK.accountSearch] });
+      qc.invalidateQueries({ queryKey: [QK.accounts] });
     },
   });
 }
@@ -130,8 +131,7 @@ export function useLinkProfile(userId: number) {
 export const statusLabel = (s: string) =>
   ({ active: "Активно", inactive: "Неактивно", archived: "Архив", suspended: "Приостановлено", invited: "Приглашён", revoked: "Отозвано" })[s] ?? s;
 
-const dt = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", year: "numeric" });
-export const formatLastLogin = (iso: string | null | undefined) => (iso ? dt.format(new Date(iso)) : "ни разу");
+export const formatLastLogin = (iso: string | null | undefined) => formatDateLong(iso, "ни разу");
 
 /** Display name: operator name, else the first profile's name, else the login. */
 export const accountName = (a: Account) => a.operator?.fullName || a.profiles[0]?.fullName || "";

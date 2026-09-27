@@ -15,7 +15,7 @@ import {
   type BlogTag,
 } from "@/entities/article";
 import { plural } from "@/shared/lib";
-import { Avatar, Button, Callout, EmptyState, Field, Icon, Modal, ModalActions, PageHeader, TextArea, TextInput, Tabs } from "@/shared/ui";
+import { Avatar, Button, Callout, EmptyState, ErrorNote, Field, Icon, type IconName, Modal, ModalActions, PageHeader, Tabs, TextArea, TextInput } from "@/shared/ui";
 
 type Kind = "categories" | "authors" | "tags";
 
@@ -33,7 +33,7 @@ export function DictsPage() {
   const usedBy = (id: string) =>
     kind === "categories" ? articles.filter((a) => a.category === id).length : kind === "authors" ? articles.filter((a) => a.author === id).length : null;
 
-  const rows: { id: string; title: string; sub: string; row: Record<string, string>; icon?: string; avatar?: string; tone?: { bg: string; fg: string } }[] =
+  const rows: { id: string; title: string; sub: string; row: Record<string, string>; icon?: IconName; avatar?: string; tone?: { bg: string; fg: string } }[] =
     kind === "categories"
       ? (categories.data ?? []).map((c) => ({ id: c.id, title: c.nameRu, sub: c.slug, row: c as unknown as Record<string, string>, tone: categoryTone(categories.data ?? [], c.id) }))
       : kind === "authors"
@@ -150,7 +150,7 @@ function CategoryModal({ row, onClose }: { row: BlogCategory | null; onClose: ()
       <Field label="Описание" strong>
         <TextArea look="plain" value={f.descriptionRu} onChange={(e) => setF({ ...f, descriptionRu: e.target.value })} placeholder="Показывается на странице категории" />
       </Field>
-      {save.error && <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-xs text-red-600">{save.error.message}</div>}
+      <ErrorNote error={save.error} />
       <ModalActions>
         <Button size="xl" onClick={onClose}>
           Отмена
@@ -191,7 +191,7 @@ function AuthorModal({ row, onClose }: { row: BlogAuthor | null; onClose: () => 
       <Field label="О себе" strong>
         <TextArea look="plain" value={f.bioRu} onChange={(e) => setF({ ...f, bioRu: e.target.value })} />
       </Field>
-      {(save.error ?? upload.error) && <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-xs text-red-600">{(save.error ?? upload.error)?.message}</div>}
+      <ErrorNote error={save.error ?? upload.error} />
       <ModalActions>
         <Button size="xl" onClick={onClose}>
           Отмена
@@ -213,7 +213,7 @@ function TagModal({ onClose }: { onClose: () => void }) {
         <TextInput look="plain" autoFocus value={name} onChange={(e) => setName(e.target.value)} />
       </Field>
       <div className="font-num text-xs text-neutral-400">слаг: {slugify(name, 100) || "—"}</div>
-      {save.error && <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-xs text-red-600">{save.error.message}</div>}
+      <ErrorNote error={save.error} />
       <ModalActions>
         <Button size="xl" onClick={onClose}>
           Отмена

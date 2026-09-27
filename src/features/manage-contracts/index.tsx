@@ -4,7 +4,6 @@ import {
   CONTRACT_STATUS,
   canPreview,
   fileIcon,
-  fileSize,
   openContractFile,
   useContracts,
   useDeleteContract,
@@ -16,13 +15,13 @@ import {
   type ContractStatus,
 } from "@/entities/contract";
 import { useCan } from "@/entities/session";
-import { cn, formatDate, formatDateTimeShort } from "@/shared/lib";
-import { Button, Callout, Card, Dropdown, EmptyState, Field, Icon, Modal, ModalActions, Pill, TextArea, TextInput } from "@/shared/ui";
+import { cn, formatBytes, formatDate, formatDateTimeShort, formatNumber } from "@/shared/lib";
+import { Button, Callout, Card, Dropdown, EmptyState, ErrorNote, Field, Icon, Modal, ModalActions, Pill, TextArea, TextInput } from "@/shared/ui";
 
 const STATUS_OPTIONS = (Object.keys(CONTRACT_STATUS) as ContractStatus[]).map((s) => ({ value: s, label: CONTRACT_STATUS[s].label }));
 
 const money = (amount: string | null, currency: string) =>
-  amount === null ? null : `${Number(amount).toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ${currency === "KGS" ? "сом" : currency}`;
+  amount === null ? null : `${formatNumber(Number(amount))} ${currency === "KGS" ? "сом" : currency}`;
 
 /** «Договоры» tab of an organization: contracts with attached scans. */
 export function ContractsPanel({ orgId, orgName }: { orgId: number; orgName: string }) {
@@ -165,7 +164,7 @@ function FileList({ orgId, contractId, files, manage }: { orgId: number; contrac
             {f.name}
           </button>
           <span className="text-[11px] whitespace-nowrap text-neutral-400">
-            {fileSize(f.size)} · {formatDate(f.createdAt)}
+            {formatBytes(f.size)} · {formatDate(f.createdAt)}
           </span>
           <Button size="xs" variant="ghost" icon={busy === f.id ? "refresh" : "arrow-down"} aria-label="Скачать" title="Скачать" disabled={busy === f.id} onClick={() => open(f, false)} />
           {manage && (
@@ -318,7 +317,7 @@ function ContractModal({ orgId, contract, onClose }: { orgId: number; contract: 
             <div key={`${file.name}-${i}`} className="flex items-center gap-2 rounded-xl bg-neutral-50 px-3 py-2 text-[13px]">
               <Icon name="paperclip" size={15} className="text-neutral-400" />
               <span className="min-w-0 flex-1 truncate">{file.name}</span>
-              <span className="text-[11px] text-neutral-400">{fileSize(file.size)}</span>
+              <span className="text-[11px] text-neutral-400">{formatBytes(file.size)}</span>
               <Button size="xs" variant="ghost" icon="x" aria-label="Убрать" onClick={() => setPending((p) => p.filter((_, j) => j !== i))} />
             </div>
           ))}
@@ -342,7 +341,7 @@ function ContractModal({ orgId, contract, onClose }: { orgId: number; contract: 
       {contract && <div className="text-xs text-neutral-500">Файлы прикрепляются и удаляются прямо в карточке договора.</div>}
 
       {badDates && <div className="text-xs text-warn">Дата окончания раньше даты начала.</div>}
-      {(error ?? save.error?.message) && <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-xs text-red-600">{error ?? save.error?.message}</div>}
+      <ErrorNote error={error ?? save.error} />
       <ModalActions>
         <Button size="xl" onClick={onClose}>
           Отмена

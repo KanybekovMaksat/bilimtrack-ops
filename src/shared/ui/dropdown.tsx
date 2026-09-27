@@ -1,7 +1,7 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "../lib";
-import { Icon } from "./icon";
+import { Icon, type IconName } from "./icon";
 import { UserAvatar } from "./user-avatar";
 
 export type DropdownOption<V extends string> = {
@@ -9,7 +9,7 @@ export type DropdownOption<V extends string> = {
   label: string;
   /** Second line under the label (login, description). */
   hint?: string;
-  icon?: string;
+  icon?: IconName;
   iconColor?: string;
   /** Person option: photo with an initials fallback. */
   avatar?: { src?: string | null; initials: string };
@@ -72,17 +72,18 @@ export function Dropdown<V extends string>({
     ...options.filter((o) => !q || `${o.label} ${o.hint ?? ""}`.toLowerCase().includes(q)),
   ];
 
-  const place = () => {
+  // Effect event: reads the latest menuWidth without re-subscribing the listeners.
+  const place = useEffectEvent(() => {
     const r = triggerRef.current?.getBoundingClientRect();
     if (!r) return;
     const width = Math.max(menuWidth ?? 0, r.width, 220);
     const up = r.bottom + 320 > window.innerHeight && r.top > 320;
     setPos({ left: Math.min(r.left, window.innerWidth - width - 8), top: up ? r.top - 6 : r.bottom + 6, width, up });
-  };
+  });
 
   useLayoutEffect(() => {
     if (open) place();
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -99,7 +100,7 @@ export function Dropdown<V extends string>({
       window.removeEventListener("resize", reposition);
       window.removeEventListener("scroll", reposition, true);
     };
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const toggle = () => {
     setQuery("");

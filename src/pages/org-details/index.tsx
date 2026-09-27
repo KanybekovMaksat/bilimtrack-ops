@@ -19,7 +19,7 @@ import { DeleteOrganizationModal, EditOrganizationModal, OrgLogoPicker, OrgStatu
 import { OrgModuleToggle } from "@/features/toggle-org-module";
 import { routes } from "@/shared/config";
 import { cn, formatAgo, formatDate, formatInt, initialsOf, plural } from "@/shared/lib";
-import { Avatar, Breadcrumbs, Button, Callout, Card, EmptyState, Icon, Pill, Row, SearchInput, Table, Tabs, Toggle } from "@/shared/ui";
+import { Avatar, Breadcrumbs, Button, Callout, Card, EmptyState, ErrorNote, Icon, Pill, Row, SearchInput, Table, Tabs, Toggle } from "@/shared/ui";
 
 const TABS = [
   { key: "overview", label: "Обзор" },
@@ -263,7 +263,7 @@ function ModulesTab({ org }: { org: OrganizationDetail }) {
       <Card className="p-4">
         <div className="mb-0.5 text-sm font-medium">Настройки учебного процесса</div>
         <div className="mb-3.5 text-xs text-neutral-500">Флаги организации: включают разделы и поля внутри модулей. Сохраняются сразу.</div>
-        {setSettings.error && <div className="mb-3 rounded-xl bg-red-50 px-3.5 py-2.5 text-xs text-red-600">{setSettings.error.message}</div>}
+        <ErrorNote error={setSettings.error} className="mb-3" />
         <div className="grid grid-cols-3 gap-x-[18px] gap-y-2.5">
           {org.settings.map((s) => (
             <div key={s.code} className="flex items-center gap-2">

@@ -7,7 +7,7 @@ import { isOpen, useTicketsSoft } from "@/entities/ticket";
 import logoMark from "@/shared/assets/logo-mark.svg";
 import { routes } from "@/shared/config";
 import { cn } from "@/shared/lib";
-import { ErrorBoundary, Icon, PageSkeleton, UserAvatar } from "@/shared/ui";
+import { ErrorBoundary, Icon, type IconName, PageSkeleton, UserAvatar } from "@/shared/ui";
 import { NAV, isActive } from "./nav";
 
 /** Bilimtrack puzzle mark — the same asset as the blog and design system. */
@@ -15,10 +15,11 @@ export function Logo({ size = 30 }: { size?: number }) {
   return <img src={logoMark} alt="Bilimtrack" width={size} height={size} className="shrink-0" />;
 }
 
-/** Live counters: open tickets and new demo requests (hidden if the account has no access). */
+/** Live counters: open tickets and new demo requests, fetched only with the privilege to see them. */
 function useCounters() {
-  const tickets = useTicketsSoft();
-  const leads = useLeadsSoft();
+  const can = useCan();
+  const tickets = useTicketsSoft({ enabled: can("support") });
+  const leads = useLeadsSoft({ enabled: can("sales") });
   return {
     tickets: tickets.data?.filter(isOpen).length,
     leads: leads.data?.filter((l) => l.status === "new").length,
@@ -70,7 +71,7 @@ function Sidebar() {
   );
 }
 
-function HeaderBadge({ to, icon, count, tone, title }: { to: string; icon: string; count?: number; tone: "red" | "blue"; title: string }) {
+function HeaderBadge({ to, icon, count, tone, title }: { to: string; icon: IconName; count?: number; tone: "red" | "blue"; title: string }) {
   return (
     <Link to={to} title={title} className="relative flex size-[34px] items-center justify-center rounded-full text-ink hover:bg-neutral-100 hover:text-ink">
       <Icon name={icon} size={19} />
@@ -163,7 +164,7 @@ function GlobalSearch() {
         ref={inputRef}
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="Поиск по аккаунтам, организациям, тикетам, заявкам"
+        placeholder="Поиск аккаунта: логин, почта, телефон или ФИО"
         className="min-w-0 flex-1 border-0 bg-transparent font-sans text-sm outline-none placeholder:text-neutral-400"
       />
       <span className="rounded-md border border-neutral-200 bg-white px-1.5 py-px text-[11px] text-neutral-500">⌘K</span>
@@ -175,6 +176,7 @@ function GlobalSearch() {
 export function AppShell() {
   const { pathname } = useLocation();
   const counters = useCounters();
+  const can = useCan();
   return (
     <div className="flex min-h-screen min-w-[1280px] bg-white">
       <Sidebar />
@@ -183,8 +185,8 @@ export function AppShell() {
           <GlobalSearch />
           <div className="flex-1" />
           <div className="flex items-center gap-1.5">
-            <HeaderBadge to={routes.tickets} icon="lifebuoy" count={counters.tickets} tone="red" title="Открытые тикеты" />
-            <HeaderBadge to={routes.leads} icon="inbox" count={counters.leads} tone="blue" title="Новые заявки на демо" />
+            {can("support") && <HeaderBadge to={routes.tickets} icon="lifebuoy" count={counters.tickets} tone="red" title="Открытые тикеты" />}
+            {can("sales") && <HeaderBadge to={routes.leads} icon="inbox" count={counters.leads} tone="blue" title="Новые заявки на демо" />}
           </div>
           <div className="h-6 w-px bg-neutral-200" />
           <UserMenu />

@@ -148,7 +148,7 @@ const Instagram = brand(
 type Glyph = LucideIcon | ReturnType<typeof brand>;
 
 /** Icon names used across the panel (kept from the design handoff) → glyph. */
-const ICONS: Record<string, Glyph> = {
+const ICONS = {
   alarm: AlarmClock,
   "alert-circle": CircleAlert,
   "alert-triangle": TriangleAlert,
@@ -274,11 +274,14 @@ const ICONS: Record<string, Glyph> = {
   "book": BookOpen,
   "images": Images,
   zzz: Moon,
-};
+} satisfies Record<string, Glyph>;
+
+/** Every icon key the panel knows; a typo is a type error, not a blank space. */
+export type IconName = keyof typeof ICONS;
 
 type IconProps = {
   /** Icon key, e.g. "lifebuoy". Keys ending in "-filled" render as a solid glyph. */
-  name: string;
+  name: IconName;
   size?: number;
   className?: string;
   style?: CSSProperties;
@@ -286,7 +289,8 @@ type IconProps = {
 
 /** Stroke icon (lucide-react) sized like text by default: 1em, inherits colour. */
 export function Icon({ name, size, className, style }: IconProps) {
-  const Glyph = ICONS[name];
+  // Names can still come untyped from the server or old data: skip them instead of crashing.
+  const Glyph: Glyph | undefined = ICONS[name];
   if (!Glyph) {
     if (import.meta.env.DEV) console.warn(`[Icon] unknown icon "${name}"`);
     return null;
@@ -299,7 +303,7 @@ export function Icon({ name, size, className, style }: IconProps) {
       strokeWidth={filled ? 2.25 : 1.75}
       className={cn("inline-block shrink-0 align-[-0.125em]", className)}
       style={style}
-      {...(filled ? { fill: "currentColor", stroke: "#fff" } : {})}
+      {...(filled ? { fill: "currentColor", stroke: "var(--color-white)" } : {})}
     />
   );
 }

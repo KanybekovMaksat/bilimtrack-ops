@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router";
 import { JOURNAL_PAGE, useAccessLogs, useJournalChoices, type AccessEntry, type AccessFilters } from "@/entities/journal";
 import { routes } from "@/shared/config";
-import { formatDateTimeShort } from "@/shared/lib";
+import { formatDateTimeShort, useDebouncedEffect } from "@/shared/lib";
 import { Callout, Cell, EmptyState, FilterChip, Num, PageHeader, Pager, Pill, Row, SearchInput, SelectInput, Table, TextInput } from "@/shared/ui";
 
 const EVENT_TONE: Record<AccessEntry["eventType"], "success" | "danger" | "neutral" | "info"> = {
@@ -27,12 +27,9 @@ export function LoginsPage() {
     setFilters((f) => ({ ...f, ...patch }));
     setPage(1);
   };
-  useEffect(() => {
-    const t = setTimeout(() => {
-      if ((filters.q ?? "") !== search.trim()) update({ q: search.trim() || undefined });
-    }, 350);
-    return () => clearTimeout(t);
-  }, [search]); // eslint-disable-line react-hooks/exhaustive-deps
+  useDebouncedEffect(search.trim(), 350, (q) => {
+    if ((filters.q ?? "") !== q) update({ q: q || undefined });
+  });
 
   const rows = logs.data?.rows ?? [];
 
@@ -66,7 +63,7 @@ export function LoginsPage() {
           {logs.isLoading && <div className="h-40 animate-pulse bg-neutral-50" />}
           {!logs.isLoading && !rows.length && <EmptyState icon="login" title="Записей нет" description="Измените фильтры или период." />}
           {rows.map((l) => (
-            <Row key={l.id} className={l.eventType === "login_failed" ? "bg-[#fffafa]" : undefined}>
+            <Row key={l.id} className={l.eventType === "login_failed" ? "bg-red-50/40" : undefined}>
               <span className="text-xs text-neutral-500">{formatDateTimeShort(l.createdAt)}</span>
               <span className="min-w-0">
                 {l.username ? (
