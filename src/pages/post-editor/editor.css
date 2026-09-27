@@ -1,0 +1,133 @@
+/* Article editor — ported from the «Bilimtrack Blog» design handoff (Admin.html / admin.css).
+   The design's own left nav is replaced by the Ops sidebar; the centre column and the settings rail are kept. */
+
+.ae {
+  --ae-accent: #155dfc;
+  --ae-accent-subtle: #eff6ff;
+  --ae-stroke: #e5e5e5;
+  --ae-stroke-2: #f0f0f0;
+  --ae-muted: #737373;
+  --ae-subtle: #a1a1a1;
+  --ae-disabled: #d4d4d4;
+  --ae-surface: #f5f5f5;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 336px;
+  height: calc(100vh - 56px);
+  margin: -24px -28px -56px;
+  background: #fff;
+}
+
+.ae-col { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.ae-topbar {
+  display: flex; align-items: center; gap: 14px; height: 60px; padding: 0 26px; flex: none;
+  background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(10px); border-bottom: 1px solid var(--ae-stroke);
+}
+.ae-back {
+  display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 500; color: var(--ae-muted);
+  padding: 7px 11px; border-radius: 9px;
+}
+.ae-back:hover { background: var(--ae-surface); color: #0a0a0a; }
+.ae-crumb { font-size: 14px; color: var(--ae-subtle); white-space: nowrap; }
+.ae-crumb b { color: #0a0a0a; font-weight: 600; }
+.ae-save { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ae-subtle); white-space: nowrap; }
+.ae-save svg { color: #00a63e; }
+.ae-save.is-dirty svg { color: #fe9a00; }
+
+.ae-scroll { flex: 1; overflow-y: auto; }
+.ae-canvas { max-width: 760px; margin: 0 auto; padding: 32px 26px 120px; }
+
+.ae-cover {
+  position: relative; aspect-ratio: 16 / 9; border-radius: 24px; overflow: hidden; margin-bottom: 26px;
+  border: 1px dashed #d4d4d4; background: var(--ae-surface); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; width: 100%; padding: 0;
+}
+.ae-cover.has-cover { border-style: solid; border-color: var(--ae-stroke); }
+.ae-cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.ae-cover-hint { display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--ae-subtle); font-size: 14px; font-weight: 500; }
+.ae-cover-edit {
+  position: absolute; right: 14px; bottom: 14px; z-index: 2; display: inline-flex; align-items: center; gap: 6px;
+  height: 34px; padding: 0 13px; border-radius: 9999px; background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(6px);
+  font-size: 13px; font-weight: 600; color: #0a0a0a; box-shadow: 0 6px 18px -8px rgba(0, 0, 0, 0.4); opacity: 0; transition: opacity 0.15s;
+}
+.ae-cover.has-cover:hover .ae-cover-edit { opacity: 1; }
+
+.ae-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+.ae-tag { display: inline-flex; align-items: center; height: 26px; padding: 0 11px; border-radius: 9999px; font-size: 12px; font-weight: 600; }
+
+.ae-title, .ae-excerpt { width: 100%; border: none; outline: none; background: none; font-family: inherit; color: #0a0a0a; resize: none; padding: 0; }
+.ae-title { font-size: 38px; line-height: 1.12; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 14px; }
+.ae-excerpt { font-size: 18px; line-height: 1.55; color: var(--ae-muted); margin-bottom: 22px; }
+.ae-title::placeholder, .ae-excerpt::placeholder { color: var(--ae-disabled); }
+
+/* BlockNote body with the blog's prose look. */
+.ae-body { margin: 0 -54px; min-height: 320px; }
+.ae-body .bn-container, .ae-body .bn-editor { background: transparent; font-family: inherit; }
+.ae-body .bn-editor { padding-inline: 54px; font-size: 17px; line-height: 1.75; color: #1f2733; }
+.ae-body [data-content-type="heading"][data-level="1"] h1 { font-size: 32px; font-weight: 700; letter-spacing: -0.02em; }
+.ae-body [data-content-type="heading"][data-level="2"] h2 { font-size: 27px; font-weight: 700; letter-spacing: -0.02em; }
+.ae-body [data-content-type="heading"][data-level="3"] h3 { font-size: 20px; font-weight: 600; }
+.ae-body .bn-inline-content a { color: var(--ae-accent); text-decoration: underline; }
+
+/* Settings rail */
+.ae-rail { background: #fff; border-left: 1px solid var(--ae-stroke); overflow-y: auto; padding: 20px 20px 60px; }
+.ae-actions { display: flex; gap: 8px; margin-bottom: 22px; }
+.ae-actions > * { flex: 1; }
+.ae-block { padding: 18px 0; border-top: 1px solid var(--ae-stroke-2); }
+.ae-block:first-of-type { border-top: none; padding-top: 0; }
+.ae-label {
+  font-size: 12px; font-weight: 600; color: var(--ae-subtle); text-transform: uppercase; letter-spacing: 0.05em;
+  margin: 0 0 11px; display: flex; align-items: center; gap: 7px;
+}
+.ae-segment { display: flex; gap: 4px; background: var(--ae-surface); padding: 4px; border-radius: 11px; }
+.ae-segment button {
+  flex: 1; height: 34px; border: none; border-radius: 8px; background: none; font-size: 13px; font-weight: 600; color: var(--ae-muted);
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+}
+.ae-segment .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.ae-segment button.is-active { background: #fff; color: #0a0a0a; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); }
+.ae-segment button.is-active[data-v="published"] { color: #00a63e; }
+.ae-segment button.is-active[data-v="draft"] { color: #fe9a00; }
+.ae-segment button.is-active[data-v="archived"] { color: #c2410c; }
+
+.ae-field { width: 100%; height: 42px; padding: 0 14px; border: 1px solid var(--ae-stroke); border-radius: 11px; background: #fff; font-family: inherit; font-size: 14px; color: #0a0a0a; outline: none; }
+.ae-field:focus { border-color: #404040; }
+textarea.ae-field { height: auto; padding: 11px 14px; line-height: 1.5; resize: vertical; min-height: 72px; }
+.ae-field::placeholder { color: #a1a1a1; }
+.ae-hint { font-size: 12px; color: var(--ae-subtle); margin-top: 7px; display: flex; justify-content: space-between; gap: 8px; }
+.ae-hint .ok { color: #00a63e; }
+.ae-hint .over { color: #e7000b; }
+.ae-stack > * + * { margin-top: 14px; }
+.ae-slug { display: flex; align-items: center; border: 1px solid var(--ae-stroke); border-radius: 11px; overflow: hidden; }
+.ae-slug span { padding: 0 4px 0 13px; font-size: 13px; color: var(--ae-subtle); white-space: nowrap; }
+.ae-slug input { flex: 1; height: 42px; border: none; outline: none; font-family: inherit; font-size: 14px; padding: 0 12px 0 2px; min-width: 0; }
+.ae-slug:focus-within { border-color: #404040; }
+.ae-readtime { display: flex; align-items: center; gap: 12px; }
+.ae-readtime b { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.ae-readtime span { font-size: 13px; color: var(--ae-subtle); line-height: 1.35; }
+.ae-readtime span strong { display: block; color: #0a0a0a; font-weight: 600; }
+.ae-covers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.ae-covers button { aspect-ratio: 16 / 10; border-radius: 10px; overflow: hidden; border: 2px solid transparent; padding: 0; background: var(--ae-surface); }
+.ae-covers button.is-active { border-color: var(--ae-accent); }
+.ae-covers img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ae-danger {
+  display: inline-flex; align-items: center; gap: 8px; width: 100%; justify-content: center; height: 40px;
+  border: 1px solid var(--ae-stroke); border-radius: 11px; background: #fff; color: #e7000b; font-size: 13px; font-weight: 600;
+}
+.ae-danger:hover { background: #fef2f2; border-color: #fecaca; }
+
+/* Preview modal: the blog's article typography. */
+.ae-prose { font-size: 17px; line-height: 1.75; color: #1f2733; }
+.ae-prose > * + * { margin-top: 20px; }
+.ae-prose h1, .ae-prose h2 { font-size: 27px; line-height: 1.25; font-weight: 700; letter-spacing: -0.02em; margin: 40px 0 0; color: #0a0a0a; }
+.ae-prose h3 { font-size: 20px; font-weight: 600; margin: 30px 0 0; color: #0a0a0a; }
+.ae-prose a { color: var(--ae-accent); text-decoration: underline; }
+.ae-prose ul, .ae-prose ol { padding-left: 24px; }
+.ae-prose blockquote { border-left: 3px solid var(--ae-accent); padding: 4px 0 4px 24px; font-style: italic; font-size: 20px; color: #0a0a0a; margin: 28px 0; }
+.ae-prose img { max-width: 100%; border-radius: 16px; }
+.ae-prose table { width: 100%; border-collapse: collapse; }
+.ae-prose td, .ae-prose th { border: 1px solid var(--ae-stroke); padding: 8px 12px; }
+.ae-prose code { background: var(--ae-surface); padding: 2px 6px; border-radius: 6px; font-size: 0.88em; }
+
+/* Narrow screens: the Ops sidebar takes room the design's own nav had. */
+@media (max-width: 1560px) { .ae-crumb { display: none; } }
+@media (max-width: 1360px) { .ae-save .ae-save-label { display: none; } .ae-topbar { gap: 8px; padding: 0 18px; } }

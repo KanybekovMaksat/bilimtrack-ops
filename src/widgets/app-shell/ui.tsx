@@ -2,12 +2,12 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { QueryErrorResetBoundary } from "@tanstack/react-query";
 import { Link, Outlet, useLocation, useNavigate } from "react-router";
 import { useLeadsSoft } from "@/entities/lead";
-import { useSession } from "@/entities/session";
+import { useCan, useSession } from "@/entities/session";
 import { isOpen, useTicketsSoft } from "@/entities/ticket";
 import logoMark from "@/shared/assets/logo-mark.svg";
 import { routes } from "@/shared/config";
 import { cn } from "@/shared/lib";
-import { Avatar, ErrorBoundary, Icon, PageSkeleton } from "@/shared/ui";
+import { ErrorBoundary, Icon, PageSkeleton, UserAvatar } from "@/shared/ui";
 import { NAV, isActive } from "./nav";
 
 /** Bilimtrack puzzle mark — the same asset as the blog and design system. */
@@ -28,6 +28,8 @@ function useCounters() {
 function Sidebar() {
   const { pathname } = useLocation();
   const counters = useCounters();
+  const can = useCan();
+  const groups = NAV.map((g) => ({ ...g, items: g.items.filter((it) => can(it.perm)) })).filter((g) => g.items.length);
 
   return (
     <aside className="sticky top-0 flex h-screen w-[252px] shrink-0 flex-col gap-1 overflow-auto border-r border-neutral-100 px-3 py-3.5">
@@ -35,7 +37,7 @@ function Sidebar() {
         <Logo />
         <div className="text-[15px] font-semibold">Bilimtrack Ops</div>
       </Link>
-      {NAV.map((g) => (
+      {groups.map((g) => (
         <div key={g.title || "root"} className="mb-2.5 flex flex-col gap-px">
           {g.title && <div className="px-2.5 py-1 text-[10px] font-semibold tracking-[.06em] text-neutral-400 uppercase">{g.title}</div>}
           {g.items.map((it) => {
@@ -104,7 +106,7 @@ function UserMenu() {
   return (
     <div ref={ref} className="relative">
       <button onClick={() => setOpen((v) => !v)} className="flex items-center gap-[9px] border-0 bg-transparent p-0 text-left">
-        <Avatar initials={user?.initials} size={30} tone="brand" className="text-xs" />
+        <UserAvatar src={user?.avatar} initials={user?.initials ?? "?"} size={30} className="text-xs" />
         <div className="leading-[1.2]">
           <div className="text-[13px] font-medium">{user?.fullName || user?.username}</div>
           <div className="text-[11px] text-neutral-400">{user?.role}</div>
@@ -114,6 +116,14 @@ function UserMenu() {
       {open && (
         <div className="absolute top-10 right-0 z-30 w-48 rounded-xl border border-neutral-200 bg-white p-1 shadow-pop">
           <div className="px-3 py-2 font-num text-xs text-neutral-500">{user?.username}</div>
+          <Link
+            to={routes.profile}
+            onClick={() => setOpen(false)}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[13px] text-ink hover:bg-neutral-100 hover:text-ink"
+          >
+            <Icon name="user" size={16} className="text-neutral-500" />
+            Мой профиль
+          </Link>
           <button onClick={() => signOut()} className="flex w-full items-center gap-2 rounded-lg border-0 bg-transparent px-3 py-2 text-left text-[13px] hover:bg-neutral-100">
             <Icon name="logout" size={16} className="text-neutral-500" />
             Выйти

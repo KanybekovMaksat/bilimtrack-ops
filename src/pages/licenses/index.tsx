@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { LICENSE_CELL, licenseCell, useLicenseCatalog, useLicenses, type LicenseCell, type LicenseRow } from "@/entities/license";
 import { EditLicenseModal } from "@/features/edit-license";
 import { routes } from "@/shared/config";
-import { formatDate, orgShort, plural } from "@/shared/lib";
+import { cn, daysSince, formatDate, orgShort, plural } from "@/shared/lib";
 import { Button, Card, Cell, EmptyState, FilterChip, Icon, OrgMark, PageHeader, SearchInput, Table } from "@/shared/ui";
 
 const LEGEND: LicenseCell[] = ["y", "p", "x", "n", "o"];
@@ -15,6 +15,8 @@ export function LicensesPage() {
   const [diffOnly, setDiffOnly] = useState(false);
   const [noContract, setNoContract] = useState(false);
   const [query, setQuery] = useState("");
+  const [plan, setPlan] = useState<string | null>(null);
+  const [expiring, setExpiring] = useState(false);
   const [editing, setEditing] = useState<LicenseRow | null>(null);
 
   const modules = catalog.modules;
@@ -22,11 +24,20 @@ export function LicensesPage() {
   const minWidth = 420 + modules.length * 66;
   const totalDiff = licenses.reduce((a, l) => a + l.mismatches.length, 0);
   const withoutContract = licenses.filter((l) => l.licensedModules === null).length;
+  // Negative days = still valid for that many days.
+  const leftDays = (l: LicenseRow) => (l.validUntil ? -(daysSince(l.validUntil) ?? 0) : null);
+  const isExpiring = (l: LicenseRow) => {
+    const d = leftDays(l);
+    return d !== null && d <= 30;
+  };
+  const expiringCount = licenses.filter(isExpiring).length;
   const q = query.trim().toLowerCase();
   const rows = licenses.filter(
     (l) =>
       (!diffOnly || l.mismatches.length > 0) &&
       (!noContract || l.licensedModules === null) &&
+      (!plan || l.plan === plan) &&
+      (!expiring || isExpiring(l)) &&
       (!q || `${l.organization.name} ${l.organization.shortName}`.toLowerCase().includes(q)),
   );
 
@@ -42,7 +53,12 @@ export function LicensesPage() {
       </div>
       <div className="grid grid-cols-5 gap-3">
         {catalog.plans.map((p) => (
-          <Card key={p.code} className="flex flex-col gap-1 px-4 py-3.5">
+          <Card
+            key={p.code}
+            onClick={() => setPlan((v) => (v === p.code ? null : p.code))}
+            className={cn("flex cursor-pointer flex-col gap-1 px-4 py-3.5 hover:border-brand", plan === p.code && "border-brand bg-brand-50")}
+            title="Показать только этот пакет"
+          >
             <div className="flex items-baseline justify-between gap-2">
               <span className="text-sm font-medium">{p.label}</span>
               <span className="text-xs text-neutral-400">
@@ -57,6 +73,8 @@ export function LicensesPage() {
         <SearchInput width={220} placeholder="Организация" value={query} onChange={setQuery} />
         <FilterChip icon="arrows-diff" tone={diffOnly ? "warn" : "default"} label={`Расхождения с договором · ${totalDiff}`} onClick={() => setDiffOnly((v) => !v)} />
         <FilterChip icon="file-text" tone={noContract ? "active" : "default"} label={`Без договора · ${withoutContract}`} onClick={() => setNoContract((v) => !v)} />
+        <FilterChip icon="clock-exclamation" tone={expiring ? "danger" : "default"} label={`Истекает ≤ 30 дней · ${expiringCount}`} onClick={() => setExpiring((v) => !v)} />
+        {plan && <FilterChip icon="x" tone="active" label={`Пакет: ${catalog.plans.find((p) => p.code === plan)?.label ?? plan}`} onClick={() => setPlan(null)} />}
         <div className="flex-1" />
         {LEGEND.map((k) => {
           const c = LICENSE_CELL[k];
@@ -104,7 +122,9 @@ export function LicensesPage() {
                   </button>
                 );
               })}
-              <span className="text-xs text-neutral-500">{formatDate(r.validUntil)}</span>
+              <span className={cn("text-xs", isExpiring(r) ? "font-medium text-red-600" : "text-neutral-500")} title={isExpiring(r) ? "Договор истекает или истёк" : undefined}>
+                {formatDate(r.validUntil)}
+              </span>
               <span className="text-right">
                 <Button size="xs" variant="ghost" icon="pencil" aria-label="Изменить лицензию" onClick={() => setEditing(r)} />
               </span>

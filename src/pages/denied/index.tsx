@@ -16,7 +16,7 @@ export function DeniedPage({
       <div className="text-lg font-semibold">{title}</div>
       <div className="max-w-[420px] text-[13px] leading-5 text-neutral-500">
         {description ??
-          `Раздел «${section}» доступен только роли «Поддержка». Если доступ нужен для работы, попросите админа платформы изменить роль в разделе «Команда и доступы».`}
+          `У вас нет привилегии на раздел «${section}». Если доступ нужен для работы, попросите администратора выдать её в разделе «Команда».`}
       </div>
       <Button variant="primary" size="md" className="mt-1.5 h-[38px] px-[18px] text-sm" onClick={() => navigate(routes.home)}>
         На главную

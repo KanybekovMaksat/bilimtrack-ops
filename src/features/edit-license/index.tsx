@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useLicenseCatalog, useUpdateLicense } from "@/entities/license";
+import { useSetOrgModules } from "@/entities/organization";
 import { toggleIn } from "@/shared/lib";
-import { Button, Callout, Field, Modal, ModalActions, TextArea, TextInput, ToggleChip } from "@/shared/ui";
+import { Button, Callout, CheckBox, Field, Modal, ModalActions, TextArea, TextInput, ToggleChip } from "@/shared/ui";
 
 type Current = {
   plan: string | null;
@@ -18,6 +19,8 @@ type Props = { organization: { id: number; name: string }; current: Current; onC
 export function EditLicenseModal({ organization, current, onClose }: Props) {
   const catalog = useLicenseCatalog();
   const update = useUpdateLicense(organization.id);
+  const applyModules = useSetOrgModules(organization.id);
+  const [syncModules, setSyncModules] = useState(false);
   const [plan, setPlan] = useState(current.plan ?? "custom");
   const [modules, setModules] = useState<string[]>(current.licensedModules ?? current.enabledModules);
   const [validFrom, setValidFrom] = useState(current.validFrom ?? "");
@@ -38,7 +41,14 @@ export function EditLicenseModal({ organization, current, onClose }: Props) {
   const save = () =>
     update.mutate(
       { plan, licensedModules: modules, validFrom: validFrom || null, validUntil: validUntil || null, note },
-      { onSuccess: onClose },
+      {
+        onSuccess: () => {
+          if (!syncModules) return onClose();
+          // Bring enabled modules in line with the contract in the same step.
+          const all = catalog.modules.map((m) => m.code);
+          applyModules.mutate(Object.fromEntries(all.map((c) => [c, modules.includes(c)])), { onSuccess: onClose });
+        },
+      },
     );
 
   return (
@@ -80,14 +90,22 @@ export function EditLicenseModal({ organization, current, onClose }: Props) {
           {licensedOff.length > 0 && <> В договоре, но выключены: {licensedOff.map(nameOf).join(", ")}.</>}
         </Callout>
       )}
+      {(unlicensedOn.length > 0 || licensedOff.length > 0) && (
+        <button type="button" onClick={() => setSyncModules((v) => !v)} className="flex items-center gap-2.5 border-0 bg-transparent p-0 text-left text-[13px]">
+          <CheckBox on={syncModules} />
+          Сразу включить модули строго по договору ({modules.length})
+        </button>
+      )}
       {badDates && <div className="text-xs text-warn">Дата окончания раньше даты начала.</div>}
-      {update.error && <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-xs text-red-600">{update.error.message}</div>}
+      {(update.error ?? applyModules.error) && (
+        <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-xs text-red-600">{(update.error ?? applyModules.error)?.message}</div>
+      )}
       <ModalActions>
         <Button size="xl" onClick={onClose}>
           Отмена
         </Button>
-        <Button size="xl" variant="primary" disabled={update.isPending || badDates} onClick={save}>
-          {update.isPending ? "Сохраняем…" : "Сохранить лицензию"}
+        <Button size="xl" variant="primary" disabled={update.isPending || applyModules.isPending || badDates} onClick={save}>
+          {update.isPending || applyModules.isPending ? "Сохраняем…" : "Сохранить лицензию"}
         </Button>
       </ModalActions>
     </Modal>

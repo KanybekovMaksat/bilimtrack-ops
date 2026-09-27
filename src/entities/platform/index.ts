@@ -1,43 +1,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { HEALTH_URL, api, useMockQuery } from "@/shared/api";
 
-/** Platform observability: audit trail, sign-in log, service status, staff. */
-
-export type AuditEntry = {
-  id: number;
-  time: string;
-  who: string;
-  org: string;
-  orgShort: string;
-  object: string;
-  action: string;
-  diff: { field: string; was: string; now: string }[];
-};
-
-const d = (field: string, was: string, now: string) => ({ field, was, now });
-
-const AUDIT: AuditEntry[] = [
-  { id: 0, time: "20 сен, 15:22", who: "Ернар К.", org: "МУИТ", orgShort: "МУ", object: "Организация · МУИТ", action: "Изменены модули", diff: [d("Модуль «Финансы»", "Включён", "Выключен"), d("Фича «Должники»", "Включена", "Недоступна")] },
-  { id: 1, time: "20 сен, 14:05", who: "Айдана С.", org: "МУИТ", orgShort: "МУ", object: "Тикет · TCK-TG7K2M04", action: "Изменён приоритет", diff: [d("Приоритет", "Обычный", "Критический")] },
-  { id: 2, time: "20 сен, 11:48", who: "Ернар К.", org: "Comtehno", orgShort: "CT", object: "Аккаунт · d.zhumabekova", action: "Привязан профиль", diff: [d("Членство", "—", "Comtehno, активно"), d("Роли", "—", "Преподаватель")] },
-  { id: 3, time: "19 сен, 18:30", who: "Жанна М.", org: "—", orgShort: "—", object: "Статья · Электронный журнал", action: "Опубликована", diff: [d("Статус", "Черновик", "Опубликовано"), d("Дата публикации", "—", "19.09.2026 18:30")] },
-  { id: 4, time: "19 сен, 09:10", who: "Айдана С.", org: "Школа №61", orgShort: "Ш6", object: "Подписка · a.kozhabek", action: "Выдан PRO бесплатно", diff: [d("Статус", "Истекла", "Активна"), d("Окончание", "12.08.2026", "12.09.2026"), d("Причина", "—", "компенсация за сбой оплаты")] },
-];
-
-export const useAuditLog = () => useMockQuery(["audit"], () => AUDIT);
-
-export type LoginAttempt = { time: string; login: string; ok: boolean; reason: string; ip: string; device: string };
-
-const LOGINS: LoginAttempt[] = [
-  { time: "20 сен, 15:40", login: "a.kaliyeva", ok: false, reason: "пользователь не найден", ip: "212.42.101.18", device: "iPhone · Bilimtrack 3.4" },
-  { time: "20 сен, 15:39", login: "a.kaliyeva", ok: false, reason: "пользователь не найден", ip: "212.42.101.18", device: "iPhone · Bilimtrack 3.4" },
-  { time: "20 сен, 15:02", login: "d.zhumabekova", ok: true, reason: "", ip: "95.56.240.11", device: "Chrome 129 · Windows 11" },
-  { time: "20 сен, 14:11", login: "e.kaliyev", ok: true, reason: "", ip: "2.132.14.90", device: "Safari 18 · macOS" },
-  { time: "20 сен, 09:04", login: "m.akhmetov", ok: false, reason: "неверный пароль", ip: "37.99.8.214", device: "Android · Bilimtrack 3.4" },
-  { time: "19 сен, 22:47", login: "a.serikkyzy", ok: true, reason: "", ip: "95.56.240.11", device: "Chrome 129 · Windows 11" },
-];
-
-export const useLoginLog = () => useMockQuery(["logins"], () => LOGINS);
+/** Platform observability: service status and errors. Audit, sign-ins and the team live in `journal` and `operator`. */
 
 export type ServiceState = "Норма" | "Деградация" | "Сбой";
 
@@ -85,26 +49,6 @@ async function fetchSystemStatus(): Promise<{ services: SystemService[]; checked
 
 export const useSystemStatus = () =>
   useSuspenseQuery({ queryKey: ["system-status"], queryFn: fetchSystemStatus, refetchInterval: 30_000, staleTime: 0 }).data;
-
-export type StaffMember = {
-  name: string;
-  initials: string;
-  login: string;
-  role: string;
-  accountSearch: boolean;
-  active: boolean;
-  last: string;
-};
-
-const TEAM: StaffMember[] = [
-  { name: "Айдана Сатыбалды", initials: "АС", login: "a.satybaldy", role: "Поддержка", accountSearch: true, active: true, last: "сейчас" },
-  { name: "Ернар Калиев", initials: "ЕК", login: "e.kaliyev", role: "Админ платформы", accountSearch: true, active: true, last: "2 часа назад" },
-  { name: "Жанна Мукашева", initials: "ЖМ", login: "zh.mukasheva", role: "Контент", accountSearch: false, active: true, last: "вчера" },
-  { name: "Тимур Оспанов", initials: "ТО", login: "t.ospanov", role: "Продажи", accountSearch: false, active: true, last: "вчера" },
-  { name: "Марат Сейтов", initials: "МС", login: "m.seitov", role: "Продажи", accountSearch: false, active: false, last: "12 авг" },
-];
-
-export const useTeam = () => useMockQuery(["team"], () => TEAM);
 
 export type ErrorLevel = "fatal" | "error" | "warning";
 export type ErrorState = "Новая" | "Не решена" | "Решена";

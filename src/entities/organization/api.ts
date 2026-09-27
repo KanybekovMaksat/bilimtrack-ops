@@ -1,11 +1,25 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { api, apiList } from "@/shared/api";
-import type { OrgMember, OrgStatus, Organization, OrganizationDetail } from "./model";
+import { api, apiList, apiUpload } from "@/shared/api";
+import type {
+  Credentials,
+  OrgMember,
+  OrgRole,
+  OrgStatus,
+  Organization,
+  OrganizationCreateInput,
+  OrganizationDetail,
+  OrganizationInput,
+  PersonCreated,
+  PersonInput,
+  PlatformSummary,
+} from "./model";
 
 export const orgKeys = {
   all: ["orgs"] as const,
   detail: (id: number) => ["orgs", id] as const,
   members: (id: number, q: string) => ["orgs", id, "members", q] as const,
+  roles: (id: number) => ["orgs", id, "roles"] as const,
+  summary: ["ops-summary"] as const,
 };
 
 /** Every organization (the platform has dozens, not thousands): the list filters on the client. */
@@ -33,6 +47,7 @@ function useOrgMutation<V>(id: number, request: (v: V) => Promise<OrganizationDe
     onSuccess: (detail) => {
       qc.setQueryData(orgKeys.detail(id), detail);
       qc.invalidateQueries({ queryKey: orgKeys.all, exact: true });
+      qc.invalidateQueries({ queryKey: orgKeys.summary });
       qc.invalidateQueries({ queryKey: ["licenses"] });
     },
   });
@@ -50,3 +65,65 @@ export const useSetOrgSettings = (id: number) =>
   useOrgMutation(id, (settings: Record<string, boolean>) =>
     api<OrganizationDetail>(`ops/organizations/${id}/settings/`, { method: "PATCH", body: { settings } }),
   );
+
+export const useUpdateOrganization = (id: number) =>
+  useOrgMutation(id, (input: OrganizationInput) => api<OrganizationDetail>(`ops/organizations/${id}/`, { method: "PATCH", body: input }));
+
+export const useSetOrgLogo = (id: number) =>
+  useOrgMutation(id, (file: File | null) =>
+    file ? apiUpload<OrganizationDetail>(`ops/organizations/${id}/logo/`, file) : api<OrganizationDetail>(`ops/organizations/${id}/logo/`, { method: "DELETE" }),
+  );
+
+/** POST ops/organizations/: the answer carries the owner's one-time password when a new owner was created. */
+export function useCreateOrganization() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: OrganizationCreateInput) =>
+      api<OrganizationDetail & { ownerCredentials?: Credentials | null }>("ops/organizations/", { method: "POST", body: input }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: orgKeys.all, exact: true });
+      qc.invalidateQueries({ queryKey: orgKeys.summary });
+      qc.invalidateQueries({ queryKey: ["licenses"] });
+    },
+  });
+}
+
+export function useDeleteOrganization(id: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (confirm: string) => api(`ops/organizations/${id}/`, { method: "DELETE", body: { confirm } }),
+    onSuccess: () => {
+      qc.removeQueries({ queryKey: orgKeys.detail(id) });
+      qc.invalidateQueries({ queryKey: orgKeys.all, exact: true });
+      qc.invalidateQueries({ queryKey: orgKeys.summary });
+      qc.invalidateQueries({ queryKey: ["licenses"] });
+    },
+  });
+}
+
+export const useOrgRoles = (id: number) =>
+  useQuery({ queryKey: orgKeys.roles(id), queryFn: () => api<OrgRole[]>(`ops/organizations/${id}/roles/`), staleTime: 5 * 60_000 });
+
+export function useAddPerson(id: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: PersonInput) => api<PersonCreated>(`ops/organizations/${id}/people/`, { method: "POST", body: input }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["orgs", id] });
+      qc.invalidateQueries({ queryKey: ["accounts"] });
+      qc.invalidateQueries({ queryKey: orgKeys.summary });
+    },
+  });
+}
+
+export function useUpdateMembership(id: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ membershipId, ...input }: { membershipId: number; roleIds?: number[]; status?: "active" | "suspended" }) =>
+      api<OrgMember>(`ops/organizations/${id}/members/${membershipId}/`, { method: "PATCH", body: input }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["orgs", id, "members"] }),
+  });
+}
+
+export const usePlatformSummary = () =>
+  useQuery({ queryKey: orgKeys.summary, queryFn: () => api<PlatformSummary>("ops/summary/"), retry: false });

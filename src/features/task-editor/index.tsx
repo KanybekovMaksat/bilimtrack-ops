@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useSession } from "@/entities/session";
 import {
-  TASK_ESTIMATES,
   TASK_PRIORITIES,
   TASK_TYPES,
   useAddComment,
@@ -43,7 +42,6 @@ function TaskEditor({ board, target, onClose }: { board: Board; target: NonNulla
     type: existing?.type ?? ("task" as TaskType),
     priority: existing?.priority ?? ("normal" as TaskPriority),
     assigneeId: existing ? (existing.assignee?.id ?? null) : null,
-    estimate: existing?.estimate ?? null,
     columnId: existing?.column.id ?? ("columnId" in target ? target.columnId : board.columns[0]?.id),
     tags: existing?.tags.join(", ") ?? "",
     dueDate: existing?.dueDate ?? "",
@@ -61,7 +59,6 @@ function TaskEditor({ board, target, onClose }: { board: Board; target: NonNulla
       type: draft.type,
       priority: draft.priority,
       assigneeId: draft.assigneeId,
-      estimate: draft.estimate,
       columnId: draft.columnId,
       tags: draft.tags.split(",").map((t) => t.trim()).filter(Boolean),
       dueDate: draft.dueDate || null,
@@ -74,7 +71,6 @@ function TaskEditor({ board, target, onClose }: { board: Board; target: NonNulla
     <Modal open onClose={onClose} width={existing ? 760 : 620} className="gap-4">
       <div className="flex items-center gap-2.5">
         <div className="flex-1 text-[17px] font-semibold">{existing ? "Задача" : "Новая задача"}</div>
-        <span className="font-num text-xs text-neutral-400">{existing?.key ?? `${board.key}-…`}</span>
         <Button variant="ghost" size="sm" icon="x" onClick={onClose} aria-label="Закрыть" />
       </div>
       <label className="flex flex-col gap-1.5">
@@ -110,14 +106,6 @@ function TaskEditor({ board, target, onClose }: { board: Board; target: NonNulla
           <Label>Колонка</Label>
           <Segmented<string> value={String(draft.columnId)} onChange={(c) => set({ columnId: Number(c) })} options={board.columns.map((c) => ({ value: String(c.id), label: c.name }))} />
         </div>
-        <div className="flex flex-col gap-2">
-          <Label>Оценка</Label>
-          <Segmented<string>
-            value={draft.estimate == null ? "" : String(draft.estimate)}
-            onChange={(v) => set({ estimate: v ? Number(v) : null })}
-            options={[{ value: "", label: "—" }, ...TASK_ESTIMATES.map((e) => ({ value: String(e), label: String(e) }))]}
-          />
-        </div>
       </div>
       <div className="grid grid-cols-[minmax(0,1fr)_180px] gap-3">
         <label className="flex flex-col gap-1.5">
@@ -144,7 +132,7 @@ function TaskEditor({ board, target, onClose }: { board: Board; target: NonNulla
       {confirmDelete && existing ? (
         <Callout tone="danger">
           <div className="flex items-center gap-2">
-            <span className="flex-1">Удалить {existing.key} вместе с комментариями? Номер больше не будет выдан.</span>
+            <span className="flex-1">Удалить задачу «{existing.title}» вместе с комментариями?</span>
             <Button size="xs" onClick={() => setConfirmDelete(false)}>
               Отмена
             </Button>

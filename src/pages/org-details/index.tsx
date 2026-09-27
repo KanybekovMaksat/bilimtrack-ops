@@ -1,20 +1,24 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import {
+  OrgCategoryPill,
   OrgStatusPill,
-  orgMark,
   structureTree,
   useOrgMembers,
   useOrganization,
   useSetOrgSettings,
-  useSetOrgStatus,
+  type OrgMember,
+  type OrgStatus,
   type OrganizationDetail,
 } from "@/entities/organization";
+import { useCan } from "@/entities/session";
+import { AddPersonModal, EditMembershipModal } from "@/features/add-person";
 import { EditLicenseModal } from "@/features/edit-license";
+import { DeleteOrganizationModal, EditOrganizationModal, OrgLogoPicker, OrgStatusModal } from "@/features/manage-organization";
 import { OrgModuleToggle } from "@/features/toggle-org-module";
 import { routes } from "@/shared/config";
 import { cn, formatAgo, formatDate, formatInt, initialsOf, plural } from "@/shared/lib";
-import { Avatar, Breadcrumbs, Button, Callout, Card, EmptyState, Icon, Modal, ModalActions, OrgMark, Pill, Row, SearchInput, Table, Tabs, Toggle } from "@/shared/ui";
+import { Avatar, Breadcrumbs, Button, Callout, Card, EmptyState, Icon, Pill, Row, SearchInput, Table, Tabs, Toggle } from "@/shared/ui";
 
 const TABS = [
   { key: "overview", label: "Обзор" },
@@ -38,17 +42,23 @@ function OrgDetails({ orgId }: { orgId: number }) {
   const [params, setParams] = useSearchParams();
   const tab = (params.get("tab") as TabKey) ?? "overview";
   const org = useOrganization(orgId);
-  const [statusModal, setStatusModal] = useState(false);
+  const navigate = useNavigate();
+  const can = useCan();
+  const manage = can("organizations");
+  const [statusTarget, setStatusTarget] = useState<OrgStatus | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   return (
     <div className="flex max-w-[1180px] flex-col gap-4">
       <Breadcrumbs items={[{ label: "Организации", to: routes.orgs }, { label: org.name }]} />
       <div className="flex items-start gap-4">
-        {org.logo ? <img src={org.logo} alt="" className="size-[52px] shrink-0 rounded-[14px] object-cover" /> : <OrgMark short={orgMark(org)} size={52} className="text-neutral-700" />}
+        <OrgLogoPicker org={org} />
         <div className="flex-1">
           <div className="flex items-center gap-2.5">
             <h1 className="m-0 text-xl leading-[26px] font-semibold tracking-[-.01em]">{org.name}</h1>
             <OrgStatusPill status={org.status} />
+            <OrgCategoryPill category={org.category} />
             <span className="text-xs text-neutral-400">
               {org.typeLabel} · {org.slug}
             </span>
@@ -68,12 +78,29 @@ function OrgDetails({ orgId }: { orgId: number }) {
             ))}
           </div>
         </div>
-        <Button onClick={() => setStatusModal(true)}>{org.status === "active" ? "Поставить на паузу" : "Активировать"}</Button>
+        {manage && (
+          <div className="flex items-center gap-1.5">
+            <Button icon="pencil" onClick={() => setEditing(true)}>
+              Изменить
+            </Button>
+            {org.status === "active" ? (
+              <Button icon="power" onClick={() => setStatusTarget("inactive")}>
+                Отключить
+              </Button>
+            ) : (
+              <Button icon="power" variant="primary" onClick={() => setStatusTarget("active")}>
+                Включить
+              </Button>
+            )}
+            {org.status !== "archived" && <Button size="lg" icon="archive" title="В архив" aria-label="В архив" onClick={() => setStatusTarget("archived")} />}
+            <Button size="lg" variant="dangerOutline" icon="trash" title="Удалить" aria-label="Удалить" onClick={() => setDeleting(true)} />
+          </div>
+        )}
       </div>
 
       {org.status !== "active" && (
         <Callout tone="warn" icon="alert-triangle" iconClassName="text-warn">
-          {org.status === "inactive" ? "Организация на паузе." : `Организация в архиве с ${formatDate(org.archivedAt)}.`} Статус меняет только команда Bilimtrack.
+          {org.status === "inactive" ? "Организация отключена." : `Организация в архиве с ${formatDate(org.archivedAt)}.`} Статус меняет только команда Bilimtrack.
         </Callout>
       )}
 
@@ -84,7 +111,9 @@ function OrgDetails({ orgId }: { orgId: number }) {
       {tab === "structure" && <StructureTab org={org} />}
       {tab === "people" && <PeopleTab org={org} />}
 
-      {statusModal && <StatusModal org={org} onClose={() => setStatusModal(false)} />}
+      {statusTarget && <OrgStatusModal org={org} target={statusTarget} onClose={() => setStatusTarget(null)} />}
+      {editing && <EditOrganizationModal org={org} onClose={() => setEditing(false)} />}
+      {deleting && <DeleteOrganizationModal org={org} onClose={() => setDeleting(false)} onDeleted={() => navigate(routes.orgs, { replace: true })} />}
     </div>
   );
 }
@@ -94,6 +123,7 @@ function OverviewTab({ org }: { org: OrganizationDetail }) {
     ["Юридическое название", org.legalName || "—"],
     ["Краткое название", org.shortName || "—"],
     ["Тип", org.typeLabel],
+    ["Категория", org.category === "beta" ? "Beta — не входит в основные метрики" : "Клиент"],
     ["Слаг", org.slug],
     ["ИНН", org.taxId || "—"],
     ["Контакты", [org.phone, org.email].filter(Boolean).join(" · ") || "—"],
@@ -114,7 +144,7 @@ function OverviewTab({ org }: { org: OrganizationDetail }) {
             <span className="flex-1 text-[13px]">{v}</span>
           </div>
         ))}
-        <div className="text-[11px] text-neutral-400">Реквизиты меняет администрация организации в своей админке.</div>
+        <div className="text-[11px] text-neutral-400">Реквизиты меняет администрация организации в своей админке или команда Bilimtrack кнопкой «Изменить».</div>
       </Card>
       <div className="flex flex-col gap-3">
         <Card className="flex flex-col gap-2.5 p-4">
@@ -286,21 +316,27 @@ function StructureTab({ org }: { org: OrganizationDetail }) {
 
 function PeopleTab({ org }: { org: OrganizationDetail }) {
   const navigate = useNavigate();
+  const can = useCan();
   const [query, setQuery] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState<OrgMember | null>(null);
   const members = useOrgMembers(org.id, query.trim());
 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
         <SearchInput placeholder="Логин, почта, телефон" value={query} onChange={setQuery} />
-        <span className="text-xs text-neutral-400">
-          Участники с доступом в систему · {members.data?.length ?? "…"}. Студенты без отдельного членства здесь не показываются.
-        </span>
+        <span className="flex-1 text-xs text-neutral-400">Участники с доступом в систему · {members.data?.length ?? "…"}</span>
+        {can("accounts") && (
+          <Button variant="primary" icon="user-plus" onClick={() => setAdding(true)}>
+            Добавить человека
+          </Button>
+        )}
       </div>
       {members.error ? (
         <Callout tone="danger">{members.error.message}</Callout>
       ) : (
-        <Table cols="minmax(0,1.2fr) 190px minmax(0,1fr) 110px 150px" head={["Человек", "Логин", "Роли", "Статус", "Последний вход"]}>
+        <Table cols="minmax(0,1.2fr) 190px minmax(0,1fr) 110px 150px 44px" head={["Человек", "Логин", "Роли", "Статус", "Последний вход", ""]}>
           {(members.data ?? []).map((m) => (
             <Row key={m.id} onClick={() => navigate(routes.account(m.user.username))}>
               <span className="flex min-w-0 items-center gap-[9px]">
@@ -315,45 +351,34 @@ function PeopleTab({ org }: { org: OrganizationDetail }) {
               <span className="truncate font-num text-xs text-neutral-700">{m.user.username}</span>
               <span className="truncate text-xs text-neutral-500">{m.roles.map((r) => r.name).join(", ") || "без ролей"}</span>
               <span>
-                <Pill size="sm" tone={m.status === "active" ? "success" : "neutral"}>
-                  {m.status === "active" ? "Активен" : m.status}
+                <Pill size="sm" tone={m.status === "active" ? "success" : m.status === "suspended" ? "orange" : "neutral"}>
+                  {m.status === "active" ? "Активен" : m.status === "suspended" ? "Приостановлен" : m.status}
                 </Pill>
               </span>
               <span className="text-xs text-neutral-400">{formatAgo(m.user.lastLogin)}</span>
+              <span className="text-right">
+                {can("accounts") && (
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    icon="pencil"
+                    aria-label="Роли и статус"
+                    title="Роли и статус доступа"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditing(m);
+                    }}
+                  />
+                )}
+              </span>
             </Row>
           ))}
           {members.isLoading && <div className="h-24 animate-pulse bg-neutral-50" />}
           {members.data?.length === 0 && <div className="px-4 py-6 text-center text-[13px] text-neutral-400">Никого не найдено</div>}
         </Table>
       )}
+      {adding && <AddPersonModal org={org} onClose={() => setAdding(false)} />}
+      {editing && <EditMembershipModal org={org} member={editing} onClose={() => setEditing(null)} />}
     </div>
-  );
-}
-
-function StatusModal({ org, onClose }: { org: OrganizationDetail; onClose: () => void }) {
-  const setStatus = useSetOrgStatus(org.id);
-  const pausing = org.status === "active";
-  return (
-    <Modal open onClose={onClose} width={500} title={pausing ? `Поставить ${org.name} на паузу?` : `Активировать ${org.name}?`}>
-      <div className="text-[13px] leading-5 text-neutral-700">
-        {pausing
-          ? "Статус организации станет «Неактивный». Изменение запишется в журнал аудита организации."
-          : "Организация снова станет активной. Изменение запишется в журнал аудита организации."}
-      </div>
-      {setStatus.error && <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-xs text-red-600">{setStatus.error.message}</div>}
-      <ModalActions>
-        <Button size="xl" onClick={onClose}>
-          Отмена
-        </Button>
-        <Button
-          size="xl"
-          variant={pausing ? "danger" : "primary"}
-          disabled={setStatus.isPending}
-          onClick={() => setStatus.mutate(pausing ? "inactive" : "active", { onSuccess: onClose })}
-        >
-          {pausing ? "Поставить на паузу" : "Активировать"}
-        </Button>
-      </ModalActions>
-    </Modal>
   );
 }

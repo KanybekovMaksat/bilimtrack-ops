@@ -1,7 +1,16 @@
 import { routes } from "@/shared/config";
 
-/** `counter` = live badge from the API; `demo` = no backend yet, the screen runs on mock data. */
-export type NavItem = { to: string; label: string; icon: string; counter?: "tickets" | "leads"; demo?: boolean; also?: string[] };
+/** `counter` = live badge from the API; `demo` = no backend yet, the screen runs on mock data;
+    `perm` = Ops privilege (backend `OpsPermission`) the item needs — hidden without it. */
+export type NavItem = {
+  to: string;
+  label: string;
+  icon: string;
+  counter?: "tickets" | "leads";
+  demo?: boolean;
+  also?: string[];
+  perm?: string;
+};
 export type NavGroup = { title: string; items: NavItem[] };
 
 /** Sidebar structure; `also` lists extra path prefixes that keep an item highlighted. */
@@ -16,14 +25,15 @@ export const NAV: NavGroup[] = [
   {
     title: "Продажи",
     items: [
-      { to: routes.leads, label: "Заявки на демо", icon: "inbox", counter: "leads" },
+      { to: routes.leads, label: "Заявки на демо", icon: "inbox", counter: "leads", perm: "sales" },
     ],
   },
   {
     title: "Поддержка",
     items: [
-      { to: routes.tickets, label: "Тикеты", icon: "lifebuoy", counter: "tickets", also: [routes.ticketStates, routes.ticketPriority] },
-      { to: routes.ideas, label: "Идеи", icon: "bulb" },
+      { to: routes.tickets, label: "Тикеты", icon: "lifebuoy", counter: "tickets", also: [routes.ticketStates, routes.ticketPriority], perm: "support" },
+      { to: routes.ideas, label: "Идеи", icon: "bulb", perm: "support" },
+      { to: routes.moderation, label: "Модерация", icon: "shield-lock", perm: "moderation" },
     ],
   },
   {
@@ -31,8 +41,8 @@ export const NAV: NavGroup[] = [
     items: [
       { to: routes.orgs, label: "Организации", icon: "building", also: [routes.orgNew] },
       { to: routes.onboarding, label: "Онбординг", icon: "checklist", demo: true },
-      { to: routes.licenses, label: "Лицензии и модули", icon: "toggle-right" },
-      { to: routes.accounts, label: "Аккаунты", icon: "user-search" },
+      { to: routes.licenses, label: "Лицензии и модули", icon: "toggle-right", perm: "licenses" },
+      { to: routes.accounts, label: "Аккаунты", icon: "user-search", perm: "accounts" },
     ],
   },
   {
@@ -53,23 +63,23 @@ export const NAV: NavGroup[] = [
       { to: routes.templates, label: "Шаблоны", icon: "template", demo: true },
     ],
   },
-  { title: "Задачи", items: [{ to: routes.tasks, label: "Доска задач", icon: "layout-kanban" }] },
+  { title: "Задачи", items: [{ to: routes.tasks, label: "Доска задач", icon: "layout-kanban", perm: "tasks" }] },
   {
     title: "Контент",
     items: [
-      { to: routes.posts, label: "Статьи", icon: "article", demo: true },
-      { to: routes.dicts, label: "Справочники", icon: "list-details", demo: true },
-      { to: routes.media, label: "Медиатека", icon: "photo", demo: true },
+      { to: routes.posts, label: "Статьи", icon: "article", perm: "content", also: [routes.postEditor] },
+      { to: routes.dicts, label: "Категории и авторы", icon: "tag", perm: "content" },
+      { to: routes.media, label: "Обложки", icon: "photo", perm: "content" },
     ],
   },
   {
     title: "Платформа",
     items: [
-      { to: routes.audit, label: "Аудит", icon: "history", demo: true },
-      { to: routes.logins, label: "Логи входов", icon: "login", demo: true },
+      { to: routes.audit, label: "Аудит", icon: "history", perm: "audit" },
+      { to: routes.logins, label: "Логи входов", icon: "login", perm: "audit" },
       { to: routes.system, label: "Статус системы", icon: "heartbeat" },
       { to: routes.errors, label: "Ошибки", icon: "bug", demo: true },
-      { to: routes.team, label: "Команда", icon: "users", demo: true },
+      { to: routes.team, label: "Команда", icon: "users" },
     ],
   },
 ];

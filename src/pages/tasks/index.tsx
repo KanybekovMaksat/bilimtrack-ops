@@ -4,7 +4,7 @@ import { TASK_PRIORITIES, TASK_TYPES, priorityStyle, typeGlyph, useBoard, useOpe
 import { ManageColumnsModal } from "@/features/manage-columns";
 import { TaskEditorModal, type TaskEditorTarget } from "@/features/task-editor";
 import { formatDate, initialsOf } from "@/shared/lib";
-import { Avatar, Button, Cell, EmptyState, FilterChip, Icon, Num, PageHeader, Row, SearchInput, Segmented, Table } from "@/shared/ui";
+import { Avatar, Button, Cell, EmptyState, FilterChip, Icon, PageHeader, Row, SearchInput, Segmented, Table } from "@/shared/ui";
 import { TaskBoard } from "@/widgets/task-board";
 
 /** «me» | «none» | operator id | null (everyone). */
@@ -31,7 +31,7 @@ export function TasksPage() {
   const q = query.trim().toLowerCase();
   const visible = tasks.filter(
     (t) =>
-      (!q || `${t.key} ${t.title} ${t.description}`.toLowerCase().includes(q)) &&
+      (!q || `${t.title} ${t.description}`.toLowerCase().includes(q)) &&
       (assignee === null ||
         (assignee === "me" ? t.assignee?.id === me?.id : assignee === "none" ? !t.assignee : t.assignee?.id === assignee)) &&
       (!type || t.type === type) &&
@@ -76,7 +76,7 @@ export function TasksPage() {
         }
       />
       <div className="flex flex-wrap items-center gap-2">
-        <SearchInput width={220} placeholder="Ключ, заголовок, описание" value={query} onChange={setQuery} />
+        <SearchInput width={220} placeholder="Заголовок или описание" value={query} onChange={setQuery} />
         <FilterChip label={assigneeLabel} tone={assignee !== null ? "active" : "default"} onClick={() => setAssignee((a) => cycle(assigneeCycle, a))} />
         <FilterChip
           label={type ? typeGlyph(type).label : "Тип"}
@@ -112,13 +112,12 @@ export function TasksPage() {
 
 function TaskList({ tasks, onOpen }: { tasks: Task[]; onOpen: (t: Task) => void }) {
   return (
-    <Table cols="96px 100px minmax(260px,1fr) 124px 124px 170px 96px 60px" minWidth={1080} head={["Ключ", "Тип", "Задача", "Приоритет", "Колонка", "Исполнитель", "Срок", "Оценка"]}>
+    <Table cols="110px minmax(260px,1fr) 124px 124px 170px 96px" minWidth={960} head={["Тип", "Задача", "Приоритет", "Колонка", "Исполнитель", "Срок"]}>
       {tasks.map((t) => {
         const g = typeGlyph(t.type);
         const p = priorityStyle(t.priority);
         return (
           <Row key={t.id} onClick={() => onOpen(t)}>
-            <Num className="text-neutral-500">{t.key}</Num>
             <span className="flex items-center gap-1.5 text-xs text-neutral-700">
               <Icon name={g.icon} size={15} style={{ color: g.color }} />
               {t.typeLabel}
@@ -144,7 +143,6 @@ function TaskList({ tasks, onOpen }: { tasks: Task[]; onOpen: (t: Task) => void 
               )}
             </span>
             <span className="text-xs text-neutral-500">{t.dueDate ? formatDate(t.dueDate) : "—"}</span>
-            <Num className="text-neutral-500">{t.estimate ?? "—"}</Num>
           </Row>
         );
       })}

@@ -4,13 +4,14 @@ import { api, apiList } from "@/shared/api";
 /* Team task board. Backend: server/apps/ops (Task, TaskBoard, use_cases/tasks.py),
    /api/v1/ops/boards/ and /api/v1/ops/tasks/. Only Bilimtrack operators see the OPS board. */
 
-export type TaskType = "task" | "bug" | "feature";
+export type TaskType = "task" | "bug" | "feature" | "story";
 export type TaskPriority = "low" | "normal" | "medium" | "high" | "urgent";
 
 export const TASK_TYPES: { value: TaskType; label: string; icon: string; color: string }[] = [
   { value: "task", label: "Задача", icon: "checkbox", color: "#737373" },
   { value: "bug", label: "Баг", icon: "bug", color: "#fb2c36" },
   { value: "feature", label: "Фича", icon: "sparkles", color: "#155dfc" },
+  { value: "story", label: "Story", icon: "book", color: "#8e51ff" },
 ];
 
 export const TASK_PRIORITIES: { value: TaskPriority; label: string }[] = [
@@ -20,8 +21,6 @@ export const TASK_PRIORITIES: { value: TaskPriority; label: string }[] = [
   { value: "high", label: "Высокий" },
   { value: "urgent", label: "Критический" },
 ];
-
-export const TASK_ESTIMATES = [1, 2, 3, 5, 8, 13];
 
 export const typeGlyph = (type: TaskType) => TASK_TYPES.find((t) => t.value === type) ?? TASK_TYPES[0];
 export const priorityLabel = (p: TaskPriority) => TASK_PRIORITIES.find((x) => x.value === p)?.label ?? p;
@@ -72,7 +71,6 @@ export type TaskInput = {
   type?: TaskType;
   priority?: TaskPriority;
   assigneeId?: number | null;
-  estimate?: number | null;
   tags?: string[];
   dueDate?: string | null;
 };

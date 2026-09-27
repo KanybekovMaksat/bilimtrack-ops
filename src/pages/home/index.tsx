@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { leadStatusLabel, useLeadsSoft } from "@/entities/lead";
-import { useOrganizationsSoft } from "@/entities/organization";
+import { orgCategory, useOrganizationsSoft, usePlatformSummary } from "@/entities/organization";
 import { SOURCE, formatRelative, isOpen, useTicketsSoft } from "@/entities/ticket";
 import { routes } from "@/shared/config";
 import { formatInt, toPoints } from "@/shared/lib";
@@ -26,12 +26,29 @@ export function HomePage() {
   const tickets = useTicketsSoft().data ?? [];
   const leads = useLeadsSoft().data ?? [];
   const orgs = useOrganizationsSoft().data;
-  const summary = orgs
+  const platform = usePlatformSummary();
+  // Beta organizations never count in the main metrics. Until ops/summary is deployed, the org list stands in.
+  const clients = orgs?.filter((o) => orgCategory(o) !== "beta");
+  const orgStats = platform.data?.organizations ?? (clients && {
+    total: clients.length,
+    active: clients.filter((o) => o.status === "active").length,
+    inactive: clients.filter((o) => o.status === "inactive").length,
+    archived: clients.filter((o) => o.status === "archived").length,
+    beta: (orgs?.length ?? 0) - clients.length,
+  });
+  const users = platform.data?.users;
+  const metrics = [
+    { label: "Пользователей в организациях", n: users?.inClients, sub: users ? `всего аккаунтов ${formatInt(users.total)}` : "без beta-организаций", icon: "users", color: "#155dfc", to: routes.accounts },
+    { label: "Активны за 30 дней", n: users?.active30d, sub: users ? `учащихся ${formatInt(users.learners)} · сотрудников ${formatInt(users.employees)}` : "входили хотя бы раз", icon: "heartbeat", color: "#00a63e", to: routes.logins },
+    { label: "Организаций активно", n: orgStats?.active, sub: orgStats ? `из ${formatInt(orgStats.total)} клиентов` : "", icon: "building", color: "#00a63e", to: routes.orgs },
+    { label: "Организаций неактивно", n: orgStats?.inactive, sub: orgStats ? `в архиве ${formatInt(orgStats.archived)}` : "", icon: "power", color: "#fd9a00", to: routes.orgs },
+  ];
+  const summary = clients
     ? [
-        { n: formatInt(orgs.length), label: "Организаций всего", color: "#0a0a0a" },
-        { n: formatInt(orgs.filter((o) => o.status === "active").length), label: "Активных", color: "#00a63e" },
-        { n: formatInt(orgs.filter((o) => o.status === "inactive").length), label: "На паузе", color: "#fd9a00" },
-        { n: formatInt(orgs.reduce((a, o) => a + o.learnersCount, 0)), label: "Учащихся на платформе", color: "#0a0a0a" },
+        { n: formatInt(clients.reduce((a, o) => a + o.learnersCount, 0)), label: "Учащихся у клиентов", color: "#0a0a0a" },
+        { n: formatInt(clients.reduce((a, o) => a + o.employeesCount, 0)), label: "Сотрудников у клиентов", color: "#0a0a0a" },
+        { n: formatInt(clients.reduce((a, o) => a + o.openTicketsCount, 0)), label: "Открытых тикетов", color: "#fb2c36" },
+        { n: formatInt(orgStats?.beta ?? 0), label: "Beta-организаций (вне метрик)", color: "#8e51ff" },
       ]
     : [];
   const navigate = useNavigate();
@@ -77,6 +94,27 @@ export function HomePage() {
       <div className="flex items-baseline gap-3">
         <h1 className="m-0 text-xl leading-[26px] font-semibold tracking-[-.01em]">Главная</h1>
         <span className="text-[13px] text-neutral-400">{new Date(now).toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" })}</span>
+      </div>
+
+      <div>
+        <SectionLabel className="mb-2">Платформа · без beta-организаций</SectionLabel>
+        <div className="grid grid-cols-4 gap-3">
+          {metrics.map((m) => (
+            <Link key={m.label} to={m.to} className="flex flex-col gap-2 rounded-2xl border border-neutral-200 bg-neutral-50/60 p-4 text-ink hover:border-brand hover:text-ink">
+              <div className="flex items-center gap-2 text-[13px] text-neutral-600">
+                <span className="flex size-7 items-center justify-center rounded-lg bg-white" style={{ color: m.color }}>
+                  <Icon name={m.icon} size={16} />
+                </span>
+                <span className="flex-1 leading-[16px]">{m.label}</span>
+              </div>
+              <div className="font-num text-[30px] leading-none font-semibold">{m.n == null ? (platform.isLoading || !orgs ? "…" : "—") : formatInt(m.n)}</div>
+              <div className="truncate text-[11px] text-neutral-400">{m.sub || " "}</div>
+            </Link>
+          ))}
+        </div>
+        {platform.isError && (
+          <div className="mt-2 text-[11px] text-neutral-400">Число пользователей появится, когда на сервер выкатят эндпоинт ops/summary/. Организации посчитаны по списку.</div>
+        )}
       </div>
 
       <div>

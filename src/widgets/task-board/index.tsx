@@ -51,8 +51,10 @@ function TaskCard({ task, dragging, onOpen, onDragStart, onDragEnd, onDragOver, 
         </div>
       )}
       <div className="flex items-center gap-2 border-t border-neutral-50 pt-[9px]">
-        <Icon name={g.icon} size={15} style={{ color: g.color }} />
-        <span className="font-num text-[11px] text-neutral-500">{task.key}</span>
+        <span title={g.label} className="flex items-center gap-1 text-[11px] text-neutral-500">
+          <Icon name={g.icon} size={15} style={{ color: g.color }} />
+          {g.label}
+        </span>
         <span className="rounded-full px-2 py-px text-[11px] font-medium" style={{ background: p.bg, color: p.fg }}>
           {task.priorityLabel}
         </span>
@@ -63,7 +65,6 @@ function TaskCard({ task, dragging, onOpen, onDragStart, onDragEnd, onDragOver, 
             {task.commentsCount}
           </span>
         )}
-        {task.estimate != null && <span className="font-num text-[11px] text-neutral-400">{task.estimate}</span>}
         {task.assignee ? (
           <span title={task.assignee.fullName}>
             <Avatar initials={initialsOf(task.assignee.fullName)} size={22} tone="brand" className="text-[9px]" />
@@ -150,7 +151,7 @@ export function TaskBoard({ board, tasks, onAdd, onOpen }: Props) {
                     onOpen={() => onOpen(t)}
                     onDragStart={(e) => {
                       e.dataTransfer.effectAllowed = "move";
-                      e.dataTransfer.setData("text/plain", t.key);
+                      e.dataTransfer.setData("text/plain", t.title);
                       dragId.current = t.id;
                       setTimeout(() => setDragging(t.id), 0);
                     }}

@@ -5,9 +5,29 @@ export type OrgStatus = "active" | "inactive" | "archived";
 
 export const orgStatusLabel: Record<OrgStatus, string> = {
   active: "Активна",
-  inactive: "На паузе",
+  inactive: "Неактивна",
   archived: "В архиве",
 };
+
+/** Ops category: `beta` organizations stay out of the main metrics on the home page. */
+export type OrgCategory = "client" | "beta";
+
+export const orgCategoryLabel: Record<OrgCategory, string> = { client: "Клиент", beta: "Beta" };
+
+export const ORG_TIMEZONES: { value: string; label: string }[] = [
+  { value: "Asia/Bishkek", label: "Бишкек (UTC+6)" },
+  { value: "Asia/Almaty", label: "Алматы (UTC+5)" },
+  { value: "Asia/Tashkent", label: "Ташкент (UTC+5)" },
+  { value: "Asia/Dushanbe", label: "Душанбе (UTC+5)" },
+  { value: "Asia/Aqtau", label: "Актау (UTC+5)" },
+  { value: "UTC", label: "UTC" },
+];
+
+export const ORG_LOCALES: { value: string; label: string }[] = [
+  { value: "ru", label: "Русский" },
+  { value: "ky", label: "Кыргызский" },
+  { value: "en", label: "Английский" },
+];
 
 export const ORG_TYPES: { value: string; label: string }[] = [
   { value: "university", label: "Университет" },
@@ -38,6 +58,9 @@ export type Organization = {
   typeLabel: string;
   status: OrgStatus;
   statusLabel: string;
+  /** Missing on an older backend: treated as `client`. */
+  category?: OrgCategory;
+  categoryLabel?: string;
   logo: string | null;
   owner: { id: number; username: string } | null;
   learnersCount: number;
@@ -73,6 +96,85 @@ export type OrganizationDetail = Organization & {
   branches: OrgBranch[];
   academicUnits: OrgUnit[];
 };
+
+/** Editable organization fields (PATCH ops/organizations/:id/). */
+export type OrganizationInput = Partial<{
+  name: string;
+  shortName: string;
+  legalName: string;
+  slug: string;
+  type: string;
+  timezone: string;
+  locale: string;
+  country: string;
+  email: string;
+  phone: string;
+  website: string;
+  address: string;
+  taxId: string;
+  status: OrgStatus;
+  category: OrgCategory;
+}>;
+
+export type OwnerInput = {
+  mode: "none" | "existing" | "new";
+  username?: string;
+  email?: string;
+  phone?: string;
+  lastName?: string;
+  firstName?: string;
+  middleName?: string;
+  positionTitle?: string;
+};
+
+export type OrganizationCreateInput = OrganizationInput & {
+  name: string;
+  type: string;
+  branchName?: string;
+  branchAddress?: string;
+  plan?: string | null;
+  applyPlanModules?: boolean;
+  owner?: OwnerInput;
+};
+
+export type Credentials = { username: string; password: string };
+
+/** A role that can be granted in an organization. */
+export type OrgRole = { id: number; code: string; name: string; description: string; isSystem: boolean };
+
+export type PersonKind = "employee" | "learner" | "existing";
+
+export type PersonInput = {
+  kind: PersonKind;
+  lastName?: string;
+  firstName?: string;
+  middleName?: string;
+  positionTitle?: string;
+  email?: string;
+  phone?: string;
+  username?: string;
+  roleIds?: number[];
+  branchId?: number | null;
+};
+
+export type PersonCreated = {
+  kind: PersonKind;
+  profileId: number | null;
+  fullName: string;
+  userId: number;
+  username: string;
+  password: string | null;
+  membershipId: number;
+  roles: string[];
+};
+
+/** GET ops/summary/: numbers for the home page, beta organizations excluded. */
+export type PlatformSummary = {
+  organizations: { total: number; active: number; inactive: number; archived: number; beta: number };
+  users: { total: number; inClients: number; active30d: number; learners: number; employees: number; operators: number };
+};
+
+export const orgCategory = (o: Pick<Organization, "category">): OrgCategory => o.category ?? "client";
 
 /** OrganizationMemberSerializer. */
 export type OrgMember = {

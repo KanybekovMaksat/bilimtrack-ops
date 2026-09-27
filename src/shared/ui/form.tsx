@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from "react";
+import { useState, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
 import { cn } from "../lib";
 import { Icon } from "./icon";
 
@@ -97,6 +97,53 @@ export function SummaryGrid({ rows, keyWidth = 120 }: { rows: [ReactNode, ReactN
           <span>{v}</span>
         </div>
       ))}
+    </div>
+  );
+}
+
+type SelectProps = SelectHTMLAttributes<HTMLSelectElement> & { options: { value: string; label: string }[]; placeholder?: string };
+
+/** Native select dressed as the design's pill input. */
+export function SelectInput({ options, placeholder, className, ...props }: SelectProps) {
+  return (
+    <span className={cn("relative block", className)}>
+      <select
+        className="h-10 w-full appearance-none rounded-full border border-neutral-200 bg-white pr-9 pl-4 font-sans text-sm outline-none focus:border-neutral-700"
+        {...props}
+      >
+        {placeholder !== undefined && <option value="">{placeholder}</option>}
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+      <Icon name="chevron-down" size={16} className="pointer-events-none absolute top-3 right-3.5 text-neutral-400" />
+    </span>
+  );
+}
+
+/** One-time secret (temporary password): monospace value with a copy button. */
+export function SecretValue({ label, value }: { label: ReactNode; value: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-neutral-50 px-3.5 py-2.5">
+      <span className="w-[120px] shrink-0 text-xs text-neutral-500">{label}</span>
+      <span className="min-w-0 flex-1 truncate font-mono text-sm select-all">{value}</span>
+      <button
+        type="button"
+        onClick={() => {
+          // Clipboard may be blocked (no permission / insecure origin): the value stays selectable by hand.
+          navigator.clipboard?.writeText(value).then(
+            () => setCopied(true),
+            () => setCopied(false),
+          );
+        }}
+        className="flex items-center gap-1 rounded-full border-0 bg-transparent px-2 py-1 text-xs text-brand hover:bg-brand-50"
+      >
+        <Icon name={copied ? "check" : "copy"} size={14} />
+        {copied ? "Скопировано" : "Копировать"}
+      </button>
     </div>
   );
 }

@@ -14,36 +14,59 @@ export type SessionUser = {
   /** Label under the name in the header. */
   role: string;
   initials: string;
+  lastName: string;
+  firstName: string;
+  middleName: string;
+  avatar: string | null;
+  /** Ops sections this admin may use (backend `OpsPermission`). */
+  permissions: string[];
   /** Temporary password issued by `create_ops_admins`: the panel asks to change it first. */
   mustChangePassword: boolean;
 };
 
-/** GET ops/me/. */
-type OperatorResponse = {
+/** GET ops/me/ (OperatorSerializer). */
+export type OperatorResponse = {
   id: number;
   username: string;
   email: string;
   fullName: string;
+  lastName: string;
+  firstName: string;
+  middleName: string;
+  avatar: string | null;
   role: string;
   roleLabel: string;
+  permissions: string[];
+  isActive: boolean;
   lastLogin: string | null;
   mustChangePassword: boolean;
+  createdAt: string;
 };
+
+export function toSessionUser(me: OperatorResponse): SessionUser {
+  return {
+    id: me.id,
+    username: me.username,
+    email: me.email,
+    fullName: me.fullName,
+    role: me.roleLabel,
+    initials: initialsOf(me.fullName || me.username),
+    lastName: me.lastName ?? "",
+    firstName: me.firstName ?? "",
+    middleName: me.middleName ?? "",
+    avatar: me.avatar ?? null,
+    // Older backend without privileges: everything stays open.
+    permissions: me.permissions ?? ["sales", "support", "organizations", "licenses", "accounts", "moderation", "tasks", "content", "audit", "team"],
+    mustChangePassword: me.mustChangePassword,
+  };
+}
 
 export const NOT_OPERATOR = "not_operator";
 
 async function loadOperator(): Promise<SessionUser> {
   try {
     const me = await api<OperatorResponse>("ops/me/");
-    return {
-      id: me.id,
-      username: me.username,
-      email: me.email,
-      fullName: me.fullName,
-      role: me.roleLabel,
-      initials: initialsOf(me.fullName || me.username),
-      mustChangePassword: me.mustChangePassword,
-    };
+    return toSessionUser(me);
   } catch (err) {
     if (err instanceof ApiError && err.status === 403) {
       throw new ApiError(403, "Bilimtrack Ops доступен только команде Bilimtrack. У этой учётной записи нет доступа.", NOT_OPERATOR);
@@ -70,6 +93,8 @@ type SessionState = {
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   /** Local reset when the backend rejects the session (refresh failed). */
   expire: () => void;
+  /** Replace the operator after a profile change (name, avatar). */
+  setOperator: (me: OperatorResponse) => void;
 };
 
 export const useSession = create<SessionState>()(
@@ -115,8 +140,16 @@ export const useSession = create<SessionState>()(
         if (user) set({ user: { ...user, mustChangePassword: false } });
       },
       expire: () => set({ user: null }),
+      setOperator: (me) => set({ user: toSessionUser(me) }),
     }),
-    // v3: the session now comes from ops/me (older persisted shapes are dropped).
+    // v3: the session comes from ops/me (older persisted shapes are dropped). A v3 session saved
+    // before privileges existed has no `permissions` yet; `revalidate` fills it on load.
     { name: "bilimtrack-ops.session", version: 3, migrate: () => ({ user: null }) as never },
   ),
 );
+
+/** Does the signed-in admin hold this Ops privilege? */
+export const useCan = () => {
+  const permissions = useSession((s) => s.user?.permissions);
+  return (code?: string) => !code || !permissions || permissions.includes(code);
+};

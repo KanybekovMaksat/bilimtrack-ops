@@ -9,6 +9,8 @@ export default defineConfig(({ mode }) => {
   // sees one origin: no CORS setup needed and auth cookies stick to localhost.
   const target = env.VITE_API_PROXY_TARGET || "https://api.bilimtrack.kg";
   const proxy = { target, changeOrigin: true, secure: true };
+  // Absolute origin for og:image / og:url in index.html (link previews need a full URL).
+  process.env.VITE_PUBLIC_URL = (env.VITE_PUBLIC_URL || "https://ops.bilimtrack.kg").replace(/\/$/, "");
 
   return {
     plugins: [react(), tailwindcss()],

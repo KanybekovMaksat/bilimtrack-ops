@@ -1,1 +1,1 @@
-export { useSession, type SessionUser } from "./model";
+export { toSessionUser, useCan, useSession, type OperatorResponse, type SessionUser } from "./model";

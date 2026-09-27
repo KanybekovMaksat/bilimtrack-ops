@@ -1,3 +1,6 @@
+/** Public blog, for «На сайте» links from the article editor. */
+export const BLOG_URL = (import.meta.env.VITE_BLOG_URL || "https://bilimtrack.kg/blog").replace(/\/$/, "");
+
 export const routes = {
   login: "/login",
   home: "/",
@@ -27,6 +30,7 @@ export const routes = {
   tasks: "/tasks",
   posts: "/posts",
   postEditor: "/posts/editor",
+  postEdit: (id: string) => `/posts/editor/${id}`,
   dicts: "/dicts",
   media: "/media",
   audit: "/audit",
@@ -34,6 +38,8 @@ export const routes = {
   system: "/system",
   errors: "/errors",
   team: "/team",
+  profile: "/profile",
+  moderation: "/moderation",
   denied: "/denied",
 } as const;
 

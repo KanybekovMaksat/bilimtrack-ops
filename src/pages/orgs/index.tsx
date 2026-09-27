@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { ORG_TYPES, OrgStatusPill, STALE_DAYS, isStale, orgMark, orgStatusLabel, useOrganizations, type OrgStatus } from "@/entities/organization";
+import { ORG_TYPES, OrgCategoryPill, OrgStatusPill, STALE_DAYS, isStale, orgCategory, orgCategoryLabel, orgMark, orgStatusLabel, useOrganizations, type OrgCategory, type OrgStatus } from "@/entities/organization";
+import { useCan } from "@/entities/session";
 import { routes } from "@/shared/config";
 import { cn, formatAgo, formatDate, formatInt, plural } from "@/shared/lib";
 import { Button, Cell, EmptyState, FilterChip, Icon, Num, OrgMark, PageHeader, Row, SearchInput, Table } from "@/shared/ui";
@@ -17,6 +18,8 @@ export function OrgsPage() {
   const [type, setType] = useState<string | null>(null);
   const [status, setStatus] = useState<OrgStatus | null>(null);
   const [staleOnly, setStaleOnly] = useState(false);
+  const [category, setCategory] = useState<OrgCategory | null>(null);
+  const can = useCan();
 
   const q = query.trim().toLowerCase();
   const staleCount = orgs.filter((o) => isStale(o)).length;
@@ -25,6 +28,7 @@ export function OrgsPage() {
       (!staleOnly || isStale(o)) &&
       (!type || o.type === type) &&
       (!status || o.status === status) &&
+      (!category || orgCategory(o) === category) &&
       (!q || `${o.name} ${o.shortName} ${o.legalName} ${o.slug}`.toLowerCase().includes(q)),
   );
   const typeLabel = ORG_TYPES.find((t) => t.value === type)?.label;
@@ -33,11 +37,13 @@ export function OrgsPage() {
     <div className="flex flex-col gap-4">
       <PageHeader
         title="Организации"
-        subtitle={`${orgs.length} ${plural(orgs.length, ["клиент", "клиента", "клиентов"])} платформы · учащиеся ${formatInt(orgs.reduce((a, o) => a + o.learnersCount, 0))}`}
+        subtitle={`${orgs.length} ${plural(orgs.length, ["организация", "организации", "организаций"])} · beta ${orgs.filter((o) => orgCategory(o) === "beta").length} · учащиеся ${formatInt(orgs.reduce((a, o) => a + o.learnersCount, 0))}`}
         actions={
-          <Button variant="primary" icon="plus" onClick={() => navigate(routes.orgNew)} title="Создание организации пока на демо-данных">
-            Новая организация
-          </Button>
+          can("organizations") && (
+            <Button variant="primary" icon="plus" onClick={() => navigate(routes.orgNew)}>
+              Новая организация
+            </Button>
+          )
         }
       />
       <div className="flex flex-wrap items-center gap-2">
@@ -51,6 +57,11 @@ export function OrgsPage() {
           label={status ? `Статус: ${orgStatusLabel[status]}` : "Статус"}
           tone={status ? "active" : "default"}
           onClick={() => setStatus((s) => cycle(STATUSES, s))}
+        />
+        <FilterChip
+          label={category ? `Категория: ${orgCategoryLabel[category]}` : "Категория"}
+          tone={category ? "active" : "default"}
+          onClick={() => setCategory((c) => cycle<OrgCategory>(["client", "beta"], c))}
         />
         <FilterChip
           tone={staleOnly ? "warn" : "default"}
@@ -74,6 +85,7 @@ export function OrgsPage() {
                   <Cell className="font-medium" title={o.legalName || o.name}>
                     {o.name}
                   </Cell>
+                  <OrgCategoryPill category={o.category} />
                 </span>
                 <span className="text-xs text-neutral-500">{o.typeLabel}</span>
                 <span>

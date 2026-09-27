@@ -14,7 +14,8 @@ import { routes } from "@/shared/config";
 import { formatInt, orgShort, plural } from "@/shared/lib";
 import { Avatar, Button, Callout, Cell, EmptyState, FilterChip, OrgMark, PageHeader, Pill, Row, SearchInput, Table } from "@/shared/ui";
 
-const KINDS: AccountKind[] = ["employee", "learner", "guardian", "operator", "no_membership"];
+// Platform admins live in «Команда», not among client accounts.
+const KINDS: AccountKind[] = ["employee", "learner", "guardian", "no_membership"];
 const STATUSES = ["active", "inactive"] as const;
 
 const cycle = <T,>(list: readonly T[], v: T | undefined): T | undefined => (v === undefined ? list[0] : list[list.indexOf(v) + 1]);

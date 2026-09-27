@@ -108,8 +108,9 @@ async function send(path: string, opts: RequestOptions, retry: boolean): Promise
   const url = new URL(`${API_URL}/${path.replace(/^\//, "")}`, window.location.origin);
   for (const [k, v] of Object.entries(opts.query ?? {})) if (v !== undefined && v !== "") url.searchParams.set(k, String(v));
 
+  const isForm = opts.body instanceof FormData;
   const headers: Record<string, string> = { Accept: "application/json" };
-  if (opts.body !== undefined) headers["Content-Type"] = "application/json";
+  if (opts.body !== undefined && !isForm) headers["Content-Type"] = "application/json";
   const tokens = opts.anonymous ? null : readTokens();
   if (tokens?.access) headers.Authorization = `Bearer ${tokens.access}`;
 
@@ -117,7 +118,7 @@ async function send(path: string, opts: RequestOptions, retry: boolean): Promise
     method: opts.method ?? "GET",
     credentials: "include",
     headers,
-    body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+    body: opts.body === undefined ? undefined : isForm ? (opts.body as FormData) : JSON.stringify(opts.body),
   });
 
   if (res.status === 401 && retry && !opts.anonymous) {
@@ -148,6 +149,13 @@ export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T
  */
 export async function apiList<T>(path: string, query: RequestOptions["query"] = {}): Promise<T[]> {
   return api<T[]>(path, { query: { page_size: 500, ...query } });
+}
+
+/** Multipart upload of one file (field `file`), e.g. avatars, logos, covers. */
+export async function apiUpload<T>(path: string, file: File, method: "POST" | "PUT" = "POST"): Promise<T> {
+  const form = new FormData();
+  form.append("file", file);
+  return api<T>(path, { method, body: form });
 }
 
 export type Page<T> = { rows: T[]; count: number };
