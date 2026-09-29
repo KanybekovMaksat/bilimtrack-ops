@@ -1,64 +1,152 @@
-import { useMockQuery } from "@/shared/api";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { api, apiPage, QK } from "@/shared/api";
 import type { PillTone } from "@/shared/ui";
 
-export type PaymentStatus = "В обработке" | "Успешно" | "Ошибка" | "Возврат";
+/* Bilimtrack+ payments (Finik QR) and the Finik webhook log.
+   Backend: server/apps/billing (use_cases/ops.py), /api/v1/ops/billing/payments|webhooks/. */
+
+export type PaymentStatus = "pending" | "paid" | "expired" | "failed" | "refunded";
+
+export const paymentStatusLabel: Record<PaymentStatus, string> = {
+  pending: "Ожидает оплаты",
+  paid: "Оплачен",
+  expired: "Истёк",
+  failed: "Ошибка",
+  refunded: "Возврат",
+};
 
 export const paymentTone: Record<PaymentStatus, PillTone> = {
-  "В обработке": "warn",
-  Успешно: "success",
-  Ошибка: "danger",
-  Возврат: "purple",
+  pending: "warn",
+  paid: "success",
+  expired: "neutral",
+  failed: "danger",
+  refunded: "purple",
 };
 
+type PersonRef = { id: number; username: string; fullName: string };
+
+/** OpsPaymentSerializer. Decimals arrive as strings. */
 export type Payment = {
-  id: number;
-  date: string;
-  user: string;
-  org: string;
-  sum: string;
-  provider: string;
-  txn: string;
+  id: string;
+  user: PersonRef;
+  plan: { id: number; code: string; name: string };
+  organization: { id: number; name: string } | null;
+  unitPrice: string;
+  seats: number;
+  amount: string;
+  paidAmount: string | null;
+  currency: string;
+  durationDays: number;
   status: PaymentStatus;
-  gift: boolean;
-  /** Stuck "in progress" for more than 15 minutes. */
-  stuckFor?: string;
-  providerResponse: string;
+  provider: string;
+  providerEnvironment: string;
+  providerTransactionId: string;
+  failureReason: string;
+  expiresAt: string;
+  paidAt: string | null;
+  refundedAt: string | null;
+  createdAt: string;
 };
 
-const response = (provider: string, txn: string, state: string, amount: number, created: string, webhook: string | null, attempts = 1) =>
-  JSON.stringify(
-    { provider, txn_id: txn, state, amount, currency: "KGS", created_at: created, last_webhook: webhook, attempts },
-    null,
-    2,
-  );
+export type WebhookOutcome =
+  | "processed"
+  | "duplicate"
+  | "invalid_signature"
+  | "malformed"
+  | "unknown_payment"
+  | "ignored_status"
+  | "needs_review";
 
-const PAYMENTS: Payment[] = [
-  { id: 0, date: "20 сен, 15:41", user: "Мадина Аскарова", org: "МУИТ", sum: "50 KGS", provider: "O!Деньги", txn: "OD-99412703", status: "В обработке", gift: false, stuckFor: "22 минуты", providerResponse: response("odengi", "OD-99412703", "pending", 5000, "2026-09-20T15:41:02+06:00", null, 3) },
-  { id: 1, date: "20 сен, 14:08", user: "Алишер Темиров", org: "МУИТ", sum: "250 KGS", provider: "MBank", txn: "MB-4410928", status: "Успешно", gift: false, providerResponse: response("mbank", "MB-4410928", "success", 25000, "2026-09-20T14:08:11+06:00", "2026-09-20T14:08:14+06:00") },
-  { id: 2, date: "20 сен, 11:55", user: "Гульнара Оспанова", org: "НИШ Алматы", sum: "0 KGS", provider: "Внутренний баланс", txn: "GIFT-00184", status: "Успешно", gift: true, providerResponse: response("internal", "GIFT-00184", "success", 0, "2026-09-20T11:55:40+06:00", null) },
-  { id: 3, date: "19 сен, 20:12", user: "Ербол Сагындыков", org: "Comtehno", sum: "50 KGS", provider: "Optima", txn: "OP-77120934", status: "Ошибка", gift: false, providerResponse: response("optima", "OP-77120934", "declined", 5000, "2026-09-19T20:12:03+06:00", "2026-09-19T20:12:09+06:00") },
-  { id: 4, date: "19 сен, 09:30", user: "Асель Кожабек", org: "Школа №61", sum: "50 KGS", provider: "Карта", txn: "CRD-8812004", status: "Возврат", gift: false, providerResponse: response("acquiring", "CRD-8812004", "refunded", 5000, "2026-09-19T09:30:22+06:00", "2026-09-19T10:02:47+06:00") },
-  { id: 5, date: "18 сен, 17:02", user: "Нурлан Байзаков", org: "Comtehno", sum: "250 KGS", provider: "MBank", txn: "MB-4399812", status: "Успешно", gift: false, providerResponse: response("mbank", "MB-4399812", "success", 25000, "2026-09-18T17:02:55+06:00", "2026-09-18T17:02:58+06:00") },
-];
-
-export const usePayments = () => useMockQuery(["payments"], () => PAYMENTS);
-
-export type ProviderHealth = "Норма" | "Деградация" | "Сбой";
-
-export const PROVIDER_HEALTH: Record<ProviderHealth, { dot: string; fg: string }> = {
-  Норма: { dot: "var(--color-green-500)", fg: "var(--color-green-600)" },
-  Деградация: { dot: "var(--color-amber-500)", fg: "var(--color-warn)" },
-  Сбой: { dot: "var(--color-red-500)", fg: "var(--color-red-600)" },
+export const webhookOutcomeLabel: Record<WebhookOutcome, string> = {
+  processed: "Проведён",
+  duplicate: "Повтор",
+  invalid_signature: "Неверная подпись",
+  malformed: "Некорректное тело",
+  unknown_payment: "Платёж не найден",
+  ignored_status: "Статус не «успех»",
+  needs_review: "Требует проверки",
 };
 
-export type PaymentProvider = { name: string; status: ProviderHealth; lastWebhook: string; errors: string; share: string; enabled: boolean };
+export const webhookTone: Record<WebhookOutcome, PillTone> = {
+  processed: "success",
+  duplicate: "neutral",
+  invalid_signature: "danger",
+  malformed: "danger",
+  unknown_payment: "warn",
+  ignored_status: "neutral",
+  needs_review: "warn",
+};
 
-const PROVIDERS: PaymentProvider[] = [
-  { name: "MBank", status: "Норма", lastWebhook: "2 минуты назад", errors: "0", share: "58%", enabled: true },
-  { name: "Optima", status: "Деградация", lastWebhook: "41 минуту назад", errors: "7", share: "19%", enabled: true },
-  { name: "O!Деньги", status: "Норма", lastWebhook: "6 минут назад", errors: "1", share: "14%", enabled: true },
-  { name: "Карта (эквайринг)", status: "Норма", lastWebhook: "4 минуты назад", errors: "0", share: "8%", enabled: true },
-  { name: "Внутренний баланс", status: "Норма", lastWebhook: "—", errors: "0", share: "1%", enabled: true },
-];
+/** OpsWebhookSerializer. */
+export type WebhookEvent = {
+  id: number;
+  receivedAt: string;
+  outcome: WebhookOutcome;
+  signatureValid: boolean;
+  transactionId: string;
+  paymentId: string | null;
+  detail: string;
+  body: string;
+};
 
-export const usePaymentProviders = () => useMockQuery(["providers"], () => PROVIDERS);
+/** OpsPaymentDetailSerializer. */
+export type PaymentDetail = Payment & { recipients: PersonRef[]; webhookEvents: WebhookEvent[] };
+
+export type PaymentFilters = { q?: string; status?: PaymentStatus; planId?: number; page?: number };
+
+export const PAYMENTS_PAGE_SIZE = 50;
+
+export const paymentKeys = {
+  list: (f: PaymentFilters) => [QK.billingPayments, "list", f] as const,
+  detail: (id: string) => [QK.billingPayments, "detail", id] as const,
+};
+
+export const usePayments = (f: PaymentFilters) =>
+  useQuery({
+    queryKey: paymentKeys.list(f),
+    queryFn: () =>
+      apiPage<Payment>("ops/billing/payments/", {
+        q: f.q,
+        status: f.status,
+        planId: f.planId,
+        page: f.page ?? 1,
+        page_size: PAYMENTS_PAGE_SIZE,
+      }),
+    placeholderData: keepPreviousData,
+  });
+
+export const usePaymentDetail = (id: string | null) =>
+  useQuery({
+    queryKey: paymentKeys.detail(id ?? ""),
+    queryFn: () => api<PaymentDetail>(`ops/billing/payments/${id}/`),
+    enabled: id !== null,
+  });
+
+/** POST ops/billing/payments/:id/refund/ — money goes back in the Finik cabinet; this records it. */
+export function useRefundPayment(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (reason: string) => api<PaymentDetail>(`ops/billing/payments/${id}/refund/`, { method: "POST", body: { reason } }),
+    onSuccess: (detail) => {
+      qc.setQueryData(paymentKeys.detail(id), detail);
+      qc.invalidateQueries({ queryKey: [QK.billingPayments, "list"] });
+      // Refund revokes access: subscriptions and the summary are stale now.
+      qc.invalidateQueries({ queryKey: [QK.billingSubscriptions] });
+      qc.invalidateQueries({ queryKey: [QK.billingSummary] });
+      qc.invalidateQueries({ queryKey: [QK.billingPlans] });
+    },
+  });
+}
+
+export type WebhookFilters = { outcome?: WebhookOutcome | "attention"; q?: string; page?: number };
+
+export const useWebhooks = (f: WebhookFilters) =>
+  useQuery({
+    queryKey: [QK.billingWebhooks, f],
+    queryFn: () => apiPage<WebhookEvent>("ops/billing/webhooks/", { outcome: f.outcome, q: f.q, page: f.page ?? 1, page_size: PAYMENTS_PAGE_SIZE }),
+    placeholderData: keepPreviousData,
+  });
+
+/** «1 196 KGS» from a decimal string. */
+export const formatMoney = (amount: string | number, currency = "KGS") =>
+  `${Number(amount).toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ${currency}`;

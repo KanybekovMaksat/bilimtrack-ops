@@ -24,4 +24,10 @@ export const QK = {
   auditChoices: "ops-audit-choices",
   accessLogs: "ops-access-logs",
   systemStatus: "system-status",
+  billingSummary: "billing-summary",
+  billingPlans: "billing-plans",
+  billingSubscriptions: "billing-subscriptions",
+  billingPayments: "billing-payments",
+  billingWebhooks: "billing-webhooks",
+  orgPaywall: "org-paywall",
 } as const;

@@ -17,6 +17,7 @@ import { EditLicenseModal } from "@/features/edit-license";
 import { ContractsPanel } from "@/features/manage-contracts";
 import { DeleteOrganizationModal, EditOrganizationModal, OrgLogoPicker, OrgStatusModal } from "@/features/manage-organization";
 import { OrgModuleToggle } from "@/features/toggle-org-module";
+import { OrgPaywallPanel } from "@/features/toggle-org-paywall";
 import { routes } from "@/shared/config";
 import { cn, formatAgo, formatDate, formatInt, initialsOf, plural } from "@/shared/lib";
 import { Avatar, Breadcrumbs, Button, Callout, Card, EmptyState, ErrorNote, Icon, Pill, Row, SearchInput, Table, Tabs, Toggle } from "@/shared/ui";
@@ -27,6 +28,7 @@ const TABS = [
   { key: "structure", label: "Структура" },
   { key: "people", label: "Люди" },
   { key: "contracts", label: "Договоры" },
+  { key: "billing", label: "Bilimtrack+" },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -113,6 +115,7 @@ function OrgDetails({ orgId }: { orgId: number }) {
       {tab === "structure" && <StructureTab org={org} />}
       {tab === "people" && <PeopleTab org={org} />}
       {tab === "contracts" && <ContractsPanel orgId={org.id} orgName={org.name} />}
+      {tab === "billing" && <OrgPaywallPanel organizationId={org.id} orgName={org.name} />}
 
       {statusTarget && <OrgStatusModal org={org} target={statusTarget} onClose={() => setStatusTarget(null)} />}
       {editing && <EditOrganizationModal org={org} onClose={() => setEditing(false)} />}

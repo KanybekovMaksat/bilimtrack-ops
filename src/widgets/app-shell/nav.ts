@@ -50,10 +50,10 @@ export const NAV: NavGroup[] = [
   {
     title: "Биллинг",
     items: [
-      { to: routes.plans, label: "Тарифы", icon: "cards", demo: true },
-      { to: routes.subscriptions, label: "Подписки", icon: "repeat", demo: true },
-      { to: routes.payments, label: "Платежи", icon: "credit-card", demo: true },
-      { to: routes.providers, label: "Провайдеры", icon: "plug", demo: true },
+      { to: routes.plans, label: "Тарифы Bilimtrack+", icon: "cards" },
+      { to: routes.subscriptions, label: "Подписки", icon: "repeat" },
+      { to: routes.payments, label: "Платежи", icon: "credit-card" },
+      { to: routes.providers, label: "Провайдер Finik", icon: "plug" },
       { to: routes.orgBilling, label: "Биллинг организаций", icon: "building-bank", demo: true },
     ],
   },

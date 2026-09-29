@@ -1,34 +1,69 @@
-import { useMockQuery } from "@/shared/api";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { api, QK } from "@/shared/api";
 
-/** Consumer (student) plans — what learners pay Bilimtrack. */
-export type Plan = {
+/* Bilimtrack+ plans — what learners pay Bilimtrack (not the organizations' tuition).
+   Backend: server/apps/billing (use_cases/ops.py), /api/v1/ops/billing/plans/. */
+
+/** OpsPlanSerializer. Decimals arrive as strings. */
+type ApiPlan = {
+  id: number;
   code: string;
   name: string;
-  monthly: string;
-  yearly: string;
-  active: boolean;
-  subscribers: string;
-  note: string;
+  description: string;
+  price: string;
+  currency: string;
+  durationDays: number;
+  months: number;
+  isActive: boolean;
+  sortOrder: number;
+  isGroup: boolean;
+  minSeats: number;
+  salesCount: number;
+  revenue: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
-const PLANS: Plan[] = [
-  { code: "lite", name: "Lite", monthly: "бесплатно", yearly: "—", active: true, subscribers: "39 438", note: "базовый доступ ко всем учебным функциям" },
-  { code: "pro", name: "PRO · Bilimtrack+", monthly: "50 KGS / мес", yearly: "250 KGS / год", active: true, subscribers: "1 842", note: "оформление профиля, темы, уведомления в мессенджеры" },
-  { code: "pro_family", name: "PRO Семья", monthly: "120 KGS / мес", yearly: "600 KGS / год", active: false, subscribers: "0", note: "черновик: один платёж на трёх детей" },
-];
+export type Plan = Omit<ApiPlan, "price" | "revenue"> & { price: number; revenue: number };
 
-export const PLAN_FEATURES = [
-  { name: "Кастомный баннер", desc: "своё оформление профиля вместо серого по умолчанию", on: true },
-  { name: "Значок статуса", desc: "особая отметка в ленте, комментариях и рейтинге", on: true },
-  { name: "Цветовые темы", desc: "17 акцентных цветов вместо одного", on: true },
-  { name: "Уведомления в мессенджеры", desc: "оценки, ДЗ и замены через Telegram и WhatsApp", on: true },
-  { name: "Ссылки на соцсети", desc: "Instagram и Telegram в карточке профиля", on: true },
-  { name: "Расширенная статистика", desc: "динамика GPA и посещаемости за год", on: false },
-  { name: "Экспорт дневника в PDF", desc: "выгрузка оценок за любой период", on: false },
-  { name: "Приоритет в поддержке", desc: "обращения PRO выше в очереди", on: false },
-  { name: "Анимированная рамка профиля", desc: "градиентная обводка аватара", on: false },
-  { name: "Ранний доступ к новым функциям", desc: "бета-фичи до общего релиза", on: false },
-];
+export type PlanInput = {
+  code: string;
+  name: string;
+  description: string;
+  price: number;
+  durationDays: number;
+  isActive: boolean;
+  sortOrder: number;
+  isGroup: boolean;
+  minSeats: number;
+};
 
-export const usePlans = () => useMockQuery(["plans"], () => PLANS);
-export const usePlan = (code: string) => useMockQuery(["plans", code], () => PLANS.find((p) => p.code === code) ?? PLANS[1]);
+const toPlan = (p: ApiPlan): Plan => ({ ...p, price: Number(p.price), revenue: Number(p.revenue) });
+
+export const planKeys = { all: [QK.billingPlans] as const };
+
+/** GET ops/billing/plans/ — including plans taken off sale. */
+export const usePlans = () =>
+  useSuspenseQuery({
+    queryKey: planKeys.all,
+    queryFn: async () => (await api<ApiPlan[]>("ops/billing/plans/")).map(toPlan),
+  }).data;
+
+export function useCreatePlan() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: PlanInput) => api<ApiPlan>("ops/billing/plans/", { method: "POST", body: input }).then(toPlan),
+    onSuccess: () => qc.invalidateQueries({ queryKey: planKeys.all }),
+  });
+}
+
+export function useUpdatePlan(id: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: Partial<PlanInput>) => api<ApiPlan>(`ops/billing/plans/${id}/`, { method: "PATCH", body: input }).then(toPlan),
+    onSuccess: () => qc.invalidateQueries({ queryKey: planKeys.all }),
+  });
+}
+
+/** «12 мес · 365 дн.» */
+export const planDuration = (p: Pick<Plan, "months" | "durationDays">) => `${p.months} мес · ${p.durationDays} дн.`;
