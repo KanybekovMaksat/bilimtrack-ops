@@ -1,85 +1,179 @@
 import { useState } from "react";
-import { paymentTone, usePayments, type Payment } from "@/entities/payment";
+import { useSearchParams } from "react-router";
+import {
+  formatMoney,
+  PAYMENTS_PAGE_SIZE,
+  paymentStatusLabel,
+  paymentTone,
+  usePaymentDetail,
+  usePayments,
+  webhookOutcomeLabel,
+  webhookTone,
+  type PaymentStatus,
+} from "@/entities/payment";
+import { useCan } from "@/entities/session";
 import { RefundButton } from "@/features/refund-payment";
-import { Button, Callout, Cell, Drawer, FilterChip, Icon, KV, Num, PageHeader, Pill, Row, SearchInput, Table } from "@/shared/ui";
+import { formatDateTimeShort, formatInt, plural, useDebouncedEffect } from "@/shared/lib";
+import { Button, Callout, Cell, Drawer, EmptyState, ErrorNote, FilterChip, KV, Num, PageHeader, Pager, Pill, Row, SearchInput, Table } from "@/shared/ui";
+
+const STATUSES: PaymentStatus[] = ["paid", "pending", "expired", "failed", "refunded"];
+
+function PaymentDrawer({ id, onClose }: { id: string; onClose: () => void }) {
+  const detail = usePaymentDetail(id);
+  const can = useCan();
+  const p = detail.data;
+
+  return (
+    <Drawer
+      open
+      onClose={onClose}
+      header={
+        <>
+          <Button variant="ghost" size="xs" icon="x" onClick={onClose} aria-label="Закрыть" className="text-ink" />
+          <div className="truncate font-num text-sm font-medium">{id}</div>
+        </>
+      }
+      footer={can("billing") && p ? <RefundButton payment={p} /> : undefined}
+    >
+      <div className="flex flex-col gap-4 p-[18px]">
+        <ErrorNote error={detail.error} />
+        {!p ? (
+          <div className="h-40 animate-pulse rounded-xl bg-neutral-50" />
+        ) : (
+          <>
+            <div className="flex items-baseline gap-2.5">
+              <div className="font-num text-[26px] font-semibold">{formatMoney(p.amount, p.currency)}</div>
+              <Pill tone={paymentTone[p.status]}>{paymentStatusLabel[p.status] ?? p.status}</Pill>
+            </div>
+            {p.failureReason && <Callout tone={p.status === "refunded" ? "muted" : "warn"}>{p.failureReason}</Callout>}
+            <div className="flex flex-col gap-[9px]">
+              <KV k="Создан">{formatDateTimeShort(p.createdAt)}</KV>
+              <KV k="Оплачен">{formatDateTimeShort(p.paidAt)}</KV>
+              {p.refundedAt && <KV k="Возврат">{formatDateTimeShort(p.refundedAt)}</KV>}
+              <KV k="Плательщик">
+                {p.user.fullName} · <span className="font-num">{p.user.username}</span>
+              </KV>
+              <KV k="Тариф">
+                {p.plan.name} · {p.durationDays} дн.
+                {p.seats > 1 && ` · ${p.seats} × ${formatMoney(p.unitPrice, p.currency)}`}
+              </KV>
+              <KV k="Организация">{p.organization?.name ?? "—"}</KV>
+              <KV k="Транзакция Finik">
+                <span className="font-num">{p.providerTransactionId || "—"}</span>
+                {p.providerEnvironment && <span className="ml-1.5 text-neutral-400">({p.providerEnvironment})</span>}
+              </KV>
+              <KV k="QR действует до">{formatDateTimeShort(p.expiresAt)}</KV>
+            </div>
+            {p.recipients.length > 1 && (
+              <div>
+                <div className="mb-1.5 text-xs text-neutral-400">Получатели · {p.recipients.length}</div>
+                {p.recipients.map((r) => (
+                  <div key={r.id} className="flex gap-2 py-0.5 text-xs">
+                    <span className="font-num text-neutral-500">{r.username}</span>
+                    <span>{r.fullName}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div>
+              <div className="mb-1.5 text-xs text-neutral-400">Вебхуки Finik</div>
+              {p.webhookEvents.length ? (
+                p.webhookEvents.map((e) => (
+                  <div key={e.id} className="mb-2 rounded-[10px] border border-neutral-100 p-2.5">
+                    <div className="mb-1 flex items-center gap-2 text-xs">
+                      <Pill size="sm" tone={webhookTone[e.outcome] ?? "neutral"}>
+                        {webhookOutcomeLabel[e.outcome] ?? e.outcome}
+                      </Pill>
+                      <span className="text-neutral-500">{formatDateTimeShort(e.receivedAt)}</span>
+                    </div>
+                    {e.detail && <div className="mb-1 text-xs text-neutral-600">{e.detail}</div>}
+                    <pre className="m-0 max-h-40 overflow-auto rounded-md bg-neutral-50 p-2 font-mono text-[11px] leading-4 text-neutral-700">{e.body}</pre>
+                  </div>
+                ))
+              ) : (
+                <div className="text-xs text-neutral-400">
+                  {p.status === "pending" ? "Вебхука ещё не было: Finik шлёт его только после успешной оплаты." : "Вебхуков нет"}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </Drawer>
+  );
+}
 
 export function PaymentsPage() {
-  const payments = usePayments();
-  const [open, setOpen] = useState<Payment | null>(null);
+  const [params, setParams] = useSearchParams();
   const [query, setQuery] = useState("");
-  const [stuckOnly, setStuckOnly] = useState(false);
-  const q = query.trim().toLowerCase();
-  const rows = payments.filter((p) => (!stuckOnly || p.stuckFor) && (!q || `${p.user} ${p.txn}`.toLowerCase().includes(q)));
+  const [q, setQ] = useState("");
+  const [status, setStatus] = useState<PaymentStatus | undefined>();
+  const [page, setPage] = useState(1);
+  const openId = params.get("payment");
+
+  useDebouncedEffect(query.trim(), 350, (next) => {
+    setQ(next);
+    setPage(1);
+  });
+
+  const list = usePayments({ q: q.length >= 2 ? q : undefined, status, page });
+  const total = list.data?.count ?? 0;
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title="Платежи" subtitle="журнал транзакций" />
-      <div className="flex items-center gap-2">
-        <SearchInput width={260} placeholder="Плательщик или номер транзакции" value={query} onChange={setQuery} />
-        <FilterChip label="Статус" />
-        <FilterChip label="Провайдер" />
-        <FilterChip tone="warn" icon="alert-triangle" label={`Зависли в обработке · ${payments.filter((p) => p.stuckFor).length}`} onClick={() => setStuckOnly((v) => !v)} />
-      </div>
-      <Table cols="124px minmax(180px,1fr) 100px 150px 150px 120px 90px" minWidth={1050} head={["Дата", "Плательщик", "Сумма", "Провайдер", "Транзакция", "Статус", "Подарок"]}>
-        {rows.map((p) => (
-          <Row key={p.txn} onClick={() => setOpen(p)} className={p.stuckFor ? "bg-warn-row" : undefined}>
-            <span className="text-xs text-neutral-500">{p.date}</span>
-            <Cell className="text-brand">{p.user}</Cell>
-            <Num className="text-[13px]">{p.sum}</Num>
-            <span className="text-xs text-neutral-700">{p.provider}</span>
-            <Num className="text-neutral-500">{p.txn}</Num>
-            <span className="flex items-center gap-1.5">
-              <Pill tone={paymentTone[p.status]}>{p.status}</Pill>
-              {p.stuckFor && <Icon name="alert-triangle" size={15} className="text-amber-500" />}
-            </span>
-            <span>{p.gift && <Pill tone="info" className="font-normal">Подарок</Pill>}</span>
-          </Row>
+      <PageHeader title="Платежи Bilimtrack+" subtitle={list.data ? `${formatInt(total)} ${plural(total, ["платёж", "платежа", "платежей"])} · Finik QR` : "журнал оплат через Finik"} />
+      <div className="flex flex-wrap items-center gap-2">
+        <SearchInput width={300} placeholder="Логин, ФИО, транзакция или ID платежа" value={query} onChange={setQuery} />
+        {STATUSES.map((st) => (
+          <FilterChip
+            key={st}
+            label={paymentStatusLabel[st]}
+            tone={status === st ? "active" : "default"}
+            onClick={() => {
+              setStatus(status === st ? undefined : st);
+              setPage(1);
+            }}
+          />
         ))}
-      </Table>
-      <p className="m-0 text-xs text-neutral-400">Строка с подсветкой — платёж висит в «В обработке» дольше 15 минут. Это и есть типичное обращение «деньги списались, а PRO нет».</p>
+        {list.isFetching && <span className="text-xs text-neutral-400">Загрузка…</span>}
+      </div>
 
-      {open && (
-        <Drawer
-          open
-          onClose={() => setOpen(null)}
-          header={
-            <>
-              <Button variant="ghost" size="xs" icon="x" onClick={() => setOpen(null)} aria-label="Закрыть" className="text-ink" />
-              <div className="font-num text-sm font-medium">{open.txn}</div>
-            </>
-          }
-          footer={
-            <>
-              <Button size="xl" className="flex-1">
-                Проверить у провайдера
-              </Button>
-              <RefundButton payment={open} />
-            </>
-          }
-        >
-          <div className="flex flex-col gap-4 p-[18px]">
-            <div className="flex items-baseline gap-2.5">
-              <div className="font-num text-[26px] font-semibold">{open.sum}</div>
-              <Pill tone={paymentTone[open.status]}>{open.status}</Pill>
-            </div>
-            {open.stuckFor && (
-              <Callout tone="warn">Висит в обработке {open.stuckFor}. Провайдер не прислал вебхук. Проверьте статус вручную, прежде чем обещать что-то пользователю.</Callout>
-            )}
-            <div className="flex flex-col gap-[9px]">
-              <KV k="Дата">{open.date}</KV>
-              <KV k="Плательщик">
-                <span className="text-brand">{open.user}</span>
-              </KV>
-              <KV k="Провайдер">{open.provider}</KV>
-              <KV k="Подписка">PRO · {open.sum === "250 KGS" ? "год" : "месяц"}</KV>
-            </div>
-            <div>
-              <div className="mb-1.5 text-xs text-neutral-400">Ответ провайдера</div>
-              <pre className="m-0 overflow-auto rounded-[10px] border border-neutral-100 bg-neutral-50 p-2.5 font-mono text-[11px] leading-4 text-neutral-700">{open.providerResponse}</pre>
-            </div>
-          </div>
-        </Drawer>
+      {list.error ? (
+        <Callout tone="danger">{list.error.message}</Callout>
+      ) : list.data && !list.data.rows.length ? (
+        <div className="rounded-xl border border-neutral-200">
+          <EmptyState icon="credit-card" title="Платежей не найдено" description="Здесь появится каждый счёт, выставленный студентом на экране Bilimtrack+." />
+        </div>
+      ) : (
+        <Table cols="130px minmax(190px,1fr) minmax(150px,1fr) 120px 150px 130px" minWidth={1000} head={["Дата", "Плательщик", "Тариф", "Сумма", "Транзакция", "Статус"]}>
+          {(list.data?.rows ?? []).map((p) => (
+            <Row key={p.id} onClick={() => setParams({ payment: p.id })} className={openId === p.id ? "bg-brand-50 hover:bg-brand-50" : undefined}>
+              <span className="text-xs text-neutral-500">{formatDateTimeShort(p.createdAt)}</span>
+              <span className="min-w-0">
+                <Cell className="block">{p.user.fullName}</Cell>
+                <Cell className="block font-num text-[11px] text-neutral-400">{p.user.username}</Cell>
+              </span>
+              <Cell className="text-xs">
+                {p.plan.name}
+                {p.seats > 1 && <span className="text-neutral-400"> × {p.seats}</span>}
+              </Cell>
+              <Num className="text-[13px]">{formatMoney(p.amount, p.currency)}</Num>
+              <Num className="truncate text-neutral-500">{p.providerTransactionId || "—"}</Num>
+              <span>
+                <Pill tone={paymentTone[p.status]}>{paymentStatusLabel[p.status] ?? p.status}</Pill>
+              </span>
+            </Row>
+          ))}
+          {list.isLoading && <div className="h-40 animate-pulse bg-neutral-50" />}
+        </Table>
       )}
+      {total > PAYMENTS_PAGE_SIZE && <Pager page={page} pageSize={PAYMENTS_PAGE_SIZE} total={total} onPage={setPage} />}
+      <p className="m-0 text-xs text-neutral-400">
+        «Ожидает оплаты» без вебхука дольше срока QR закрывается автоматически. Если студент говорит, что деньги списались, а доступа нет, — ищите
+        транзакцию в «Провайдерах» → вебхуки с пометкой «Требует проверки».
+      </p>
+
+      {openId && <PaymentDrawer key={openId} id={openId} onClose={() => setParams({})} />}
     </div>
   );
 }

@@ -183,7 +183,7 @@ entities/organization/
 
 ### 5.4. Демо-разделы
 
-Разделы без бэкенда (метрики, биллинг, соцсети, онбординг, ошибки) работают на
+Разделы без бэкенда (метрики, биллинг организаций, соцсети, онбординг, ошибки) работают на
 моках через `useMockQuery` из `shared/api`, а в `NAV` помечены `demo: true`.
 Подключая бэкенд: замени fetcher в хуке сущности на `api`/`apiList`, убери
 `demo: true`, удали моки. Новые моки без просьбы не добавляй.
@@ -195,7 +195,8 @@ entities/organization/
 - Временный пароль (`mustChangePassword`) — `RequireAuth` показывает смену пароля.
 - Права оператора — тип `OpsPermission` (`entities/session`, список
   `OPS_PERMISSIONS`, зеркало бэкенда): `sales`, `support`, `organizations`,
-  `licenses`, `accounts`, `moderation`, `tasks`, `content`, `audit`, `team`.
+  `licenses`, `accounts`, `moderation`, `tasks`, `content`, `audit`, `team`,
+  `billing` (Bilimtrack+: тарифы, подписки, платежи; читать могут все операторы).
   Новая привилегия на бэкенде → добавь её в `OPS_PERMISSIONS`.
 - Проверка в UI: `const can = useCan(); can("organizations")` — код типизирован,
   опечатка не скомпилируется.
