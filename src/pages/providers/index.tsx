@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { PAYMENTS_PAGE_SIZE, useWebhooks, webhookOutcomeLabel, webhookTone, type WebhookFilters } from "@/entities/payment";
+import { PAYMENTS_PAGE_SIZE, useWebhooks, WebhookBody, webhookOutcomeLabel, webhookTone, type WebhookFilters } from "@/entities/payment";
 import { useBillingSummary } from "@/entities/subscription";
 import { formatDateLong, formatDateTimeShort, formatInt } from "@/shared/lib";
 import { Callout, Card, Cell, EmptyState, FilterChip, Num, PageHeader, Pager, Pill, Row, SearchInput, StatusDot, Table } from "@/shared/ui";
@@ -78,7 +78,9 @@ export function ProvidersPage() {
                 <span className={e.signatureValid ? "text-xs text-green-600" : "text-xs text-red-600"}>{e.signatureValid ? "верна" : "неверна"}</span>
               </Row>
               {open === e.id && (
-                <pre className="m-0 max-h-60 overflow-auto border-b border-neutral-100 bg-neutral-50 px-4 py-2.5 font-mono text-[11px] leading-4 text-neutral-700">{e.body || "(пустое тело)"}</pre>
+                <div className="border-b border-neutral-100 px-4 py-3">
+                  <WebhookBody body={e.body} />
+                </div>
               )}
             </div>
           ))}

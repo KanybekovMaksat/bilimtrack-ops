@@ -150,3 +150,5 @@ export const useWebhooks = (f: WebhookFilters) =>
 /** «1 196 KGS» from a decimal string. */
 export const formatMoney = (amount: string | number, currency = "KGS") =>
   `${Number(amount).toLocaleString("ru-RU", { maximumFractionDigits: 2 })} ${currency}`;
+
+export { WebhookBody } from "./ui";

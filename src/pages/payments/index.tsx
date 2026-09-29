@@ -8,6 +8,7 @@ import {
   usePaymentDetail,
   usePayments,
   webhookOutcomeLabel,
+  WebhookBody,
   webhookTone,
   type PaymentStatus,
 } from "@/entities/payment";
@@ -86,8 +87,8 @@ function PaymentDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                       </Pill>
                       <span className="text-neutral-500">{formatDateTimeShort(e.receivedAt)}</span>
                     </div>
-                    {e.detail && <div className="mb-1 text-xs text-neutral-600">{e.detail}</div>}
-                    <pre className="m-0 max-h-40 overflow-auto rounded-md bg-neutral-50 p-2 font-mono text-[11px] leading-4 text-neutral-700">{e.body}</pre>
+                    {e.detail && <div className="mb-1.5 text-xs text-neutral-600">{e.detail}</div>}
+                    <WebhookBody body={e.body} />
                   </div>
                 ))
               ) : (
