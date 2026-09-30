@@ -3,14 +3,15 @@ import {
   ACCOUNTS_PAGE_SIZE,
   accountKindLabel,
   accountName,
+  exportAccounts,
   formatLastLogin,
   useAccounts,
   type AccountKind,
 } from "@/entities/account";
 import { useOrganizationsSoft } from "@/entities/organization";
 import { routes } from "@/shared/config";
-import { formatInt, orgShort, plural, useUrlFilters, useUrlSearch } from "@/shared/lib";
-import { Avatar, Callout, Cell, EmptyState, FilterChip, FilterSelect, OrgMark, PageHeader, Pager, Pill, Row, SearchInput, Table } from "@/shared/ui";
+import { formatDateTimeFull, formatInt, orgShort, plural, useUrlFilters, useUrlSearch } from "@/shared/lib";
+import { Avatar, Callout, Cell, EmptyState, ExportButton, FilterChip, FilterReset, FilterSelect, OrgMark, PageHeader, Pager, Pill, Row, SearchInput, Table } from "@/shared/ui";
 
 // Platform admins live in «Команда», not among client accounts.
 const KINDS: AccountKind[] = ["employee", "learner", "guardian", "no_membership"];
@@ -66,6 +67,21 @@ export function AccountsPage() {
           ]}
         />
         <FilterChip icon="zzz" tone={filters.neverLoggedIn ? "warn" : "default"} label="Ни разу не входили" onClick={() => f.set({ neverLoggedIn: !filters.neverLoggedIn })} />
+        <FilterReset filters={f} keys={["q", "org", "kind", "status", "neverLoggedIn"]} />
+        <ExportButton
+          filename="accounts"
+          head={["Логин", "Имя", "Телефон", "Почта", "Организации", "Статус", "Последний вход"]}
+          load={() => exportAccounts({ ...filters, q: q.length >= 2 ? q : undefined })}
+          row={(a) => [
+            a.username,
+            accountName(a),
+            a.phone,
+            a.email,
+            [...new Set([...a.memberships.map((m) => m.organization.name), ...a.profiles.map((p) => p.organization.name)])].join(", "),
+            a.isActive ? "Активен" : "Отключён",
+            a.lastLogin && formatDateTimeFull(a.lastLogin),
+          ]}
+        />
         {list.isFetching && <span className="text-xs text-neutral-400">Загрузка…</span>}
       </div>
       {q.length === 1 && <div className="text-xs text-neutral-400">Для поиска нужно минимум 2 символа.</div>}

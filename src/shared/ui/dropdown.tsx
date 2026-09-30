@@ -1,6 +1,7 @@
 import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "../lib";
+import { CheckBox } from "./controls";
 import { Icon, type IconName } from "./icon";
 import { UserAvatar } from "./user-avatar";
 
@@ -33,7 +34,10 @@ type Props<V extends string> = {
   label?: string;
   className?: string;
   menuWidth?: number;
-  footer?: ReactNode;
+  /** Content under the list; as a function it gets `close` — for an action that opens something over the menu. */
+  footer?: ReactNode | ((close: () => void) => ReactNode);
+  /** Multi-select: rows toggle and the list stays open. `value` / `onChange` are then unused. */
+  multi?: { values: V[]; onChange: (values: V[]) => void };
 };
 
 function OptionGlyph<V extends string>({ o, size }: { o: DropdownOption<V>; size: number }) {
@@ -57,6 +61,7 @@ export function Dropdown<V extends string>({
   className,
   menuWidth,
   footer,
+  multi,
 }: Props<V>) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -64,7 +69,10 @@ export function Dropdown<V extends string>({
   const [pos, setPos] = useState<{ left: number; top: number; width: number; up: boolean } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const selected = options.find((o) => o.value === value) ?? null;
+  const values = multi ? multi.values : value === null ? [] : [value];
+  const picked = options.filter((o) => values.includes(o.value));
+  // The trigger shows one option in full; two or more collapse to «Первый +N».
+  const selected = picked[0] ?? null;
 
   const q = query.trim().toLowerCase();
   const rows: (DropdownOption<V> | null)[] = [
@@ -108,7 +116,13 @@ export function Dropdown<V extends string>({
     setOpen((v) => !v);
   };
   const choose = (o: DropdownOption<V> | null) => {
-    onChange(o ? o.value : null);
+    if (multi) {
+      // Keeps the option order of the list, whatever the click order was.
+      multi.onChange(o ? options.map((x) => x.value).filter((v) => (v === o.value) !== values.includes(v)) : []);
+      if (o) return;
+    } else {
+      onChange(o ? o.value : null);
+    }
     setOpen(false);
     triggerRef.current?.focus();
   };
@@ -130,7 +144,8 @@ export function Dropdown<V extends string>({
   };
 
   const chosen = selected && look === "chip" && clearable;
-  const caption = selected ? (label && look === "chip" ? `${label}: ${selected.label}` : selected.label) : (label ?? placeholder);
+  const chosenText = selected && (picked.length > 1 ? `${selected.label} +${picked.length - 1}` : selected.label);
+  const caption = chosenText ? (label && look === "chip" ? `${label}: ${chosenText}` : chosenText) : (label ?? placeholder);
 
   return (
     <>
@@ -141,7 +156,7 @@ export function Dropdown<V extends string>({
         onKeyDown={onKey}
         aria-haspopup="listbox"
         aria-expanded={open}
-        title={look === "chip" ? caption : undefined}
+        title={look === "chip" ? (picked.length > 1 ? `${label ?? placeholder}: ${picked.map((o) => o.label).join(", ")}` : caption) : undefined}
         className={cn(
           look === "chip"
             ? cn(
@@ -155,7 +170,7 @@ export function Dropdown<V extends string>({
           className,
         )}
       >
-        {selected && <OptionGlyph o={selected} size={look === "chip" ? 20 : 22} />}
+        {selected && picked.length === 1 && <OptionGlyph o={selected} size={look === "chip" ? 20 : 22} />}
         <span className={cn("min-w-0 flex-1 truncate", !selected && look === "field" && "text-neutral-400")}>
           {caption}
         </span>
@@ -167,6 +182,7 @@ export function Dropdown<V extends string>({
           <div
             ref={menuRef}
             role="listbox"
+            aria-multiselectable={multi ? true : undefined}
             onKeyDown={onKey}
             className="fixed z-[60] flex max-h-[320px] flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-pop"
             style={{ left: pos.left, width: pos.width, ...(pos.up ? { bottom: window.innerHeight - pos.top } : { top: pos.top }) }}
@@ -189,7 +205,7 @@ export function Dropdown<V extends string>({
             )}
             <div className="overflow-auto p-1">
               {rows.map((o, i) => {
-                const on = o ? o.value === value : value === null;
+                const on = o ? values.includes(o.value) : values.length === 0;
                 return (
                   <button
                     key={o?.value ?? "__all"}
@@ -203,18 +219,19 @@ export function Dropdown<V extends string>({
                       i === active ? "bg-neutral-100" : "bg-transparent",
                     )}
                   >
+                    {multi && o && <CheckBox on={on} />}
                     {o ? <OptionGlyph o={o} size={24} /> : <Icon name="x" size={16} className="text-neutral-400" />}
                     <span className="min-w-0 flex-1">
                       <span className={cn("block truncate", !o && "text-neutral-500")}>{o ? o.label : placeholder}</span>
                       {o?.hint && <span className="block truncate font-num text-[11px] text-neutral-400">{o.hint}</span>}
                     </span>
-                    {on && <Icon name="check" size={15} className="text-brand" />}
+                    {on && !(multi && o) && <Icon name="check" size={15} className="text-brand" />}
                   </button>
                 );
               })}
               {!rows.length && <div className="px-3 py-4 text-center text-xs text-neutral-400">Ничего не найдено</div>}
             </div>
-            {footer}
+            {typeof footer === "function" ? footer(() => setOpen(false)) : footer}
           </div>,
           document.body,
         )}
@@ -222,17 +239,17 @@ export function Dropdown<V extends string>({
   );
 }
 
-type FilterSelectProps<V extends string> = {
+type FilterBase<V extends string> = {
   /** Chip caption: «Категория» → «Категория: Техническая проблема» once chosen. */
   label: string;
   /** Reset row in the list: «Все категории». */
   allLabel: string;
-  value: V | null | undefined;
-  onChange: (value: V | undefined) => void;
   options: DropdownOption<V>[];
   searchPlaceholder?: string;
   menuWidth?: number;
 };
+
+type FilterSelectProps<V extends string> = FilterBase<V> & { value: V | null | undefined; onChange: (value: V | undefined) => void };
 
 /** The one filter-bar select: chip trigger, search, reset row. Pair it with `useUrlFilters` so the choice lands in the URL. */
 export function FilterSelect<V extends string>({ label, allLabel, value, onChange, options, searchPlaceholder, menuWidth }: FilterSelectProps<V>) {
@@ -247,6 +264,29 @@ export function FilterSelect<V extends string>({ label, allLabel, value, onChang
       menuWidth={menuWidth}
       value={value ?? null}
       onChange={(v) => onChange(v ?? undefined)}
+      options={options}
+    />
+  );
+}
+
+type FilterMultiSelectProps<V extends string> = FilterBase<V> & { values: V[]; onChange: (values: V[]) => void };
+
+const noop = () => {};
+
+/** `FilterSelect` with checkboxes: several values at once («Критический +1»). For lists filtered on the client or APIs that accept a set. */
+export function FilterMultiSelect<V extends string>({ label, allLabel, values, onChange, options, searchPlaceholder, menuWidth }: FilterMultiSelectProps<V>) {
+  return (
+    <Dropdown<V>
+      look="chip"
+      clearable
+      searchable
+      label={label}
+      placeholder={allLabel}
+      searchPlaceholder={searchPlaceholder}
+      menuWidth={menuWidth}
+      value={null}
+      onChange={noop}
+      multi={{ values, onChange }}
       options={options}
     />
   );

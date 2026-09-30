@@ -11,7 +11,7 @@ import {
 } from "@/entities/idea";
 import { routes } from "@/shared/config";
 import { cn, formatDateTimeFull, formatRelative, initialsOf, orgShort, useUrlFilters, useUrlSearch } from "@/shared/lib";
-import { Avatar, Button, Card, EmptyState, ErrorNote, FilterSelect, Icon, OrgMark, PageHeader, Pill, SearchInput, Tabs } from "@/shared/ui";
+import { Avatar, Button, Card, EmptyState, ErrorNote, FilterReset, FilterSelect, Icon, OrgMark, PageHeader, Pill, SearchInput, Tabs } from "@/shared/ui";
 
 type TabKey = IdeaStatus | "all";
 
@@ -51,6 +51,7 @@ export function IdeasPage() {
           onChange={(v) => f.set({ org: v })}
           options={orgs.map((o) => ({ value: String(o.id), label: o.name }))}
         />
+        <FilterReset filters={f} keys={["q", "org"]} />
         <div className="flex-1" />
         <span className="text-xs text-neutral-400">Новые сверху · обновляется раз в минуту</span>
       </div>

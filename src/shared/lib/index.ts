@@ -12,6 +12,27 @@ export function plural(n: number, [one, few, many]: [string, string, string]) {
   return many;
 }
 
+type SortValue = string | number | null | undefined;
+
+/**
+ * Orders rows for a sortable `Table`: `sort` is a column key, `-key` for descending; an unknown key keeps the order.
+ * Empty values always go last; ISO dates compare as strings.
+ */
+export function sortRows<T>(rows: T[], sort: string | undefined, by: Record<string, (row: T) => SortValue>): T[] {
+  if (!sort) return rows;
+  const desc = sort.startsWith("-");
+  const get = by[desc ? sort.slice(1) : sort];
+  if (!get) return rows;
+  const empty = (v: SortValue) => v === null || v === undefined || v === "";
+  return [...rows].sort((a, b) => {
+    const x = get(a);
+    const y = get(b);
+    if (empty(x) || empty(y)) return Number(empty(x)) - Number(empty(y));
+    const c = typeof x === "number" && typeof y === "number" ? x - y : String(x).localeCompare(String(y), "ru", { numeric: true });
+    return desc ? -c : c;
+  });
+}
+
 export const toggleIn = <T,>(list: T[], value: T) =>
   list.includes(value) ? list.filter((x) => x !== value) : [...list, value];
 
@@ -53,6 +74,9 @@ const timeFmt = new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-d
 const timeSecFmt = new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
 type DateInput = string | number | Date;
+
+/** Local calendar day as `YYYY-MM-DD` — the value of a date input and of date filters in the API. */
+export const toIsoDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 /** «12 мар. 2024 г.» or «—». */
 export const formatDate = (iso: string | null | undefined) => (iso ? dateFmt.format(new Date(iso)) : "—");
@@ -116,5 +140,6 @@ export const formatNumber = (n: number, fractionDigits = 2) => n.toLocaleString(
 export const formatBytes = (bytes: number) =>
   bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} МБ` : `${Math.max(1, Math.round(bytes / 1024))} КБ`;
 
+export { downloadText, toCsv, type CsvCell } from "./csv";
 export { useDebouncedEffect } from "./use-debounced-effect";
 export { useUrlFilters, useUrlSearch, type UrlFilters } from "./use-url-filters";

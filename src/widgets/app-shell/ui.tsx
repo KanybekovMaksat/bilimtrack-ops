@@ -1,13 +1,14 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import { QueryErrorResetBoundary } from "@tanstack/react-query";
-import { Link, Outlet, useLocation, useNavigate } from "react-router";
+import { Link, Outlet, useLocation } from "react-router";
 import { useLeadsSoft } from "@/entities/lead";
 import { useCan, useSession } from "@/entities/session";
-import { isOpen, useTicketsSoft } from "@/entities/ticket";
+import { useTicketSummary } from "@/entities/ticket";
 import logoMark from "@/shared/assets/logo-mark.svg";
 import { routes } from "@/shared/config";
 import { cn } from "@/shared/lib";
 import { ErrorBoundary, Icon, type IconName, PageSkeleton, UserAvatar } from "@/shared/ui";
+import { CommandPalette } from "./command-palette";
 import { NAV, isActive } from "./nav";
 
 /** Bilimtrack puzzle mark — the same asset as the blog and design system. */
@@ -18,10 +19,12 @@ export function Logo({ size = 30 }: { size?: number }) {
 /** Live counters: open tickets and new demo requests, fetched only with the privilege to see them. */
 function useCounters() {
   const can = useCan();
-  const tickets = useTicketsSoft({ enabled: can("support") });
+  const tickets = useTicketSummary({}, { enabled: can("support") }).data;
   const leads = useLeadsSoft({ enabled: can("sales") });
   return {
-    tickets: tickets.data?.filter(isOpen).length,
+    tickets: tickets && tickets.open + tickets.inProgress,
+    unread: tickets?.unread,
+    overdue: tickets?.sla.over,
     leads: leads.data?.filter((l) => l.status === "new").length,
   };
 }
@@ -135,57 +138,37 @@ function UserMenu() {
   );
 }
 
-function GlobalSearch() {
-  const navigate = useNavigate();
-  const [q, setQ] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        inputRef.current?.focus();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
-  return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (q.trim()) navigate(`${routes.accounts}?q=${encodeURIComponent(q.trim())}`);
-      }}
-      className="flex h-9 max-w-[520px] flex-1 items-center gap-2 rounded-full bg-neutral-100 px-3.5 text-sm"
-    >
-      <Icon name="search" size={17} className="text-neutral-400" />
-      <input
-        ref={inputRef}
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder="Поиск аккаунта: логин, почта, телефон или ФИО"
-        className="min-w-0 flex-1 border-0 bg-transparent font-sans text-sm outline-none placeholder:text-neutral-400"
-      />
-      <span className="rounded-md border border-neutral-200 bg-white px-1.5 py-px text-[11px] text-neutral-500">⌘K</span>
-    </form>
-  );
-}
-
 /** Sidebar + sticky header + page outlet; one Suspense + error boundary for every page query. */
 export function AppShell() {
   const { pathname } = useLocation();
   const counters = useCounters();
   const can = useCan();
+
+  // The browser tab carries the number of tickets with an unread message: a new one is noticed from another tab.
+  useEffect(() => {
+    document.title = counters.unread ? `(${counters.unread}) Bilimtrack Ops` : "Bilimtrack Ops";
+  }, [counters.unread]);
+
   return (
     <div className="flex min-h-screen min-w-[1280px] bg-white">
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-4 border-b border-neutral-100 bg-white px-6">
-          <GlobalSearch />
+          <CommandPalette />
           <div className="flex-1" />
           <div className="flex items-center gap-1.5">
-            {can("support") && <HeaderBadge to={routes.tickets} icon="lifebuoy" count={counters.tickets} tone="red" title="Открытые тикеты" />}
+            {can("support") && counters.overdue ? (
+              <HeaderBadge to={`${routes.tickets}?tab=all&sla=over`} icon="alarm" count={counters.overdue} tone="red" title="Тикеты с просроченным SLA ответа" />
+            ) : null}
+            {can("support") && (
+              <HeaderBadge
+                to={counters.unread ? `${routes.tickets}?tab=all&unread=1` : routes.tickets}
+                icon="lifebuoy"
+                count={counters.unread}
+                tone="blue"
+                title={counters.unread ? "Тикеты с непрочитанными сообщениями" : "Тикеты"}
+              />
+            )}
             {can("sales") && <HeaderBadge to={routes.leads} icon="inbox" count={counters.leads} tone="blue" title="Новые заявки на демо" />}
           </div>
           <div className="h-6 w-px bg-neutral-200" />

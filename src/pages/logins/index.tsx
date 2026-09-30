@@ -1,8 +1,8 @@
 import { Link } from "react-router";
-import { JOURNAL_PAGE, useAccessLogs, useJournalChoices, type AccessEntry, type AccessFilters } from "@/entities/journal";
+import { JOURNAL_PAGE, exportAccessLogs, useAccessLogs, useJournalChoices, type AccessEntry, type AccessFilters } from "@/entities/journal";
 import { routes } from "@/shared/config";
-import { formatDateTimeShort, useUrlFilters, useUrlSearch } from "@/shared/lib";
-import { Callout, Cell, EmptyState, FilterChip, FilterSelect, Num, PageHeader, Pager, Pill, Row, SearchInput, Table, TextInput } from "@/shared/ui";
+import { formatDateTimeFull, formatDateTimeShort, useUrlFilters, useUrlSearch } from "@/shared/lib";
+import { Callout, Cell, EmptyState, ExportButton, FilterChip, FilterReset, FilterSelect, Num, PageHeader, Pager, PeriodFilter, Pill, Row, SearchInput, Table } from "@/shared/ui";
 
 const EVENT_TONE: Record<AccessEntry["eventType"], "success" | "danger" | "neutral" | "info"> = {
   login_success: "success",
@@ -45,10 +45,29 @@ export function LoginsPage() {
           onChange={(v) => f.set({ event: v, failed: undefined })}
           options={choices.data?.eventTypes ?? []}
         />
-        <TextInput look="plain" inputSize="sm" type="date" className="w-[150px]" value={filters.dateFrom ?? ""} onChange={(e) => f.set({ from: e.target.value })} title="С даты" />
-        <TextInput look="plain" inputSize="sm" type="date" className="w-[150px]" value={filters.dateTo ?? ""} onChange={(e) => f.set({ to: e.target.value })} title="По дату" />
+        <PeriodFilter from={filters.dateFrom} to={filters.dateTo} onChange={(r) => f.set({ from: r.from, to: r.to })} />
         <FilterChip tone={filters.failedOnly ? "danger" : "default"} icon="alert-circle" label="Только неудачные" onClick={() => f.set({ failed: !filters.failedOnly, event: undefined })} />
         <FilterChip tone={filters.operatorsOnly ? "active" : "default"} icon="shield-lock" label="Только команда" onClick={() => f.set({ team: !filters.operatorsOnly })} />
+        <FilterReset filters={f} keys={["q", "event", "from", "to", "failed", "team"]} />
+        <ExportButton
+          filename="sign-ins"
+          head={["Время", "Логин", "Имя", "Событие", "Причина отказа", "Организация", "IP", "Браузер", "ОС", "Устройство", "Город", "Страна"]}
+          load={() => exportAccessLogs(filters)}
+          row={(l) => [
+            formatDateTimeFull(l.createdAt),
+            l.username,
+            l.actorName,
+            l.eventTypeLabel,
+            REASONS[l.failureReason] ?? l.failureReason,
+            l.organization?.name,
+            l.ipAddress,
+            l.browser,
+            l.os,
+            l.deviceType,
+            l.city,
+            l.country,
+          ]}
+        />
       </div>
       {logs.error ? (
         <Callout tone="danger" icon="alert-triangle">

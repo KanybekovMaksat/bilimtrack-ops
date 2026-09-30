@@ -1,4 +1,5 @@
 import {
+  exportPayments,
   formatMoney,
   PAYMENTS_PAGE_SIZE,
   paymentStatusLabel,
@@ -12,8 +13,8 @@ import {
 } from "@/entities/payment";
 import { useCan } from "@/entities/session";
 import { RefundButton } from "@/features/refund-payment";
-import { formatDateTimeShort, formatInt, plural, useUrlFilters, useUrlSearch } from "@/shared/lib";
-import { Button, Callout, Cell, Drawer, EmptyState, ErrorNote, FilterSelect, KV, Num, PageHeader, Pager, Pill, Row, SearchInput, Table } from "@/shared/ui";
+import { formatDateTimeFull, formatDateTimeShort, formatInt, plural, useUrlFilters, useUrlSearch } from "@/shared/lib";
+import { Button, Callout, Cell, Drawer, EmptyState, ErrorNote, ExportButton, FilterReset, FilterSelect, KV, Num, PageHeader, Pager, Pill, Row, SearchInput, Table } from "@/shared/ui";
 
 const STATUSES: PaymentStatus[] = ["paid", "pending", "expired", "failed", "refunded"];
 
@@ -124,6 +125,26 @@ export function PaymentsPage() {
           value={status}
           onChange={(v) => f.set({ status: v })}
           options={STATUSES.map((st) => ({ value: st, label: paymentStatusLabel[st] }))}
+        />
+        <FilterReset filters={f} keys={["q", "status"]} />
+        <ExportButton
+          filename="payments"
+          head={["Дата", "Логин", "Плательщик", "Организация", "Тариф", "Мест", "Сумма", "Валюта", "Статус", "Транзакция", "Оплачен", "ID платежа"]}
+          load={() => exportPayments({ q: q.length >= 2 ? q : undefined, status })}
+          row={(p) => [
+            formatDateTimeFull(p.createdAt),
+            p.user.username,
+            p.user.fullName,
+            p.organization?.name,
+            p.plan.name,
+            p.seats,
+            p.amount,
+            p.currency,
+            paymentStatusLabel[p.status] ?? p.status,
+            p.providerTransactionId,
+            p.paidAt && formatDateTimeFull(p.paidAt),
+            p.id,
+          ]}
         />
         {list.isFetching && <span className="text-xs text-neutral-400">Загрузка…</span>}
       </div>

@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { api, ApiError, apiPage, QK } from "@/shared/api";
+import { api, apiAll, ApiError, apiPage, QK } from "@/shared/api";
 import { formatDateLong } from "@/shared/lib";
 
 /* Every login account on the platform.
@@ -81,20 +81,23 @@ export const accountKeys = {
   search: (q: string) => [QK.accountSearch, q] as const,
 };
 
+const accountQuery = (f: AccountFilters) => ({
+  q: f.q,
+  organizationId: f.organizationId,
+  status: f.status,
+  kind: f.kind,
+  neverLoggedIn: f.neverLoggedIn ? "true" : undefined,
+});
+
+/** Every account of the selection (no paging) for the CSV export. */
+export const exportAccounts = (f: Omit<AccountFilters, "page">) => apiAll<Account>("ops/accounts/", accountQuery(f));
+
 /** GET ops/accounts/ — one page with the total count. */
-export const useAccounts = (f: AccountFilters) =>
+export const useAccounts = (f: AccountFilters, enabled = true) =>
   useQuery({
     queryKey: accountKeys.list(f),
-    queryFn: () =>
-      apiPage<Account>("ops/accounts/", {
-        q: f.q,
-        organizationId: f.organizationId,
-        status: f.status,
-        kind: f.kind,
-        neverLoggedIn: f.neverLoggedIn ? "true" : undefined,
-        page: f.page ?? 1,
-        page_size: ACCOUNTS_PAGE_SIZE,
-      }),
+    queryFn: () => apiPage<Account>("ops/accounts/", { ...accountQuery(f), page: f.page ?? 1, page_size: ACCOUNTS_PAGE_SIZE }),
+    enabled,
     placeholderData: keepPreviousData,
   });
 

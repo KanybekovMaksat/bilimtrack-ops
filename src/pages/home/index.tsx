@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router";
 import { leadStatusLabel, useLeadsSoft } from "@/entities/lead";
 import { orgCategory, useOrganizationsSoft, usePlatformSummary } from "@/entities/organization";
 import { useCan } from "@/entities/session";
-import { SOURCE, isOpen, useTicketsSoft } from "@/entities/ticket";
+import { SOURCE, useTicketList, useTicketSummary } from "@/entities/ticket";
 import { routes } from "@/shared/config";
 import { formatDayMonth, formatInt, formatRelative, formatWeekdayDate, toPoints } from "@/shared/lib";
 import { Card, CardHeader, Icon, type IconName, LineChart, SectionLabel } from "@/shared/ui";
@@ -25,7 +25,9 @@ const dayLabel = (ms: number) => formatDayMonth(ms);
 
 export function HomePage() {
   const can = useCan();
-  const tickets = useTicketsSoft({ enabled: can("support") }).data ?? [];
+  // The newest tickets feed the event list and the 30-day chart; the counters come from the server summary.
+  const tickets = useTicketList({ ordering: "-created", pageSize: 500 }, { enabled: can("support") }).data?.rows ?? [];
+  const ticketSummary = useTicketSummary({}, { enabled: can("support") }).data;
   const leads = useLeadsSoft({ enabled: can("sales") }).data ?? [];
   const orgs = useOrganizationsSoft().data;
   const platform = usePlatformSummary();
@@ -59,9 +61,10 @@ export function HomePage() {
   // Only the queues this admin may open.
   const queue = ([
     { n: leads.filter((l) => l.status === "new").length, label: "Новые заявки на демо", icon: "inbox", color: "var(--color-brand)", to: routes.leads, perm: "sales" },
-    { n: tickets.filter(isOpen).length, label: "Открытые тикеты", icon: "lifebuoy", color: "var(--color-ink)", to: routes.tickets, perm: "support" },
-    { n: tickets.filter((t) => isOpen(t) && t.sla.state === "over").length, label: "Просрочен первый ответ", icon: "clock-exclamation", color: "var(--color-red-500)", to: routes.tickets, perm: "support" },
-    { n: tickets.filter((t) => t.status === "open" && !t.hasAccount).length, label: "Обращения без аккаунта", icon: "user-search", color: "var(--color-amber-500)", to: routes.tickets, perm: "support" },
+    { n: (ticketSummary?.open ?? 0) + (ticketSummary?.inProgress ?? 0), label: "Открытые тикеты", icon: "lifebuoy", color: "var(--color-ink)", to: routes.tickets, perm: "support" },
+    { n: ticketSummary?.unread ?? 0, label: "Непрочитанные сообщения", icon: "mail", color: "var(--color-brand)", to: `${routes.tickets}?tab=all&unread=1`, perm: "support" },
+    { n: ticketSummary?.sla.over ?? 0, label: "Просрочен первый ответ", icon: "clock-exclamation", color: "var(--color-red-500)", to: `${routes.tickets}?tab=all&sla=over`, perm: "support" },
+    { n: tickets.filter((t) => t.status === "open" && !t.hasAccount).length, label: "Обращения без аккаунта", icon: "user-search", color: "var(--color-amber-500)", to: `${routes.tickets}?org=none`, perm: "support" },
   ] as const).filter((q) => can(q.perm));
 
   const events = [

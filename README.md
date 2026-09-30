@@ -11,6 +11,7 @@ npm install
 npm run dev      # http://localhost:5173
 npm run build    # typecheck + production build
 npm run lint     # ESLint, включая правила FSD
+npm test         # юнит-тесты чистой логики (vitest)
 ```
 
 Скопируйте `.env.example` в `.env`: dev-сервер проксирует `/api` и `/health` на бэкенд из `VITE_API_PROXY_TARGET` (`bilimtrack_v2_back`).

@@ -1,10 +1,9 @@
-import { useState } from "react";
 import { Link } from "react-router";
-import { JOURNAL_PAGE, diffRows, useAudit, useJournalChoices, type AuditFilters } from "@/entities/journal";
+import { JOURNAL_PAGE, diffRows, exportAudit, useAudit, useJournalChoices, type AuditFilters } from "@/entities/journal";
 import { useOrganizationsSoft } from "@/entities/organization";
 import { routes } from "@/shared/config";
-import { formatDateTimeShort, useUrlFilters, useUrlSearch } from "@/shared/lib";
-import { Callout, Cell, EmptyState, FilterChip, FilterSelect, Icon, PageHeader, Pager, Pill, SearchInput, TextInput } from "@/shared/ui";
+import { formatDateTimeFull, formatDateTimeShort, useUrlFilters, useUrlSearch } from "@/shared/lib";
+import { Callout, Cell, EmptyState, ExportButton, FilterChip, FilterReset, FilterSelect, Icon, PageHeader, Pager, PeriodFilter, Pill, SearchInput } from "@/shared/ui";
 
 const COLS = "24px 128px 170px 170px minmax(220px,1fr) 150px 130px";
 
@@ -22,7 +21,8 @@ export function AuditPage() {
   const orgs = useOrganizationsSoft().data ?? [];
   const f = useUrlFilters();
   const [search, setSearch] = useUrlSearch(f);
-  const [open, setOpen] = useState<number | null>(null);
+  // The expanded entry is in the URL: «посмотри эту запись» is one link.
+  const open = f.num("row") ?? null;
   const page = f.num("page") ?? 1;
   const filters: AuditFilters = {
     q: f.get("q"),
@@ -53,9 +53,26 @@ export function AuditPage() {
         />
         <FilterSelect label="Раздел" allLabel="Все разделы" value={filters.section} onChange={(v) => f.set({ section: v })} options={choices.data?.sections ?? []} />
         <FilterSelect label="Действие" allLabel="Все действия" value={filters.action} onChange={(v) => f.set({ action: v })} options={choices.data?.actions ?? []} />
-        <TextInput look="plain" inputSize="sm" type="date" className="w-[150px]" value={filters.dateFrom ?? ""} onChange={(e) => f.set({ from: e.target.value })} title="С даты" />
-        <TextInput look="plain" inputSize="sm" type="date" className="w-[150px]" value={filters.dateTo ?? ""} onChange={(e) => f.set({ to: e.target.value })} title="По дату" />
+        <PeriodFilter from={filters.dateFrom} to={filters.dateTo} onChange={(r) => f.set({ from: r.from, to: r.to })} />
         <FilterChip icon="shield-lock" tone={filters.operatorsOnly ? "active" : "default"} label="Только команда Bilimtrack" onClick={() => f.set({ team: !filters.operatorsOnly })} />
+        <FilterReset filters={f} keys={["q", "org", "section", "action", "from", "to", "team"]} />
+        <ExportButton
+          filename="audit"
+          head={["Время", "Кто", "Роль", "Организация", "Объект", "Действие", "Раздел", "Детали", "IP", "Изменения"]}
+          load={() => exportAudit(filters)}
+          row={(a) => [
+            formatDateTimeFull(a.createdAt),
+            a.actor.fullName || "Система",
+            a.actor.role,
+            a.organization?.name ?? "Команда / платформа",
+            a.objectRepr,
+            a.actionLabel,
+            a.sectionLabel,
+            a.details,
+            a.actorIp,
+            diffRows(a).map((d) => `${d.field}: ${d.was} → ${d.now}`).join("; "),
+          ]}
+        />
       </div>
 
       {audit.error ? (
@@ -77,7 +94,7 @@ export function AuditPage() {
             return (
               <div key={a.id} className="border-b border-neutral-100 last:border-b-0">
                 <div
-                  onClick={() => setOpen(isOpen ? null : a.id)}
+                  onClick={() => f.set({ row: isOpen ? undefined : a.id, page: f.get("page") })}
                   className="grid min-w-[1080px] cursor-pointer items-center gap-3 px-3.5 py-2.5 text-[13px] hover:bg-neutral-50"
                   style={{ gridTemplateColumns: COLS }}
                 >

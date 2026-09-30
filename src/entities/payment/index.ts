@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, apiPage, QK } from "@/shared/api";
+import { api, apiAll, apiPage, QK } from "@/shared/api";
 import type { PillTone } from "@/shared/ui";
 
 /* Bilimtrack+ payments (Finik QR) and the Finik webhook log.
@@ -101,9 +101,13 @@ export const paymentKeys = {
   detail: (id: string) => [QK.billingPayments, "detail", id] as const,
 };
 
-export const usePayments = (f: PaymentFilters) =>
+/** Every payment of the selection (no paging) for the CSV export. */
+export const exportPayments = (f: Omit<PaymentFilters, "page">) => apiAll<Payment>("ops/billing/payments/", { q: f.q, status: f.status, planId: f.planId });
+
+export const usePayments = (f: PaymentFilters, enabled = true) =>
   useQuery({
     queryKey: paymentKeys.list(f),
+    enabled,
     queryFn: () =>
       apiPage<Payment>("ops/billing/payments/", {
         q: f.q,

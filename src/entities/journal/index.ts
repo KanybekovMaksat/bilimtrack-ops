@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { api, apiPage, QK } from "@/shared/api";
+import { api, apiAll, apiPage, QK } from "@/shared/api";
 
 /* Platform-wide journals. Backend: server/apps/ops (use_cases/journal.py) over audit.AuditLog / audit.AccessLog:
    /api/v1/ops/audit/, /ops/audit/choices/, /ops/access-logs/. */
@@ -65,6 +65,10 @@ export type AccessFilters = {
 
 const flags = (f: Record<string, unknown>) =>
   Object.fromEntries(Object.entries(f).map(([k, v]) => [k, typeof v === "boolean" ? (v ? "true" : undefined) : (v as string | undefined)]));
+
+/** Every entry of the selection (no paging) for the CSV export. */
+export const exportAudit = (filters: AuditFilters) => apiAll<AuditEntry>("ops/audit/", flags(filters));
+export const exportAccessLogs = (filters: AccessFilters) => apiAll<AccessEntry>("ops/access-logs/", flags(filters));
 
 export const useAudit = (filters: AuditFilters, page: number) =>
   useQuery({

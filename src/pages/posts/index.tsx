@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { ARTICLE_STATUS, categoryTone, useArticleAction, useArticles, useCategories, type ArticleRow, type ArticleStatus } from "@/entities/article";
 import { routes } from "@/shared/config";
-import { formatDate, formatInt, useUrlFilters, useUrlSearch } from "@/shared/lib";
-import { Button, Cell, EmptyState, ErrorNote, FilterSelect, Icon, Modal, ModalActions, PageHeader, Pill, Row, SearchInput, Table, Tabs } from "@/shared/ui";
+import { formatDate, formatInt, sortRows, useUrlFilters, useUrlSearch } from "@/shared/lib";
+import { Button, Cell, EmptyState, ErrorNote, FilterMultiSelect, FilterReset, Icon, Modal, ModalActions, PageHeader, Pill, Row, SearchInput, Table, Tabs } from "@/shared/ui";
 
 type Tab = ArticleStatus | "all";
 const TABS: Tab[] = ["all", "draft", "published", "archived"];
@@ -16,15 +16,24 @@ export function PostsPage() {
   const f = useUrlFilters();
   const [query, setQuery] = useUrlSearch(f, 250);
   const tab = f.oneOf("tab", TABS) ?? "all";
-  const category = f.get("category");
+  const chosen = f.list("category", categories.map((c) => c.id));
   const [deleting, setDeleting] = useState<ArticleRow | null>(null);
 
   const count = (s: ArticleStatus) => articles.filter((a) => a.status === s).length;
   const q = query.trim().toLowerCase();
-  const rows = articles
+  const sort = f.get("sort");
+  const filtered = articles
     .filter((a) => tab === "all" || a.status === tab)
-    .filter((a) => !category || a.category === category)
+    .filter((a) => !chosen.length || chosen.includes(a.category))
     .filter((a) => !q || `${a.titleRu} ${a.slug} ${a.authorName}`.toLowerCase().includes(q));
+  const rows = sortRows(filtered, sort, {
+    title: (a) => a.titleRu,
+    category: (a) => a.categoryName,
+    author: (a) => a.authorName,
+    published: (a) => a.publishedAt,
+    views: (a) => a.viewsCount,
+    status: (a) => ARTICLE_STATUS[a.status].label,
+  });
 
   return (
     <div className="flex max-w-[1200px] flex-col gap-4">
@@ -49,17 +58,18 @@ export function PostsPage() {
       />
       <div className="flex flex-wrap items-center gap-2">
         <SearchInput placeholder="Заголовок, слаг, автор" value={query} onChange={setQuery} />
-        <FilterSelect
+        <FilterMultiSelect
           label="Категория"
           allLabel="Все категории"
-          value={category}
+          values={chosen}
           onChange={(v) => f.set({ category: v })}
           options={categories.map((c) => ({ value: c.id, label: c.nameRu }))}
         />
+        <FilterReset filters={f} keys={["q", "category"]} />
       </div>
       <ErrorNote error={action.error} />
       {rows.length ? (
-        <Table cols="96px minmax(260px,1fr) 150px 140px 120px 90px 130px 104px" minWidth={1100} head={["Обложка", "Заголовок", "Категория", "Автор", "Публикация", "Просмотры", "Статус", ""]}>
+        <Table cols="96px minmax(260px,1fr) 150px 140px 120px 90px 130px 104px" minWidth={1100} head={["Обложка", "Заголовок", "Категория", "Автор", "Публикация", "Просмотры", "Статус", ""]} sortKeys={[undefined, "title", "category", "author", "published", "views", "status"]} sort={sort} onSort={(s) => f.set({ sort: s })}>
           {rows.map((a) => {
             const tone = categoryTone(categories, a.category);
             return (

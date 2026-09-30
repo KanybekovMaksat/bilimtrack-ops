@@ -10,6 +10,7 @@ export const QK = {
   accounts: "accounts",
   accountSearch: "account-search",
   tickets: "tickets",
+  ticketTemplates: "ticket-templates",
   ideas: "ideas",
   leads: "leads",
   cms: "cms",

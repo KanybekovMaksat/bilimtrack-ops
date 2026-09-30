@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useCan } from "@/entities/session";
 import {
+  exportSubscriptions,
   periodSourceLabel,
   SUBSCRIPTIONS_PAGE_SIZE,
   subscriptionStatusLabel,
@@ -12,7 +13,7 @@ import {
 } from "@/entities/subscription";
 import { GrantDaysModal, RevokeAccessModal } from "@/features/manage-subscription";
 import { cn, formatDate, formatDateLong, formatInt, formatNumber, plural, useUrlFilters, useUrlSearch } from "@/shared/lib";
-import { Button, Callout, Cell, Drawer, EmptyState, ErrorNote, FilterSelect, KV, PageHeader, Pager, Pill, Row, SearchInput, Table } from "@/shared/ui";
+import { Button, Callout, Cell, Drawer, EmptyState, ErrorNote, ExportButton, FilterReset, FilterSelect, KV, PageHeader, Pager, Pill, Row, SearchInput, Table } from "@/shared/ui";
 
 type StatusFilter = NonNullable<SubscriptionFilters["status"]>;
 const STATUSES: StatusFilter[] = ["active", "trial", "expired"];
@@ -148,6 +149,13 @@ export function SubscriptionsPage() {
           value={status}
           onChange={(v) => f.set({ status: v })}
           options={STATUSES.map((st) => ({ value: st, label: subscriptionStatusLabel[st] }))}
+        />
+        <FilterReset filters={f} keys={["q", "status"]} />
+        <ExportButton
+          filename="subscriptions"
+          head={["Логин", "Пользователь", "Организация", "Статус", "Доступ до", "Периодов"]}
+          load={() => exportSubscriptions({ q: q.length >= 2 ? q : undefined, status })}
+          row={(r) => [r.user.username, r.user.fullName, r.organizationName, subscriptionStatusLabel[r.status], r.accessUntil && formatDate(r.accessUntil), r.periodsCount]}
         />
         {s && s.expiringIn7Days > 0 && <span className="text-xs text-warn">Истекают за 7 дней: {formatInt(s.expiringIn7Days)}</span>}
         {list.isFetching && <span className="text-xs text-neutral-400">Загрузка…</span>}

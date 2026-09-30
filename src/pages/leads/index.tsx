@@ -1,20 +1,33 @@
 import { useState } from "react";
 import { LEAD_STATUSES, leadStatusLabel, leadStatusTone, useLeads, useUpdateLead, type Lead, type LeadStatus } from "@/entities/lead";
-import { cn, formatDateTimeShort, useUrlFilters, useUrlSearch } from "@/shared/lib";
-import { Button, Cell, Drawer, EmptyState, ErrorNote, FilterSelect, Icon, KV, Num, PageHeader, Pill, Row, SearchInput, Table, TextArea } from "@/shared/ui";
+import { cn, formatDateTimeShort, sortRows, useUrlFilters, useUrlSearch } from "@/shared/lib";
+import { Button, Cell, Drawer, EmptyState, ErrorNote, ExportButton, FilterMultiSelect, FilterReset, Icon, KV, Num, PageHeader, Pill, Row, SearchInput, Table, TextArea } from "@/shared/ui";
 
 const COLS = "112px 148px 168px minmax(200px,1fr) 104px 96px 190px 128px";
 
 export function LeadsPage() {
   const leads = useLeads();
   const update = useUpdateLead();
-  const [openId, setOpenId] = useState<number | null>(null);
   const f = useUrlFilters();
   const [query, setQuery] = useUrlSearch(f, 250);
-  const status = f.oneOf("status", LEAD_STATUSES);
+  const statuses = f.list("status", LEAD_STATUSES);
+  const openId = f.num("lead");
+  const setOpenId = (id: number | null) => f.set({ lead: id });
 
   const q = query.trim().toLowerCase();
-  const rows = leads.filter((l) => (!status || l.status === status) && (!q || `${l.name} ${l.contact} ${l.org}`.toLowerCase().includes(q)));
+  const sort = f.get("sort");
+  const rows = sortRows(
+    leads.filter((l) => (!statuses.length || statuses.includes(l.status)) && (!q || `${l.name} ${l.contact} ${l.org}`.toLowerCase().includes(q))),
+    sort,
+    {
+      date: (l) => l.createdAt,
+      name: (l) => l.name,
+      org: (l) => l.org,
+      type: (l) => l.type,
+      source: (l) => l.source,
+      status: (l) => LEAD_STATUSES.indexOf(l.status),
+    },
+  );
   const openIndex = rows.findIndex((l) => l.id === openId);
   const open = openIndex >= 0 ? rows[openIndex] : null;
   const setLeadStatus = (id: number, s: LeadStatus) => update.mutate({ id, status: s });
@@ -24,19 +37,26 @@ export function LeadsPage() {
       <PageHeader title="Заявки на демо" subtitle="с лендингов и блога bilimtrack.kg" />
       <div className="flex flex-wrap items-center gap-2">
         <SearchInput placeholder="Имя, контакт, организация" value={query} onChange={setQuery} />
-        <FilterSelect
+        <FilterMultiSelect
           label="Статус"
           allLabel="Все статусы"
-          value={status}
+          values={statuses}
           onChange={(v) => f.set({ status: v })}
           options={LEAD_STATUSES.map((s) => ({ value: s, label: leadStatusLabel[s] }))}
+        />
+        <FilterReset filters={f} keys={["q", "status"]} />
+        <ExportButton
+          filename="leads"
+          head={["Дата", "Имя", "Контакт", "Организация", "Тип", "Размер", "Источник", "Статус", "Заметка"]}
+          load={() => rows}
+          row={(l) => [formatDateTimeShort(l.createdAt), l.name, l.contact, l.org, l.type, l.size, l.source, leadStatusLabel[l.status], l.note]}
         />
         <div className="flex-1" />
         <span className="text-[13px] text-neutral-500">Новых: {leads.filter((l) => l.status === "new").length}</span>
       </div>
       <ErrorNote error={update.error} prefix="Изменение не сохранено" />
       {rows.length ? (
-        <Table cols={COLS} minWidth={1140} head={["Дата", "Имя", "Контакт", "Организация", "Тип", "Размер", "Источник", "Статус"]}>
+        <Table cols={COLS} minWidth={1140} head={["Дата", "Имя", "Контакт", "Организация", "Тип", "Размер", "Источник", "Статус"]} sortKeys={["date", "name", undefined, "org", "type", undefined, "source", "status"]} sort={sort} onSort={(s) => f.set({ sort: s })}>
           {rows.map((l) => (
             <Row key={l.id} onClick={() => setOpenId(l.id)}>
               <span className="text-xs text-neutral-500">{formatDateTimeShort(l.createdAt)}</span>

@@ -174,6 +174,22 @@ export async function apiPage<T>(path: string, query: RequestOptions["query"] = 
   return { rows, count: body?.meta?.count ?? rows.length };
 }
 
+/** Most rows one export pulls: enough for a month of any journal, small enough not to hang the tab. */
+export const EXPORT_LIMIT = 5000;
+
+/**
+ * Every page of a paginated list for an export, up to `EXPORT_LIMIT` rows.
+ * `count` stays the real total, so the caller can tell a capped export from a full one.
+ */
+export async function apiAll<T>(path: string, query: RequestOptions["query"] = {}): Promise<Page<T>> {
+  const rows: T[] = [];
+  for (let page = 1; ; page += 1) {
+    const chunk = await apiPage<T>(path, { ...query, page, page_size: 200 });
+    rows.push(...chunk.rows);
+    if (!chunk.rows.length || rows.length >= chunk.count || rows.length >= EXPORT_LIMIT) return { rows: rows.slice(0, EXPORT_LIMIT), count: chunk.count };
+  }
+}
+
 /** Authorized file download (contracts are not public media): answers with the blob and the server's file name. */
 export async function apiBlob(path: string, query: RequestOptions["query"] = {}): Promise<{ blob: Blob; filename: string | null }> {
   let res: Response;

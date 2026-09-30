@@ -1,7 +1,7 @@
 import { useModerationReports, type ModerationQuery } from "@/entities/moderation";
 import { useOrganizationsSoft } from "@/entities/organization";
 import { useUrlFilters, useUrlSearch } from "@/shared/lib";
-import { Button, Callout, Drawer, FilterSelect, Icon, PageHeader, SearchInput, Tabs } from "@/shared/ui";
+import { Button, Callout, Drawer, FilterReset, FilterSelect, Icon, PageHeader, SearchInput, Tabs } from "@/shared/ui";
 import { PLACEHOLDER, STATUS_OPTIONS, type Tab } from "./lib";
 import { PostsPanel } from "./ui/posts-panel";
 import { CommentsPanel } from "./ui/comments-panel";
@@ -85,6 +85,7 @@ export function ModerationPage() {
             <Icon name="x" size={14} />
           </button>
         )}
+        <FilterReset filters={f} keys={["q", "status", "type", "org", "person", "personName", "post"]} />
       </div>
 
       {tab === "reports" && <ReportsPanel query={query} page={page} onPage={onPage} />}

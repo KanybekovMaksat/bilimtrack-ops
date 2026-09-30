@@ -2,7 +2,7 @@ import { useState } from "react";
 import { PAYMENTS_PAGE_SIZE, useWebhooks, WebhookBody, webhookOutcomeLabel, webhookTone, type WebhookFilters, type WebhookOutcome } from "@/entities/payment";
 import { useBillingSummary } from "@/entities/subscription";
 import { formatDateLong, formatDateTimeShort, formatInt, useUrlFilters, useUrlSearch } from "@/shared/lib";
-import { Callout, Card, Cell, EmptyState, FilterSelect, Num, PageHeader, Pager, Pill, Row, SearchInput, StatusDot, Table } from "@/shared/ui";
+import { Callout, Card, Cell, EmptyState, FilterReset, FilterSelect, Num, PageHeader, Pager, Pill, Row, SearchInput, StatusDot, Table } from "@/shared/ui";
 
 type OutcomeFilter = NonNullable<WebhookFilters["outcome"]>;
 const OUTCOMES = ["attention", ...(Object.keys(webhookOutcomeLabel) as WebhookOutcome[])] as OutcomeFilter[];
@@ -66,6 +66,7 @@ export function ProvidersPage() {
             o === "attention" ? { value: o, label: "Требуют внимания", icon: "alert-triangle", iconColor: "var(--color-warn)" } : { value: o, label: webhookOutcomeLabel[o] },
           )}
         />
+        <FilterReset filters={f} keys={["q", "outcome"]} />
       </div>
 
       {webhooks.error ? (

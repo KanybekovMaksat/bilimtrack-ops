@@ -27,12 +27,15 @@ npm install
 npm run dev        # http://localhost:5173, /api и /health проксируются на VITE_API_PROXY_TARGET
 npm run lint       # ESLint + правила FSD
 npm run typecheck  # tsc -b
+npm test           # vitest: юнит-тесты чистой логики (файлы *.test.ts рядом с кодом)
 npm run build      # typecheck + vite build
 ```
 
-Перед сдачей работы обязательно: `npm run lint` и `npm run build` без ошибок и
-без новых warning. Тестов в проекте пока нет — поэтому проверяй изменение
-руками в dev-сервере (главный сценарий + состояние ошибки/пустого списка).
+Перед сдачей работы обязательно: `npm run lint`, `npm test` и `npm run build`
+без ошибок и без новых warning (то же самое гоняет CI — `.github/workflows/ci.yml`).
+Тесты покрывают только чистые функции (`shared/lib`, `shared/config`), без DOM —
+поэтому экран всё равно проверяй руками в dev-сервере (главный сценарий +
+состояние ошибки/пустого списка). Новую чистую логику в `shared` покрывай тестом.
 
 Новая переменная окружения `VITE_*` → объявить её в `src/vite-env.d.ts` и
 описать в `.env.example`.
@@ -127,6 +130,7 @@ entities/organization/
 | `api<T>(path, { method, body, query })` | любой запрос; сам снимает конверт `{ data }` |
 | `apiList<T>(path, query)` | весь список одной страницей (до 500 строк) — для небольших реестров, фильтр на клиенте |
 | `apiPage<T>(path, query)` | серверная пагинация → `{ rows, count }` |
+| `apiAll<T>(path, query)` | все страницы выборки для экспорта (до `EXPORT_LIMIT` строк); `count` — реальный итог |
 | `apiUpload<T>(path, file)` | multipart с полем `file` (аватары, логотипы) |
 | `apiBlob(path)` | скачивание файлов с авторизацией (договоры) |
 
@@ -227,7 +231,7 @@ entities/organization/
   Загрузку чанка показывает общий `Suspense` в `AppShell`.
 - Состояние, которым хочется поделиться ссылкой (вкладка, фильтры, поиск,
   страница, открытая карточка в Drawer), — в URL через `useUrlFilters()` из
-  `@/shared/lib` (`get`/`num`/`flag`/`oneOf` для чтения, `set(patch)` для записи;
+  `@/shared/lib` (`get`/`num`/`flag`/`oneOf`/`list` для чтения, `set(patch)` для записи;
   смена фильтра сама сбрасывает `page`). Поле поиска — `useUrlSearch(f)`:
   текст обновляется сразу, `?q=` — с задержкой. Черновики форм — в `useState`.
 - Параметры маршрута валидируй: `Number(id)` → проверка `Number.isInteger && > 0`,
@@ -298,14 +302,17 @@ export function EditThingModal({ thing, onClose }: { thing: Thing; onClose: () =
 |---|---|
 | Кнопка | `Button` — `variant`: primary / outline / muted / danger / dangerOutline / ghost / inverse; `size`: xs…2xl; `icon`, `iconRight`; без children = круглая иконка (тогда `aria-label`) |
 | Заголовок страницы | `PageHeader` (title, subtitle, actions), `PageTitle`, `Breadcrumbs` |
-| Таблица | `Table` (`cols` = grid-template-columns, `head`, `minWidth`) + `Row` + `Cell` (обрезка) + `Num` (цифры) |
+| Таблица | `Table` (`cols` = grid-template-columns, `head`, `minWidth`) + `Row` + `Cell` (обрезка) + `Num` (цифры). Сортировка по клику на заголовок: `sortKeys` + `sort` + `onSort`, порядок — `sortRows()` из `shared/lib`, ключ — в URL (`sort=name` / `sort=-name`) |
 | Пустое/ошибочное состояние | `EmptyState` |
 | Ошибка запроса/мутации под формой или списком | `ErrorNote error={mutation.error}` (+ `prefix="Статус не сохранён"`); сам ничего не рисует без ошибки |
 | Плашка-уведомление | `Callout` (`tone`: warn / danger / dangerSoft / info / success / muted…) |
 | Статус-бейдж | `Pill` (`tone`), `StatusDot`, `Delta` |
 | Поле формы | `Field` + `TextInput` / `TextArea` / `SelectInput` (нативный select) / `Dropdown` (поиск, аватары, иконки) |
 | Ключ-значение | `KV`, `SummaryGrid` |
-| Фильтр со списком значений | `FilterSelect` — единственный селект панели фильтров: чип «Категория: …», поиск по списку, строка сброса «Все …». Нативный `SelectInput` в фильтрах не используй |
+| Фильтр со списком значений | `FilterSelect` — единственный селект панели фильтров: чип «Категория: …», поиск по списку, строка сброса «Все …». Несколько значений сразу — `FilterMultiSelect` (в URL `key=a,b`, читать `f.list`); только там, где список фильтруется на клиенте или API принимает набор. Нативный `SelectInput` в фильтрах не используй |
+| Период в журнале | `PeriodFilter` (сегодня / 7 / 30 дней / свой период); в URL — даты `from` и `to` |
+| Сброс фильтров | `FilterReset filters={f} keys={[…]}` в конце панели фильтров — ключи URL, которые считаются фильтрами экрана |
+| Выгрузка в CSV | `ExportButton` — выгружает текущую выборку; для серверных списков `load` — функция сущности на `apiAll` (все страницы, до `EXPORT_LIMIT` строк) |
 | Переключатели | `Toggle`, `CheckBox`, `Segmented`, `Tabs`, `FilterChip` (вкл/выкл-фильтр с иконкой), `ToggleChip`, `SearchInput` |
 | Модалка / боковая панель | `Modal` + `ModalActions`, `Drawer` |
 | Пагинация | `Pager` |
@@ -365,6 +372,14 @@ export function EditThingModal({ thing, onClose }: { thing: Thing; onClose: () =
 
 ## 11. Связь с бэкендом
 
+- Тикеты поддержки — отдельное API очереди `ops/tickets/*` (бэкенд:
+  `support/use_cases/helpdesk.py`): строка списка без сообщений, счётчики
+  `summary/`, признак «непрочитано» общий на команду, заметки команды
+  (`isInternal`), шаблоны ответов `ops/ticket-templates/`. Клиентский
+  `support-tickets/` панель не использует. Живое обновление — опрос: список и
+  счётчики раз в 15 с, открытый тикет раз в 5 с; счётчики опрашиваются и в
+  фоновой вкладке (по ним строится «(N)» в заголовке).
+
 - Меняется контракт (новое поле, эндпоинт) — сначала бэкенд
   (`bilimtrack_backend`, его `AGENTS.md`, `API_OVERVIEW.md`), потом фронт.
 - Поля на фронте, которых может не быть на старом бэкенде, помечай `?` и
@@ -376,11 +391,12 @@ export function EditThingModal({ thing, onClose }: { thing: Thing; onClose: () =
 
 Сознательно не исправлено; учитывай, но не расширяй:
 
-- Тестов и CI нет — проверка только `lint` + `build` + ручной прогон.
-- Списки тикетов, заявок, идей, организаций грузятся целиком (`apiList`, до
-  500 строк) и фильтруются на клиенте: у этих эндпоинтов бэкенда нет фильтров.
-  Для больших реестров (аккаунты, аудит, модерация) — серверная пагинация
-  `apiPage` + `Pager`; новые большие списки делай так же.
+- Тесты есть только на чистую логику `shared`; компонентных и e2e-тестов нет —
+  экраны проверяются руками.
+- Списки заявок, идей и организаций грузятся целиком (`apiList`, до 500 строк)
+  и фильтруются на клиенте. Для больших реестров (тикеты, аккаунты, аудит,
+  модерация) — серверные фильтры и пагинация: `apiPage` + `Pager`; новые
+  большие списки делай так же (образец — `entities/ticket` + `pages/tickets`).
 - Демо-разделы (биллинг, соцсети, метрики, онбординг, ошибки) — моки до
   появления бэкенда (см. 5.4).
 - `pages/post-editor/index.tsx` (~400 строк): основное состояние редактора
@@ -388,8 +404,7 @@ export function EditThingModal({ thing, onClose }: { thing: Thing; onClose: () =
 - Редактор статей стилизован своим `editor.css` (классы `ae-*`) и нативными
   `<select>` — это отдельная вёрстка по макету блога, UI-kit там не
   используется намеренно.
-- `Modal`/`Drawer` без ловушки фокуса, `Table` на `div`-сетке без ролей
-  таблицы — доступность с клавиатуры ограничена.
+- `Table` на `div`-сетке без ролей таблицы — для скринридера это не таблица.
 
 ## 13. Чек-лист перед сдачей
 

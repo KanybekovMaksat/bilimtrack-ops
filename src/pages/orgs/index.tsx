@@ -2,8 +2,8 @@ import { useNavigate } from "react-router";
 import { ORG_TYPES, OrgCategoryPill, OrgStatusPill, STALE_DAYS, isStale, orgCategory, orgCategoryLabel, orgMark, orgStatusLabel, useOrganizations, type OrgCategory, type OrgStatus } from "@/entities/organization";
 import { useCan } from "@/entities/session";
 import { routes } from "@/shared/config";
-import { cn, formatAgo, formatDate, formatInt, plural, useUrlFilters, useUrlSearch } from "@/shared/lib";
-import { Button, Cell, EmptyState, FilterChip, FilterSelect, Icon, Num, OrgMark, PageHeader, Row, SearchInput, Table } from "@/shared/ui";
+import { cn, formatAgo, formatDate, formatInt, plural, sortRows, useUrlFilters, useUrlSearch } from "@/shared/lib";
+import { Button, Cell, EmptyState, ExportButton, FilterChip, FilterMultiSelect, FilterReset, Icon, Num, OrgMark, PageHeader, Row, SearchInput, Table } from "@/shared/ui";
 
 const STATUSES: OrgStatus[] = ["active", "inactive", "archived"];
 const CATEGORIES: OrgCategory[] = ["client", "beta"];
@@ -13,22 +13,34 @@ export function OrgsPage() {
   const navigate = useNavigate();
   const f = useUrlFilters();
   const [query, setQuery] = useUrlSearch(f, 250);
-  const type = f.oneOf("type", ORG_TYPES.map((t) => t.value));
-  const status = f.oneOf("status", STATUSES);
-  const category = f.oneOf("category", CATEGORIES);
+  const types = f.list("type", ORG_TYPES.map((t) => t.value));
+  const statuses = f.list("status", STATUSES);
+  const categories = f.list("category", CATEGORIES);
   const staleOnly = f.flag("stale");
   const can = useCan();
 
   const q = query.trim().toLowerCase();
   const staleCount = orgs.filter((o) => isStale(o)).length;
-  const rows = orgs.filter(
+  const sort = f.get("sort");
+  const filtered = orgs.filter(
     (o) =>
       (!staleOnly || isStale(o)) &&
-      (!type || o.type === type) &&
-      (!status || o.status === status) &&
-      (!category || orgCategory(o) === category) &&
+      (!types.length || types.includes(o.type)) &&
+      (!statuses.length || statuses.includes(o.status)) &&
+      (!categories.length || categories.includes(orgCategory(o))) &&
       (!q || `${o.name} ${o.shortName} ${o.legalName} ${o.slug}`.toLowerCase().includes(q)),
   );
+  const rows = sortRows(filtered, sort, {
+    name: (o) => o.name,
+    type: (o) => o.typeLabel,
+    status: (o) => orgStatusLabel[o.status],
+    learners: (o) => o.learnersCount,
+    employees: (o) => o.employeesCount,
+    branches: (o) => o.branchesCount,
+    tickets: (o) => o.openTicketsCount,
+    created: (o) => o.createdAt,
+    activity: (o) => o.lastActivityAt,
+  });
 
   return (
     <div className="flex flex-col gap-4">
@@ -45,18 +57,18 @@ export function OrgsPage() {
       />
       <div className="flex flex-wrap items-center gap-2">
         <SearchInput placeholder="Название, слаг" value={query} onChange={setQuery} />
-        <FilterSelect label="Тип" allLabel="Все типы" value={type} onChange={(v) => f.set({ type: v })} options={ORG_TYPES} />
-        <FilterSelect
+        <FilterMultiSelect label="Тип" allLabel="Все типы" values={types} onChange={(v) => f.set({ type: v })} options={ORG_TYPES} />
+        <FilterMultiSelect
           label="Статус"
           allLabel="Все статусы"
-          value={status}
+          values={statuses}
           onChange={(v) => f.set({ status: v })}
           options={STATUSES.map((s) => ({ value: s, label: orgStatusLabel[s] }))}
         />
-        <FilterSelect
+        <FilterMultiSelect
           label="Категория"
           allLabel="Все категории"
-          value={category}
+          values={categories}
           onChange={(v) => f.set({ category: v })}
           options={CATEGORIES.map((c) => ({ value: c, label: orgCategoryLabel[c] }))}
         />
@@ -66,12 +78,35 @@ export function OrgsPage() {
           label={`Без входов ${STALE_DAYS}+ дней · ${staleCount}`}
           onClick={() => f.set({ stale: !staleOnly })}
         />
+        <FilterReset filters={f} keys={["q", "type", "status", "category", "stale"]} />
+        <ExportButton
+          filename="organizations"
+          head={["Название", "Юр. название", "Слаг", "Тип", "Статус", "Категория", "Учащихся", "Сотрудников", "Филиалов", "Открытых тикетов", "Подключена", "Последний вход"]}
+          load={() => rows}
+          row={(o) => [
+            o.name,
+            o.legalName,
+            o.slug,
+            o.typeLabel,
+            orgStatusLabel[o.status],
+            orgCategoryLabel[orgCategory(o)],
+            o.learnersCount,
+            o.employeesCount,
+            o.branchesCount,
+            o.openTicketsCount,
+            formatDate(o.createdAt),
+            o.lastActivityAt && formatDate(o.lastActivityAt),
+          ]}
+        />
       </div>
       {rows.length ? (
         <Table
           cols="minmax(220px,1fr) 120px 104px 94px 104px 80px 90px 118px 140px"
           minWidth={1160}
           head={["Название", "Тип", "Статус", "Учащихся", "Сотрудников", "Филиалов", "Тикеты", "Подключена", "Последний вход"]}
+          sortKeys={["name", "type", "status", "learners", "employees", "branches", "tickets", "created", "activity"]}
+          sort={sort}
+          onSort={(s) => f.set({ sort: s })}
         >
           {rows.map((o) => {
             const stale = isStale(o);

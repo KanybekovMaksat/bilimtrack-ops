@@ -3,8 +3,8 @@ import { useNavigate } from "react-router";
 import { LICENSE_CELL, licenseCell, useLicenseCatalog, useLicenses, type LicenseCell, type LicenseRow } from "@/entities/license";
 import { EditLicenseModal } from "@/features/edit-license";
 import { routes } from "@/shared/config";
-import { cn, daysSince, formatDate, orgShort, plural, useUrlFilters, useUrlSearch } from "@/shared/lib";
-import { Button, Card, Cell, EmptyState, FilterChip, FilterSelect, Icon, OrgMark, PageHeader, SearchInput, Table } from "@/shared/ui";
+import { cn, daysSince, formatDate, orgShort, plural, sortRows, useUrlFilters, useUrlSearch } from "@/shared/lib";
+import { Button, Card, Cell, EmptyState, FilterChip, FilterReset, FilterSelect, Icon, OrgMark, PageHeader, SearchInput, Table } from "@/shared/ui";
 
 const LEGEND: LicenseCell[] = ["y", "p", "x", "n", "o"];
 
@@ -33,7 +33,8 @@ export function LicensesPage() {
   };
   const expiringCount = licenses.filter(isExpiring).length;
   const q = query.trim().toLowerCase();
-  const rows = licenses.filter(
+  const sort = f.get("sort");
+  const filtered = licenses.filter(
     (l) =>
       (!diffOnly || l.mismatches.length > 0) &&
       (!noContract || l.licensedModules === null) &&
@@ -41,6 +42,11 @@ export function LicensesPage() {
       (!expiring || isExpiring(l)) &&
       (!q || `${l.organization.name} ${l.organization.shortName}`.toLowerCase().includes(q)),
   );
+  const rows = sortRows(filtered, sort, {
+    org: (l) => l.organization.name,
+    plan: (l) => l.planLabel,
+    until: (l) => l.validUntil,
+  });
 
   return (
     <div className="flex flex-col gap-4">
@@ -82,6 +88,7 @@ export function LicensesPage() {
         <FilterChip icon="arrows-diff" tone={diffOnly ? "warn" : "default"} label={`Расхождения с договором · ${totalDiff}`} onClick={() => f.set({ diff: !diffOnly })} />
         <FilterChip icon="file-text" tone={noContract ? "active" : "default"} label={`Без договора · ${withoutContract}`} onClick={() => f.set({ noContract: !noContract })} />
         <FilterChip icon="clock-exclamation" tone={expiring ? "danger" : "default"} label={`Истекает ≤ 30 дней · ${expiringCount}`} onClick={() => f.set({ expiring: !expiring })} />
+        <FilterReset filters={f} keys={["q", "plan", "diff", "noContract", "expiring"]} />
         <div className="flex-1" />
         {LEGEND.map((k) => {
           const c = LICENSE_CELL[k];
@@ -102,6 +109,9 @@ export function LicensesPage() {
           gap={6}
           head={["Организация", "Пакет", ...modules.map((m) => m.name), "Действует до", ""]}
           headAlign={["left", "left", ...modules.map(() => "center" as const), "left", "right"]}
+          sortKeys={["org", "plan", ...modules.map(() => undefined), "until"]}
+          sort={sort}
+          onSort={(s) => f.set({ sort: s })}
         >
           {rows.map((r) => (
             <div

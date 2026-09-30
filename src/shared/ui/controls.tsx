@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { cn } from "../lib";
+import { cn, type UrlFilters } from "../lib";
 import { Icon, type IconName } from "./icon";
 
 type ToggleProps = {
@@ -120,5 +120,20 @@ export function CheckBox({ on }: { on: boolean }) {
     >
       <Icon name="check" size={13} className={cn("text-white", !on && "opacity-0")} />
     </span>
+  );
+}
+
+/** «Сбросить» at the end of a filter bar: drops `keys` from the URL. Renders nothing while none of them is set. */
+export function FilterReset({ filters, keys }: { filters: UrlFilters; keys: readonly string[] }) {
+  if (!filters.has(keys)) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => filters.clear(keys)}
+      className="flex h-[34px] items-center gap-1.5 rounded-full border-0 bg-transparent px-2.5 text-[13px] font-medium text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800"
+    >
+      <Icon name="x" size={15} />
+      Сбросить
+    </button>
   );
 }

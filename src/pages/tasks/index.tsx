@@ -3,8 +3,8 @@ import { useSession } from "@/entities/session";
 import { TASK_PRIORITIES, TASK_TYPES, operatorOptions, priorityOptions, priorityStyle, typeGlyph, typeOptions, useBoard, useOperators, useTasks, type Task, type TaskPriority, type TaskType } from "@/entities/task";
 import { ManageColumnsModal } from "@/features/manage-columns";
 import { TaskEditorModal, type TaskEditorTarget } from "@/features/task-editor";
-import { formatDate, initialsOf, useUrlFilters, useUrlSearch } from "@/shared/lib";
-import { Button, Cell, EmptyState, FilterChip, FilterSelect, Icon, PageHeader, Row, SearchInput, Segmented, Table, UserAvatar } from "@/shared/ui";
+import { formatDate, initialsOf, sortRows, useUrlFilters, useUrlSearch } from "@/shared/lib";
+import { Button, Cell, EmptyState, FilterChip, FilterMultiSelect, FilterReset, FilterSelect, Icon, PageHeader, Row, SearchInput, Segmented, Table, UserAvatar } from "@/shared/ui";
 import { TaskBoard } from "@/widgets/task-board";
 
 export function TasksPage() {
@@ -19,8 +19,8 @@ export function TasksPage() {
   const view = f.oneOf("view", ["board", "list"] as const) ?? "board";
   /** «me» | «none» | operator id (as string) | undefined (everyone). */
   const assignee = f.get("assignee");
-  const type = f.oneOf<TaskType>("type", TASK_TYPES.map((t) => t.value));
-  const priority = f.oneOf<TaskPriority>("priority", TASK_PRIORITIES.map((p) => p.value));
+  const types = f.list<TaskType>("type", TASK_TYPES.map((t) => t.value));
+  const priorities = f.list<TaskPriority>("priority", TASK_PRIORITIES.map((p) => p.value));
   const tag = f.get("tag");
   const hideDone = f.flag("hideDone");
 
@@ -31,8 +31,8 @@ export function TasksPage() {
       (!q || `${t.title} ${t.description}`.toLowerCase().includes(q)) &&
       (!assignee ||
         (assignee === "me" ? t.assignee?.id === me?.id : assignee === "none" ? !t.assignee : String(t.assignee?.id) === assignee)) &&
-      (!type || t.type === type) &&
-      (!priority || t.priority === priority) &&
+      (!types.length || types.includes(t.type)) &&
+      (!priorities.length || priorities.includes(t.priority)) &&
       (!tag || t.tags.includes(tag)) &&
       (!hideDone || !t.column.isDone),
   );
@@ -81,8 +81,8 @@ export function TasksPage() {
           onChange={(v) => f.set({ assignee: v })}
           options={assigneeOptions}
         />
-        <FilterSelect label="Тип" allLabel="Все типы" value={type} onChange={(v) => f.set({ type: v })} options={typeOptions()} />
-        <FilterSelect label="Приоритет" allLabel="Любой приоритет" value={priority} onChange={(v) => f.set({ priority: v })} options={priorityOptions()} />
+        <FilterMultiSelect label="Тип" allLabel="Все типы" values={types} onChange={(v) => f.set({ type: v })} options={typeOptions()} />
+        <FilterMultiSelect label="Приоритет" allLabel="Любой приоритет" values={priorities} onChange={(v) => f.set({ priority: v })} options={priorityOptions()} />
         {tags.length > 0 && (
           <FilterSelect
             label="Метка"
@@ -93,12 +93,13 @@ export function TasksPage() {
           />
         )}
         <FilterChip icon="check" tone={hideDone ? "active" : "default"} label="Скрыть выполненные" onClick={() => f.set({ hideDone: !hideDone })} />
+        <FilterReset filters={f} keys={["q", "assignee", "type", "priority", "tag", "hideDone"]} />
       </div>
 
       {view === "board" ? (
         <TaskBoard board={board} tasks={visible} avatars={avatars} onAdd={(columnId) => setEditor({ columnId })} onOpen={(task) => setEditor({ task })} />
       ) : visible.length ? (
-        <TaskList tasks={visible} avatars={avatars} onOpen={(task) => setEditor({ task })} />
+        <TaskList tasks={visible} avatars={avatars} onOpen={(task) => setEditor({ task })} sort={f.get("sort")} onSort={(s) => f.set({ sort: s })} />
       ) : (
         <div className="rounded-xl border border-neutral-200">
           <EmptyState icon="layout-kanban" title={tasks.length ? "По фильтрам ничего не найдено" : "Задач пока нет"} />
@@ -113,10 +114,33 @@ export function TasksPage() {
   );
 }
 
-function TaskList({ tasks, onOpen, avatars }: { tasks: Task[]; onOpen: (t: Task) => void; avatars: Record<number, string | null | undefined> }) {
+type TaskListProps = {
+  tasks: Task[];
+  onOpen: (t: Task) => void;
+  avatars: Record<number, string | null | undefined>;
+  sort?: string;
+  onSort: (sort: string | undefined) => void;
+};
+
+function TaskList({ tasks, onOpen, avatars, sort, onSort }: TaskListProps) {
+  const rows = sortRows(tasks, sort, {
+    type: (t) => t.typeLabel,
+    title: (t) => t.title,
+    priority: (t) => TASK_PRIORITIES.findIndex((p) => p.value === t.priority),
+    column: (t) => t.column.name,
+    assignee: (t) => t.assignee?.fullName,
+    due: (t) => t.dueDate,
+  });
   return (
-    <Table cols="110px minmax(260px,1fr) 124px 124px 170px 96px" minWidth={960} head={["Тип", "Задача", "Приоритет", "Колонка", "Исполнитель", "Срок"]}>
-      {tasks.map((t) => {
+    <Table
+      cols="110px minmax(260px,1fr) 124px 124px 170px 96px"
+      minWidth={960}
+      head={["Тип", "Задача", "Приоритет", "Колонка", "Исполнитель", "Срок"]}
+      sortKeys={["type", "title", "priority", "column", "assignee", "due"]}
+      sort={sort}
+      onSort={onSort}
+    >
+      {rows.map((t) => {
         const g = typeGlyph(t.type);
         const p = priorityStyle(t.priority);
         return (

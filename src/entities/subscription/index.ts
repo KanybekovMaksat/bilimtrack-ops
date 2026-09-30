@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { api, apiPage, QK } from "@/shared/api";
+import { api, apiAll, apiPage, QK } from "@/shared/api";
 import type { PillTone } from "@/shared/ui";
 
 /* Bilimtrack+ subscriptions, the billing summary and the organization paywall.
@@ -81,6 +81,9 @@ export const subscriptionKeys = {
   list: (f: SubscriptionFilters) => [QK.billingSubscriptions, "list", f] as const,
   detail: (userId: number) => [QK.billingSubscriptions, "detail", userId] as const,
 };
+
+/** Every subscription of the selection (no paging) for the CSV export. */
+export const exportSubscriptions = (f: Omit<SubscriptionFilters, "page">) => apiAll<Subscription>("ops/billing/subscriptions/", { q: f.q, status: f.status });
 
 /** GET ops/billing/subscriptions/ — one page with the total. */
 export const useSubscriptions = (f: SubscriptionFilters) =>
