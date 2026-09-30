@@ -133,6 +133,31 @@ export const daysSince = (iso: string | null | undefined, now = Date.now()) =>
 
 export const formatInt = (n: number) => n.toLocaleString("ru-RU");
 
+/** Local calendar date as «2026-09-30» (what `<input type="date">` and date query params take), `days` from `d`. */
+export function isoDate(d: DateInput = Date.now(), days = 0) {
+  const x = new Date(d);
+  x.setDate(x.getDate() + days);
+  return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
+}
+
+/** Active time: «42 сек», «8 мин 42 сек», «1 ч 05 мин», «—» for null. */
+export function formatDuration(seconds: number | null | undefined) {
+  if (seconds == null) return "—";
+  const s = Math.max(0, Math.round(seconds));
+  if (s < 60) return `${s} сек`;
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  if (h) return `${h} ч ${String(m).padStart(2, "0")} мин`;
+  return `${m} мин ${s % 60} сек`;
+}
+
+/** Ratio 0..1 as «42%» (one decimal under 10%), «—» for null. */
+export function formatPercent(ratio: number | null | undefined) {
+  if (ratio == null) return "—";
+  const p = ratio * 100;
+  return `${p > 0 && p < 10 ? p.toFixed(1).replace(".", ",") : Math.round(p)}%`;
+}
+
 /** «1 234,5» — up to `fractionDigits` decimals. */
 export const formatNumber = (n: number, fractionDigits = 2) => n.toLocaleString("ru-RU", { maximumFractionDigits: fractionDigits });
 

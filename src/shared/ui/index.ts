@@ -17,3 +17,4 @@ export { UserAvatar } from "./user-avatar";
 export { Pager } from "./pager";
 export { PeriodFilter } from "./period-filter";
 export { Dropdown, FilterMultiSelect, FilterSelect, type DropdownOption } from "./dropdown";
+export { BarList, ColumnChart, HeatGrid } from "./charts";

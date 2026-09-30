@@ -31,4 +31,5 @@ export const QK = {
   billingPayments: "billing-payments",
   billingWebhooks: "billing-webhooks",
   orgPaywall: "org-paywall",
+  analytics: "ops-analytics",
 } as const;
