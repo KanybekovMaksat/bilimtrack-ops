@@ -116,7 +116,7 @@ export function TaskBoard({ board, tasks, onAdd, onOpen, avatars = {} }: Props) 
   return (
     <div className="flex flex-col gap-2">
       <ErrorNote error={move.error} prefix="Задача не перенесена" />
-      <div className="grid items-start gap-3" style={{ gridTemplateColumns: `repeat(${board.columns.length}, minmax(240px, 1fr))` }}>
+      <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${board.columns.length}, minmax(240px, 1fr))` }}>
         {board.columns.map((c) => {
           const items = tasks.filter((t) => t.column.id === c.id);
           const over = dragging !== null && target?.column === c.id;
@@ -132,7 +132,7 @@ export function TaskBoard({ board, tasks, onAdd, onOpen, avatars = {} }: Props) 
                 drop(c.id, null);
               }}
               className={cn(
-                "flex min-h-[280px] flex-col gap-2.5 rounded-2xl p-3 transition-colors",
+                "flex min-h-[calc(100vh-240px)] flex-col gap-2.5 rounded-2xl p-3 transition-colors",
                 over ? "bg-brand-50 shadow-[inset_0_0_0_1px_var(--color-brand)]" : "bg-neutral-50",
               )}
             >
