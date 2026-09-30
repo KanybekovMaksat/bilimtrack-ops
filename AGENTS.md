@@ -200,7 +200,8 @@ entities/organization/
 - Права оператора — тип `OpsPermission` (`entities/session`, список
   `OPS_PERMISSIONS`, зеркало бэкенда): `sales`, `support`, `organizations`,
   `licenses`, `accounts`, `moderation`, `tasks`, `content`, `audit`, `team`,
-  `billing` (Bilimtrack+: тарифы, подписки, платежи; читать могут все операторы).
+  `billing` (Bilimtrack+: тарифы, подписки, платежи; читать могут все операторы),
+  `analytics` (аналитика активности пользователей клиентского приложения).
   Новая привилегия на бэкенде → добавь её в `OPS_PERMISSIONS`.
 - Проверка в UI: `const can = useCan(); can("organizations")` — код типизирован,
   опечатка не скомпилируется.

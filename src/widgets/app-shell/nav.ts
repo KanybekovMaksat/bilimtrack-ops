@@ -21,6 +21,7 @@ export const NAV: NavGroup[] = [
   {
     title: "Бизнес",
     items: [
+      { to: routes.analytics, label: "Аналитика", icon: "heart-rate-monitor", perm: "analytics" },
       { to: routes.metrics, label: "Сводные метрики", icon: "chart-bar", demo: true },
     ],
   },

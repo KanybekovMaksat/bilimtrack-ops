@@ -26,7 +26,7 @@ npm test         # юнит-тесты чистой логики (vitest)
 
 ## Данные
 
-Разделы на реальном API: главная (очередь, события, сводка по клиентам), заявки на демо (`cms/demo-requests`), тикеты (`support-tickets`), идеи (`ideas`), организации и их модули, настройки, структура и люди (`ops/organizations`), лицензии (`ops/licenses`), аккаунты (`ops/accounts`, привязка профиля — `support/accounts`), доска задач (`ops/boards`, `ops/tasks`), статус системы.
+Разделы на реальном API: главная (очередь, события, сводка по клиентам), заявки на демо (`cms/demo-requests`), тикеты (`support-tickets`), идеи (`ideas`), организации и их модули, настройки, структура и люди (`ops/organizations`), лицензии (`ops/licenses`), аккаунты (`ops/accounts`, привязка профиля — `support/accounts`), доска задач (`ops/boards`, `ops/tasks`), статус системы, аналитика активности (`ops/analytics/*`: страница «Аналитика», вкладка «Активность» организации, карточка активности аккаунта, «Клиенты под риском оттока» на главной).
 
 Остальные разделы помечены в сайдбаре меткой «демо»: бэкенда для них нет, они работают на моковых данных из макета через `useMockQuery` (`shared/api`). Чтобы подключить бэкенд, замените fetcher в хуке сущности на реальный запрос.
 
@@ -35,7 +35,7 @@ npm test         # юнит-тесты чистой логики (vitest)
 | Раздел | Маршруты |
 |---|---|
 | Главная | `/` — очередь работы, события, график, сводка |
-| Бизнес | `/metrics` |
+| Бизнес | `/analytics?tab=overview\|pages\|time\|orgs\|retention\|features` (период, организация, портал, устройство — в URL), `/metrics` |
 | Продажи | `/leads` (карточка заявки — панель справа) |
 | Поддержка | `/tickets`, `/tickets/:id`, `/ideas`, `/moderation` |
 | Клиенты | `/orgs`, `/orgs/:id?tab=…`, `/orgs-new` (мастер из 5 шагов), `/onboarding`, `/licenses`, `/accounts`, `/accounts/:login` |
@@ -51,14 +51,14 @@ npm test         # юнит-тесты чистой логики (vitest)
 src/
 ├── app/        точка входа, роутер, guards (авторизация и роли), глобальные стили и токены
 ├── pages/      страницы — по слайсу на экран
-├── widgets/    app-shell (сайдбар + шапка), tickets-table, ticket-thread, task-board
+├── widgets/    app-shell (сайдбар + шапка), tickets-table, ticket-thread, task-board, activity-report
 ├── features/   действия пользователя: auth, change-password, edit-my-profile, link-profile,
 │               toggle-org-module, edit-license, task-editor, manage-columns, manage-contracts,
 │               manage-operator, manage-organization, create-organization, add-person,
 │               refund-payment, add-org-payment
 ├── entities/   session, operator, organization, contract, license, account, ticket, idea, lead,
 │               moderation, task, article, journal, platform, metrics, client-health, onboarding,
-│               plan, subscription, payment, org-billing, channel
+│               plan, subscription, payment, org-billing, channel, analytics
 └── shared/     ui-kit по дизайн-системе, api (http-клиент, корни ключей запросов, mock + query client),
                 lib (форматтеры, хуки), config (маршруты)
 ```

@@ -7,6 +7,7 @@ import { SOURCE, useTicketList, useTicketSummary } from "@/entities/ticket";
 import { routes } from "@/shared/config";
 import { formatDayMonth, formatInt, formatRelative, formatWeekdayDate, toPoints } from "@/shared/lib";
 import { Card, CardHeader, Icon, type IconName, LineChart, SectionLabel } from "@/shared/ui";
+import { RiskOrgsCard } from "@/widgets/activity-report";
 
 const DAY = 86_400_000;
 
@@ -167,6 +168,7 @@ export function HomePage() {
         </Card>
 
         <div className="flex flex-col gap-4">
+          {can("analytics") && <RiskOrgsCard />}
           <Card className="p-4">
             <div className="mb-3.5 flex items-center justify-between">
               <div className="text-sm font-medium">Заявки и тикеты · 30 дней</div>

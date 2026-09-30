@@ -19,8 +19,9 @@ import { DeleteOrganizationModal, EditOrganizationModal, OrgLogoPicker, OrgStatu
 import { OrgModuleToggle } from "@/features/toggle-org-module";
 import { OrgPaywallPanel } from "@/features/toggle-org-paywall";
 import { routes } from "@/shared/config";
-import { cn, formatAgo, formatDate, formatInt, initialsOf, plural } from "@/shared/lib";
+import { cn, formatAgo, formatDate, formatInt, initialsOf, isoDate, plural } from "@/shared/lib";
 import { Avatar, Breadcrumbs, Button, Callout, Card, EmptyState, ErrorNote, Icon, Pill, Row, SearchInput, Table, Tabs, Toggle } from "@/shared/ui";
+import { ActivityOverview, PagesTable, TimeReport } from "@/widgets/activity-report";
 
 const TABS = [
   { key: "overview", label: "Обзор" },
@@ -29,6 +30,7 @@ const TABS = [
   { key: "people", label: "Люди" },
   { key: "contracts", label: "Договоры" },
   { key: "billing", label: "Bilimtrack+" },
+  { key: "activity", label: "Активность" },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -108,7 +110,7 @@ function OrgDetails({ orgId }: { orgId: number }) {
         </Callout>
       )}
 
-      <Tabs items={TABS.map((t) => ({ ...t }))} value={tab} onChange={(k) => setParams({ tab: k }, { replace: true })} />
+      <Tabs items={TABS.filter((t) => t.key !== "activity" || can("analytics")).map((t) => ({ ...t }))} value={tab} onChange={(k) => setParams({ tab: k }, { replace: true })} />
 
       {tab === "overview" && <OverviewTab org={org} />}
       {tab === "modules" && <ModulesTab org={org} />}
@@ -116,6 +118,7 @@ function OrgDetails({ orgId }: { orgId: number }) {
       {tab === "people" && <PeopleTab org={org} />}
       {tab === "contracts" && <ContractsPanel orgId={org.id} orgName={org.name} />}
       {tab === "billing" && <OrgPaywallPanel organizationId={org.id} orgName={org.name} />}
+      {tab === "activity" && can("analytics") && <ActivityTab orgId={org.id} />}
 
       {statusTarget && <OrgStatusModal org={org} target={statusTarget} onClose={() => setStatusTarget(null)} />}
       {editing && <EditOrganizationModal org={org} onClose={() => setEditing(false)} />}
@@ -385,6 +388,22 @@ function PeopleTab({ org }: { org: OrganizationDetail }) {
       )}
       {adding && <AddPersonModal org={org} onClose={() => setAdding(false)} />}
       {editing && <EditMembershipModal org={org} member={editing} onClose={() => setEditing(null)} />}
+    </div>
+  );
+}
+
+/** Last 30 days of this client in the app; the full report with other periods is on the analytics page. */
+function ActivityTab({ orgId }: { orgId: number }) {
+  const [filters] = useState(() => ({ organizationId: orgId, dateFrom: isoDate(Date.now(), -29), dateTo: isoDate() }));
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between text-xs text-neutral-500">
+        <span>Последние 30 дней · сессии, время и страницы пользователей этой организации</span>
+        <Link to={`${routes.analytics}?org=${orgId}&period=30d`}>Открыть в аналитике</Link>
+      </div>
+      <ActivityOverview filters={filters} />
+      <TimeReport filters={filters} />
+      <PagesTable filters={filters} limit={15} />
     </div>
   );
 }

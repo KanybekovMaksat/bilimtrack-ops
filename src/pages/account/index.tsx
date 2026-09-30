@@ -1,13 +1,16 @@
 import { Link, useParams } from "react-router";
 import { accountName, formatLastLogin, profileTypeLabel, statusLabel, useAccount } from "@/entities/account";
+import { useCan } from "@/entities/session";
 import { LinkProfileButton } from "@/features/link-profile";
 import { routes } from "@/shared/config";
 import { formatDate, initialsOf, orgShort } from "@/shared/lib";
 import { Avatar, Breadcrumbs, Callout, Card, EmptyState, KV, OrgMark, Pill } from "@/shared/ui";
+import { UserActivityCard } from "@/widgets/activity-report";
 
 export function AccountPage() {
   const { login = "" } = useParams();
   const account = useAccount(login);
+  const can = useCan();
 
   if (!account) {
     return <EmptyState icon="user-search" title="Аккаунт не найден" description={`Логина «${login}» нет в системе.`} />;
@@ -103,6 +106,8 @@ export function AccountPage() {
           )}
         </Card>
       </div>
+
+      {can("analytics") && !account.operator && <UserActivityCard userId={account.id} />}
     </div>
   );
 }

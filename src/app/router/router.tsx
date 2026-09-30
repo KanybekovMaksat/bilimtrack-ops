@@ -30,6 +30,10 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: page(() => import("@/pages/home"), (m) => m.HomePage) },
       { path: routes.metrics, element: page(() => import("@/pages/metrics"), (m) => m.MetricsPage) },
+      {
+        element: <RequirePermission perm="analytics" />,
+        children: [{ path: routes.analytics, element: page(() => import("@/pages/analytics"), (m) => m.AnalyticsPage) }],
+      },
 
       {
         element: <RequirePermission perm="sales" />,
