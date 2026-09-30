@@ -25,6 +25,7 @@ export const NAV: NavGroup[] = [
       { to: routes.metrics, label: "Сводные метрики", icon: "chart-bar", demo: true },
     ],
   },
+  { title: "Задачи", items: [{ to: routes.tasks, label: "Доска задач", icon: "layout-kanban", perm: "tasks" }] },
   {
     title: "Продажи",
     items: [
@@ -66,7 +67,6 @@ export const NAV: NavGroup[] = [
       { to: routes.templates, label: "Шаблоны", icon: "template", demo: true },
     ],
   },
-  { title: "Задачи", items: [{ to: routes.tasks, label: "Доска задач", icon: "layout-kanban", perm: "tasks" }] },
   {
     title: "Контент",
     items: [
