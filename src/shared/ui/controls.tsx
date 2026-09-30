@@ -41,7 +41,7 @@ export function Toggle({ on, onChange, size = "md", disabled, label }: TogglePro
 type FilterChipProps = {
   label: ReactNode;
   tone?: "default" | "active" | "warn" | "danger";
-  icon?: IconName;
+  icon: IconName;
   onClick?: () => void;
 };
 
@@ -52,7 +52,7 @@ const chipTones = {
   danger: "border-red-500 bg-red-50 text-red-600",
 };
 
-/** Filter dropdown trigger (or a quick-filter toggle when it has an icon). */
+/** Quick on/off filter («Только неудачные»). A filter with a list of values is `FilterSelect`. */
 export function FilterChip({ label, tone = "default", icon, onClick }: FilterChipProps) {
   return (
     <button
@@ -62,9 +62,8 @@ export function FilterChip({ label, tone = "default", icon, onClick }: FilterChi
         chipTones[tone],
       )}
     >
-      {icon && <Icon name={icon} size={16} />}
+      <Icon name={icon} size={16} />
       {label}
-      {!icon && <Icon name="chevron-down" size={14} className="opacity-60" />}
     </button>
   );
 }

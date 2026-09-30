@@ -2,19 +2,21 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { ARTICLE_STATUS, categoryTone, useArticleAction, useArticles, useCategories, type ArticleRow, type ArticleStatus } from "@/entities/article";
 import { routes } from "@/shared/config";
-import { formatDate, formatInt } from "@/shared/lib";
-import { Button, Cell, EmptyState, ErrorNote, Icon, Modal, ModalActions, PageHeader, Pill, Row, SearchInput, SelectInput, Table, Tabs } from "@/shared/ui";
+import { formatDate, formatInt, useUrlFilters, useUrlSearch } from "@/shared/lib";
+import { Button, Cell, EmptyState, ErrorNote, FilterSelect, Icon, Modal, ModalActions, PageHeader, Pill, Row, SearchInput, Table, Tabs } from "@/shared/ui";
 
 type Tab = ArticleStatus | "all";
+const TABS: Tab[] = ["all", "draft", "published", "archived"];
 
 export function PostsPage() {
   const articles = useArticles();
   const categories = useCategories().data ?? [];
   const action = useArticleAction();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>("all");
-  const [query, setQuery] = useState("");
-  const [category, setCategory] = useState("");
+  const f = useUrlFilters();
+  const [query, setQuery] = useUrlSearch(f, 250);
+  const tab = f.oneOf("tab", TABS) ?? "all";
+  const category = f.get("category");
   const [deleting, setDeleting] = useState<ArticleRow | null>(null);
 
   const count = (s: ArticleStatus) => articles.filter((a) => a.status === s).length;
@@ -37,7 +39,7 @@ export function PostsPage() {
       />
       <Tabs<Tab>
         value={tab}
-        onChange={setTab}
+        onChange={(k) => f.set({ tab: k === "all" ? undefined : k })}
         items={[
           { key: "all", label: "Все", count: articles.length },
           { key: "draft", label: "Черновики", count: count("draft") },
@@ -45,9 +47,15 @@ export function PostsPage() {
           { key: "archived", label: "Архив", count: count("archived") },
         ]}
       />
-      <div className="flex gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <SearchInput placeholder="Заголовок, слаг, автор" value={query} onChange={setQuery} />
-        <SelectInput className="w-[220px]" placeholder="Все категории" value={category} onChange={(e) => setCategory(e.target.value)} options={categories.map((c) => ({ value: c.id, label: c.nameRu }))} />
+        <FilterSelect
+          label="Категория"
+          allLabel="Все категории"
+          value={category}
+          onChange={(v) => f.set({ category: v })}
+          options={categories.map((c) => ({ value: c.id, label: c.nameRu }))}
+        />
       </div>
       <ErrorNote error={action.error} />
       {rows.length ? (

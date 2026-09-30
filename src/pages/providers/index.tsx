@@ -1,16 +1,21 @@
 import { useState } from "react";
-import { PAYMENTS_PAGE_SIZE, useWebhooks, WebhookBody, webhookOutcomeLabel, webhookTone, type WebhookFilters } from "@/entities/payment";
+import { PAYMENTS_PAGE_SIZE, useWebhooks, WebhookBody, webhookOutcomeLabel, webhookTone, type WebhookFilters, type WebhookOutcome } from "@/entities/payment";
 import { useBillingSummary } from "@/entities/subscription";
-import { formatDateLong, formatDateTimeShort, formatInt } from "@/shared/lib";
-import { Callout, Card, Cell, EmptyState, FilterChip, Num, PageHeader, Pager, Pill, Row, SearchInput, StatusDot, Table } from "@/shared/ui";
+import { formatDateLong, formatDateTimeShort, formatInt, useUrlFilters, useUrlSearch } from "@/shared/lib";
+import { Callout, Card, Cell, EmptyState, FilterSelect, Num, PageHeader, Pager, Pill, Row, SearchInput, StatusDot, Table } from "@/shared/ui";
+
+type OutcomeFilter = NonNullable<WebhookFilters["outcome"]>;
+const OUTCOMES = ["attention", ...(Object.keys(webhookOutcomeLabel) as WebhookOutcome[])] as OutcomeFilter[];
 
 export function ProvidersPage() {
   const summary = useBillingSummary();
-  const [outcome, setOutcome] = useState<WebhookFilters["outcome"]>();
-  const [query, setQuery] = useState("");
-  const [page, setPage] = useState(1);
+  const f = useUrlFilters();
+  const [query, setQuery] = useUrlSearch(f);
   const [open, setOpen] = useState<number | null>(null);
-  const webhooks = useWebhooks({ outcome, q: query.trim().length >= 2 ? query.trim() : undefined, page });
+  const outcome = f.oneOf("outcome", OUTCOMES);
+  const q = f.get("q") ?? "";
+  const page = f.num("page") ?? 1;
+  const webhooks = useWebhooks({ outcome, q: q.length >= 2 ? q : undefined, page });
   const s = summary.data;
   const total = webhooks.data?.count ?? 0;
 
@@ -51,9 +56,16 @@ export function ProvidersPage() {
       )}
 
       <div className="flex flex-wrap items-center gap-2">
-        <SearchInput width={260} placeholder="ID транзакции или текст тела" value={query} onChange={(v) => { setQuery(v); setPage(1); }} />
-        <FilterChip icon="alert-triangle" label="Требуют внимания" tone={outcome === "attention" ? "warn" : "default"} onClick={() => { setOutcome(outcome === "attention" ? undefined : "attention"); setPage(1); }} />
-        <FilterChip label="Проведённые" tone={outcome === "processed" ? "active" : "default"} onClick={() => { setOutcome(outcome === "processed" ? undefined : "processed"); setPage(1); }} />
+        <SearchInput width={260} placeholder="ID транзакции или текст тела" value={query} onChange={setQuery} />
+        <FilterSelect
+          label="Результат"
+          allLabel="Все вебхуки"
+          value={outcome}
+          onChange={(v) => f.set({ outcome: v })}
+          options={OUTCOMES.map((o) =>
+            o === "attention" ? { value: o, label: "Требуют внимания", icon: "alert-triangle", iconColor: "var(--color-warn)" } : { value: o, label: webhookOutcomeLabel[o] },
+          )}
+        />
       </div>
 
       {webhooks.error ? (
@@ -87,7 +99,7 @@ export function ProvidersPage() {
           {webhooks.isLoading && <div className="h-40 animate-pulse bg-neutral-50" />}
         </Table>
       )}
-      {total > PAYMENTS_PAGE_SIZE && <Pager page={page} pageSize={PAYMENTS_PAGE_SIZE} total={total} onPage={setPage} />}
+      {total > PAYMENTS_PAGE_SIZE && <Pager page={page} pageSize={PAYMENTS_PAGE_SIZE} total={total} onPage={(p) => f.set({ page: p })} />}
     </div>
   );
 }

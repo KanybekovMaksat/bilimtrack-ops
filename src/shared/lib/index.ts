@@ -117,3 +117,4 @@ export const formatBytes = (bytes: number) =>
   bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} МБ` : `${Math.max(1, Math.round(bytes / 1024))} КБ`;
 
 export { useDebouncedEffect } from "./use-debounced-effect";
+export { useUrlFilters, useUrlSearch, type UrlFilters } from "./use-url-filters";

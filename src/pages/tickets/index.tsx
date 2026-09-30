@@ -1,10 +1,10 @@
-import { useState } from "react";
-import { CATEGORY, SLA_POLICY, SOURCE, useTickets, type Ticket } from "@/entities/ticket";
-import { plural } from "@/shared/lib";
-import { EmptyState, FilterChip, Icon, type IconName, PageHeader, SearchInput, Tabs } from "@/shared/ui";
+import { CATEGORY, PRIORITY, SLA_POLICY, SOURCE, useTickets, type Ticket } from "@/entities/ticket";
+import { plural, useUrlFilters, useUrlSearch } from "@/shared/lib";
+import { EmptyState, FilterSelect, Icon, type IconName, PageHeader, SearchInput, Tabs } from "@/shared/ui";
 import { TicketsTable } from "@/widgets/tickets-table";
 
-type TabKey = "open" | "in_progress" | "done" | "all";
+const TABS = ["open", "in_progress", "done", "all"] as const;
+type TabKey = (typeof TABS)[number];
 
 const byTab: Record<TabKey, (t: Ticket) => boolean> = {
   open: (t) => t.status === "open",
@@ -13,25 +13,23 @@ const byTab: Record<TabKey, (t: Ticket) => boolean> = {
   all: () => true,
 };
 
-/** Cycles through "all" and each value of a filter on click. */
-function useCycle<T extends string>(values: T[]) {
-  const [value, setValue] = useState<T | null>(null);
-  const next = () => setValue((v) => (v === null ? values[0] : (values[values.indexOf(v) + 1] ?? null)));
-  return [value, next] as const;
-}
+const PRIORITIES = Object.keys(PRIORITY) as Ticket["priority"][];
+const CATEGORIES = Object.keys(CATEGORY) as Ticket["category"][];
+const SOURCES = Object.keys(SOURCE) as Ticket["source"][];
 
 export function TicketsPage() {
   const tickets = useTickets();
-  const [tab, setTab] = useState<TabKey>("open");
-  const [query, setQuery] = useState("");
-  const [urgentOnly, setUrgentOnly] = useState(false);
-  const [category, nextCategory] = useCycle(Object.keys(CATEGORY) as Ticket["category"][]);
-  const [source, nextSource] = useCycle(Object.keys(SOURCE) as Ticket["source"][]);
+  const f = useUrlFilters();
+  const [query, setQuery] = useUrlSearch(f, 250);
+  const tab = f.oneOf("tab", TABS) ?? "open";
+  const priority = f.oneOf("priority", PRIORITIES);
+  const category = f.oneOf("category", CATEGORIES);
+  const source = f.oneOf("source", SOURCES);
 
   const q = query.trim().toLowerCase();
   const rows = tickets
     .filter(byTab[tab])
-    .filter((t) => !urgentOnly || t.priority === "urgent" || t.priority === "high")
+    .filter((t) => !priority || t.priority === priority)
     .filter((t) => !category || t.category === category)
     .filter((t) => !source || t.source === source)
     .filter((t) => !q || `${t.number} ${t.subject} ${t.author} ${t.contact}`.toLowerCase().includes(q));
@@ -51,7 +49,7 @@ export function TicketsPage() {
       />
       <Tabs
         value={tab}
-        onChange={setTab}
+        onChange={(k) => f.set({ tab: k === "open" ? undefined : k })}
         items={[
           { key: "open", label: "Открытые", count: tickets.filter(byTab.open).length },
           { key: "in_progress", label: "В работе", count: tickets.filter(byTab.in_progress).length },
@@ -61,9 +59,27 @@ export function TicketsPage() {
       />
       <div className="flex flex-wrap items-center gap-2">
         <SearchInput width={260} placeholder="Тема, номер, автор, контакт" value={query} onChange={setQuery} />
-        <FilterChip label="Приоритет: Высокий +" tone={urgentOnly ? "active" : "default"} onClick={() => setUrgentOnly((v) => !v)} />
-        <FilterChip label={category ? `Категория: ${CATEGORY[category]}` : "Категория"} tone={category ? "active" : "default"} onClick={nextCategory} />
-        <FilterChip label={source ? `Источник: ${SOURCE[source].label}` : "Источник"} tone={source ? "active" : "default"} onClick={nextSource} />
+        <FilterSelect
+          label="Приоритет"
+          allLabel="Любой приоритет"
+          value={priority}
+          onChange={(v) => f.set({ priority: v })}
+          options={PRIORITIES.map((p) => ({ value: p, label: PRIORITY[p].label }))}
+        />
+        <FilterSelect
+          label="Категория"
+          allLabel="Все категории"
+          value={category}
+          onChange={(v) => f.set({ category: v })}
+          options={CATEGORIES.map((c) => ({ value: c, label: CATEGORY[c] }))}
+        />
+        <FilterSelect
+          label="Источник"
+          allLabel="Все источники"
+          value={source}
+          onChange={(v) => f.set({ source: v })}
+          options={SOURCES.map((s) => ({ value: s, label: SOURCE[s].label, icon: SOURCE[s].icon, iconColor: SOURCE[s].color }))}
+        />
         <div className="flex-1" />
         <span className="text-[13px] text-neutral-500">
           {rows.length} {plural(rows.length, ["тикет", "тикета", "тикетов"])}

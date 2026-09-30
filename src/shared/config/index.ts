@@ -41,3 +41,16 @@ export const routes = {
   denied: "/denied",
 } as const;
 
+
+/** Login page that brings the operator back to `path` (with its filters) after signing in. */
+export const loginFor = (path: string) =>
+  path === routes.home || path.startsWith(routes.login) ? routes.login : `${routes.login}?next=${encodeURIComponent(path)}`;
+
+/**
+ * Where to go after signing in: the `?next=` of the login page if it is a path inside the panel.
+ * Anything else («//evil.com», «https://…», «/\evil.com») falls back to home, so the link cannot redirect off-site.
+ */
+export const afterLogin = (search: string) => {
+  const next = new URLSearchParams(search).get("next");
+  return next && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\") && !next.startsWith(routes.login) ? next : routes.home;
+};

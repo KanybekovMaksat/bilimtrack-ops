@@ -1,12 +1,12 @@
 import { useModerationUser } from "@/entities/moderation";
-import { formatDateTimeShort } from "@/shared/lib";
+import { formatDateTimeShort, useUrlFilters } from "@/shared/lib";
 import { Button, Callout, Drawer, Icon, type IconName, Pill } from "@/shared/ui";
-import { useFilters, type Tab } from "../lib";
+import { type Tab } from "../lib";
 
 const PROFILE_LABEL = { employee: "Сотрудник", learner: "Студент", guardian: "Представитель" };
 
 export function UserDrawer({ userId, onClose }: { userId: number; onClose: () => void }) {
-  const f = useFilters();
+  const f = useUrlFilters();
   const user = useModerationUser(userId);
   const d = user.data;
   const name = d ? d.account.profiles[0]?.fullName || d.account.username : "Пользователь";

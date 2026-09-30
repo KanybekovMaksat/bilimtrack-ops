@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { POST_STATUS, type ModerationPerson } from "@/entities/moderation";
+import { useUrlFilters } from "@/shared/lib";
 import { Button, ErrorNote, Modal, ModalActions, Pill, TextArea, ToggleChip } from "@/shared/ui";
-import { QUICK_REASONS, useFilters } from "../lib";
+import { QUICK_REASONS } from "../lib";
 
 export function PersonLink({ person }: { person: ModerationPerson | null }) {
-  const f = useFilters();
+  const f = useUrlFilters();
   if (!person) return <span className="text-neutral-400">Удалённый пользователь</span>;
   return (
     <button
@@ -21,7 +22,7 @@ export function PersonLink({ person }: { person: ModerationPerson | null }) {
 }
 
 export function OrgLink({ org }: { org: { id: number; name: string } }) {
-  const f = useFilters();
+  const f = useUrlFilters();
   return (
     <button
       onClick={(e) => {

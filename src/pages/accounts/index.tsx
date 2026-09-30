@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { useNavigate } from "react-router";
 import {
   ACCOUNTS_PAGE_SIZE,
   accountKindLabel,
@@ -7,50 +6,30 @@ import {
   formatLastLogin,
   useAccounts,
   type AccountKind,
-  type AccountFilters,
 } from "@/entities/account";
 import { useOrganizationsSoft } from "@/entities/organization";
 import { routes } from "@/shared/config";
-import { formatInt, orgShort, plural, useDebouncedEffect } from "@/shared/lib";
-import { Avatar, Callout, Cell, EmptyState, FilterChip, OrgMark, PageHeader, Pager, Pill, Row, SearchInput, SelectInput, Table } from "@/shared/ui";
+import { formatInt, orgShort, plural, useUrlFilters, useUrlSearch } from "@/shared/lib";
+import { Avatar, Callout, Cell, EmptyState, FilterChip, FilterSelect, OrgMark, PageHeader, Pager, Pill, Row, SearchInput, Table } from "@/shared/ui";
 
 // Platform admins live in «Команда», not among client accounts.
 const KINDS: AccountKind[] = ["employee", "learner", "guardian", "no_membership"];
 const STATUSES = ["active", "inactive"] as const;
 
-const cycle = <T,>(list: readonly T[], v: T | undefined): T | undefined => (v === undefined ? list[0] : list[list.indexOf(v) + 1]);
-
 export function AccountsPage() {
   const navigate = useNavigate();
-  const [params, setParams] = useSearchParams();
-  const urlQuery = params.get("q") ?? "";
-  const [query, setQuery] = useState(urlQuery);
-  const [prevUrl, setPrevUrl] = useState(urlQuery);
-  const [q, setQ] = useState(urlQuery);
-  const [filters, setFilters] = useState<Omit<AccountFilters, "q" | "page">>({});
-  const [page, setPage] = useState(1);
-  const orgs = useOrganizationsSoft();
-
-  // Header search navigates here with a new ?q=: keep the field in sync.
-  if (prevUrl !== urlQuery) {
-    setPrevUrl(urlQuery);
-    setQuery(urlQuery);
-    setQ(urlQuery);
-    setPage(1);
-  }
-
-  // Search as you type, debounced.
-  useDebouncedEffect(query.trim(), 350, (next) => {
-    if (next === q) return;
-    setQ(next);
-    setPage(1);
-    setParams(next ? { q: next } : {}, { replace: true });
-  });
-
-  const setFilter = (patch: Partial<typeof filters>) => {
-    setFilters((f) => ({ ...f, ...patch }));
-    setPage(1);
+  const f = useUrlFilters();
+  // Header search navigates here with a new ?q=: the box follows it.
+  const [query, setQuery] = useUrlSearch(f);
+  const q = f.get("q") ?? "";
+  const page = f.num("page") ?? 1;
+  const filters = {
+    organizationId: f.num("org"),
+    kind: f.oneOf("kind", KINDS),
+    status: f.oneOf("status", STATUSES),
+    neverLoggedIn: f.flag("neverLoggedIn") || undefined,
   };
+  const orgs = useOrganizationsSoft();
 
   const list = useAccounts({ ...filters, q: q.length >= 2 ? q : undefined, page });
   const total = list.data?.count ?? 0;
@@ -60,24 +39,33 @@ export function AccountsPage() {
       <PageHeader title="Аккаунты" subtitle={list.data ? `${formatInt(total)} ${plural(total, ["учётная запись", "учётные записи", "учётных записей"])} по фильтрам` : "все учётные записи платформы"} />
       <div className="flex flex-wrap items-center gap-2">
         <SearchInput width={300} placeholder="Логин, почта, телефон или ФИО" value={query} onChange={setQuery} />
-        <SelectInput
-          className="w-[240px]"
-          placeholder="Все организации"
-          value={filters.organizationId ?? ""}
-          onChange={(e) => setFilter({ organizationId: e.target.value ? Number(e.target.value) : undefined })}
+        <FilterSelect
+          label="Организация"
+          allLabel="Все организации"
+          searchPlaceholder="Название организации"
+          menuWidth={340}
+          value={filters.organizationId ? String(filters.organizationId) : undefined}
+          onChange={(v) => f.set({ org: v })}
           options={(orgs.data ?? []).map((o) => ({ value: String(o.id), label: o.name }))}
         />
-        <FilterChip
-          label={filters.kind ? accountKindLabel[filters.kind] : "Кто"}
-          tone={filters.kind ? "active" : "default"}
-          onClick={() => setFilter({ kind: cycle(KINDS, filters.kind) })}
+        <FilterSelect
+          label="Кто"
+          allLabel="Все роли"
+          value={filters.kind}
+          onChange={(v) => f.set({ kind: v })}
+          options={KINDS.map((k) => ({ value: k, label: accountKindLabel[k] }))}
         />
-        <FilterChip
-          label={filters.status ? (filters.status === "active" ? "Активные" : "Отключённые") : "Статус"}
-          tone={filters.status ? "active" : "default"}
-          onClick={() => setFilter({ status: cycle(STATUSES, filters.status) })}
+        <FilterSelect
+          label="Статус"
+          allLabel="Любой статус"
+          value={filters.status}
+          onChange={(v) => f.set({ status: v })}
+          options={[
+            { value: "active", label: "Активные" },
+            { value: "inactive", label: "Отключённые" },
+          ]}
         />
-        <FilterChip icon="zzz" tone={filters.neverLoggedIn ? "warn" : "default"} label="Ни разу не входили" onClick={() => setFilter({ neverLoggedIn: !filters.neverLoggedIn })} />
+        <FilterChip icon="zzz" tone={filters.neverLoggedIn ? "warn" : "default"} label="Ни разу не входили" onClick={() => f.set({ neverLoggedIn: !filters.neverLoggedIn })} />
         {list.isFetching && <span className="text-xs text-neutral-400">Загрузка…</span>}
       </div>
       {q.length === 1 && <div className="text-xs text-neutral-400">Для поиска нужно минимум 2 символа.</div>}
@@ -135,7 +123,7 @@ export function AccountsPage() {
         </Table>
       )}
 
-      {total > ACCOUNTS_PAGE_SIZE && <Pager page={page} pageSize={ACCOUNTS_PAGE_SIZE} total={total} onPage={setPage} />}
+      {total > ACCOUNTS_PAGE_SIZE && <Pager page={page} pageSize={ACCOUNTS_PAGE_SIZE} total={total} onPage={(p) => f.set({ page: p })} />}
     </div>
   );
 }

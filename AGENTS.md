@@ -225,9 +225,11 @@ entities/organization/
   `element: page(() => import("@/pages/x"), (m) => m.XPage)`. Статически
   импортируются лишь `LoginPage` и `DeniedPage`/`NotFoundPage` (нужны guard'ам).
   Загрузку чанка показывает общий `Suspense` в `AppShell`.
-- Состояние, которым хочется поделиться ссылкой (вкладка, фильтры, страница,
-  открытая карточка в Drawer), — в URL через `useSearchParams`. Черновики форм —
-  в `useState`.
+- Состояние, которым хочется поделиться ссылкой (вкладка, фильтры, поиск,
+  страница, открытая карточка в Drawer), — в URL через `useUrlFilters()` из
+  `@/shared/lib` (`get`/`num`/`flag`/`oneOf` для чтения, `set(patch)` для записи;
+  смена фильтра сама сбрасывает `page`). Поле поиска — `useUrlSearch(f)`:
+  текст обновляется сразу, `?q=` — с задержкой. Черновики форм — в `useState`.
 - Параметры маршрута валидируй: `Number(id)` → проверка `Number.isInteger && > 0`,
   иначе `EmptyState` (образец: `OrgDetailsPage`). Слайс-компонент с данными
   монтируй с `key={id}`, чтобы при смене id состояние сбрасывалось.
@@ -303,7 +305,8 @@ export function EditThingModal({ thing, onClose }: { thing: Thing; onClose: () =
 | Статус-бейдж | `Pill` (`tone`), `StatusDot`, `Delta` |
 | Поле формы | `Field` + `TextInput` / `TextArea` / `SelectInput` (нативный select) / `Dropdown` (поиск, аватары, иконки) |
 | Ключ-значение | `KV`, `SummaryGrid` |
-| Переключатели | `Toggle`, `CheckBox`, `Segmented`, `Tabs`, `FilterChip`, `ToggleChip`, `SearchInput` |
+| Фильтр со списком значений | `FilterSelect` — единственный селект панели фильтров: чип «Категория: …», поиск по списку, строка сброса «Все …». Нативный `SelectInput` в фильтрах не используй |
+| Переключатели | `Toggle`, `CheckBox`, `Segmented`, `Tabs`, `FilterChip` (вкл/выкл-фильтр с иконкой), `ToggleChip`, `SearchInput` |
 | Модалка / боковая панель | `Modal` + `ModalActions`, `Drawer` |
 | Пагинация | `Pager` |
 | Аватары и метки | `UserAvatar` (фото или инициалы), `Avatar`, `OrgMark`, `OrgLabel` |

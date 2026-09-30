@@ -1,28 +1,31 @@
 import { useEffect, type ReactNode } from "react";
-import { Navigate, Outlet } from "react-router";
+import { Navigate, Outlet, useLocation } from "react-router";
 import { useCan, useSession, type OpsPermission } from "@/entities/session";
 import { ChangePasswordForm } from "@/features/change-password";
 import { DeniedPage } from "@/pages/denied";
-import { routes } from "@/shared/config";
+import { afterLogin, loginFor } from "@/shared/config";
 
 /** Signed-in platform operator; a temporary password must be changed before the panel opens. */
 export function RequireAuth({ children }: { children: ReactNode }) {
   const user = useSession((s) => s.user);
   const revalidate = useSession((s) => s.revalidate);
+  const location = useLocation();
 
   // A persisted session may outlive the operator's access: re-check ops/me once per load.
   useEffect(() => {
     void revalidate();
   }, [revalidate]);
 
-  if (!user) return <Navigate to={routes.login} replace />;
+  // Keep the requested page with its filters: a shared link opens as sent once the operator signs in.
+  if (!user) return <Navigate to={loginFor(location.pathname + location.search + location.hash)} replace />;
   if (user.mustChangePassword) return <ChangePasswordForm />;
   return children;
 }
 
 export function GuestOnly({ children }: { children: ReactNode }) {
   const user = useSession((s) => s.user);
-  return user ? <Navigate to={routes.home} replace /> : children;
+  const { search } = useLocation();
+  return user ? <Navigate to={afterLogin(search)} replace /> : children;
 }
 
 /** Sections behind an Ops privilege (a layout route: its child routes render in the outlet).

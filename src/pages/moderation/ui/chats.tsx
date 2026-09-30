@@ -9,13 +9,12 @@ import {
   type ModerationMessage,
   type ModerationQuery,
 } from "@/entities/moderation";
-import { cn, formatBytes, formatDateTimeShort } from "@/shared/lib";
+import { cn, formatBytes, formatDateTimeShort, useUrlFilters } from "@/shared/lib";
 import { Button, Callout, Cell, EmptyState, Icon, Modal, ModalActions, Pager, Pill, Row, SearchInput, Table, ToggleChip } from "@/shared/ui";
-import { useFilters } from "../lib";
 import { PersonLink } from "./common";
 
 export function ChatsPanel({ query, page, onPage }: { query: ModerationQuery; page: number; onPage: (p: number) => void }) {
-  const f = useFilters();
+  const f = useUrlFilters();
   const chats = useModerationChats({ ...query, page });
   const rows = chats.data?.rows ?? [];
   return (

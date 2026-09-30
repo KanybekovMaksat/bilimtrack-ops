@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { MODERATION_PAGE, useHideComment, useModerationComments, useRestoreComment, type ModerationQuery } from "@/entities/moderation";
-import { cn, formatDateTimeShort } from "@/shared/lib";
+import { cn, formatDateTimeShort, useUrlFilters } from "@/shared/lib";
 import { Button, Callout, EmptyState, Icon, Pager, Row, Table } from "@/shared/ui";
-import { useFilters } from "../lib";
 import { PersonLink, OrgLink, StatusPill, HideModal } from "./common";
 
 export function CommentsPanel({ query, page, onPage }: { query: ModerationQuery; page: number; onPage: (p: number) => void }) {
-  const f = useFilters();
+  const f = useUrlFilters();
   const comments = useModerationComments({ ...query, page });
   const hide = useHideComment();
   const restore = useRestoreComment();

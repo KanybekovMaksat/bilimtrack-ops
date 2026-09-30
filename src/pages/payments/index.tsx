@@ -1,5 +1,3 @@
-import { useState } from "react";
-import { useSearchParams } from "react-router";
 import {
   formatMoney,
   PAYMENTS_PAGE_SIZE,
@@ -14,8 +12,8 @@ import {
 } from "@/entities/payment";
 import { useCan } from "@/entities/session";
 import { RefundButton } from "@/features/refund-payment";
-import { formatDateTimeShort, formatInt, plural, useDebouncedEffect } from "@/shared/lib";
-import { Button, Callout, Cell, Drawer, EmptyState, ErrorNote, FilterChip, KV, Num, PageHeader, Pager, Pill, Row, SearchInput, Table } from "@/shared/ui";
+import { formatDateTimeShort, formatInt, plural, useUrlFilters, useUrlSearch } from "@/shared/lib";
+import { Button, Callout, Cell, Drawer, EmptyState, ErrorNote, FilterSelect, KV, Num, PageHeader, Pager, Pill, Row, SearchInput, Table } from "@/shared/ui";
 
 const STATUSES: PaymentStatus[] = ["paid", "pending", "expired", "failed", "refunded"];
 
@@ -105,17 +103,12 @@ function PaymentDrawer({ id, onClose }: { id: string; onClose: () => void }) {
 }
 
 export function PaymentsPage() {
-  const [params, setParams] = useSearchParams();
-  const [query, setQuery] = useState("");
-  const [q, setQ] = useState("");
-  const [status, setStatus] = useState<PaymentStatus | undefined>();
-  const [page, setPage] = useState(1);
-  const openId = params.get("payment");
-
-  useDebouncedEffect(query.trim(), 350, (next) => {
-    setQ(next);
-    setPage(1);
-  });
+  const f = useUrlFilters();
+  const [query, setQuery] = useUrlSearch(f);
+  const q = f.get("q") ?? "";
+  const status = f.oneOf("status", STATUSES);
+  const page = f.num("page") ?? 1;
+  const openId = f.get("payment");
 
   const list = usePayments({ q: q.length >= 2 ? q : undefined, status, page });
   const total = list.data?.count ?? 0;
@@ -125,17 +118,13 @@ export function PaymentsPage() {
       <PageHeader title="Платежи Bilimtrack+" subtitle={list.data ? `${formatInt(total)} ${plural(total, ["платёж", "платежа", "платежей"])} · Finik QR` : "журнал оплат через Finik"} />
       <div className="flex flex-wrap items-center gap-2">
         <SearchInput width={300} placeholder="Логин, ФИО, транзакция или ID платежа" value={query} onChange={setQuery} />
-        {STATUSES.map((st) => (
-          <FilterChip
-            key={st}
-            label={paymentStatusLabel[st]}
-            tone={status === st ? "active" : "default"}
-            onClick={() => {
-              setStatus(status === st ? undefined : st);
-              setPage(1);
-            }}
-          />
-        ))}
+        <FilterSelect
+          label="Статус"
+          allLabel="Любой статус"
+          value={status}
+          onChange={(v) => f.set({ status: v })}
+          options={STATUSES.map((st) => ({ value: st, label: paymentStatusLabel[st] }))}
+        />
         {list.isFetching && <span className="text-xs text-neutral-400">Загрузка…</span>}
       </div>
 
@@ -148,7 +137,7 @@ export function PaymentsPage() {
       ) : (
         <Table cols="130px minmax(190px,1fr) minmax(150px,1fr) 120px 150px 130px" minWidth={1000} head={["Дата", "Плательщик", "Тариф", "Сумма", "Транзакция", "Статус"]}>
           {(list.data?.rows ?? []).map((p) => (
-            <Row key={p.id} onClick={() => setParams({ payment: p.id })} className={openId === p.id ? "bg-brand-50 hover:bg-brand-50" : undefined}>
+            <Row key={p.id} onClick={() => f.set({ payment: p.id, page: f.get("page") })} className={openId === p.id ? "bg-brand-50 hover:bg-brand-50" : undefined}>
               <span className="text-xs text-neutral-500">{formatDateTimeShort(p.createdAt)}</span>
               <span className="min-w-0">
                 <Cell className="block">{p.user.fullName}</Cell>
@@ -168,13 +157,13 @@ export function PaymentsPage() {
           {list.isLoading && <div className="h-40 animate-pulse bg-neutral-50" />}
         </Table>
       )}
-      {total > PAYMENTS_PAGE_SIZE && <Pager page={page} pageSize={PAYMENTS_PAGE_SIZE} total={total} onPage={setPage} />}
+      {total > PAYMENTS_PAGE_SIZE && <Pager page={page} pageSize={PAYMENTS_PAGE_SIZE} total={total} onPage={(p) => f.set({ page: p })} />}
       <p className="m-0 text-xs text-neutral-400">
         «Ожидает оплаты» без вебхука дольше срока QR закрывается автоматически. Если студент говорит, что деньги списались, а доступа нет, — ищите
         транзакцию в «Провайдерах» → вебхуки с пометкой «Требует проверки».
       </p>
 
-      {openId && <PaymentDrawer key={openId} id={openId} onClose={() => setParams({})} />}
+      {openId && <PaymentDrawer key={openId} id={openId} onClose={() => f.set({ payment: undefined, page: f.get("page") })} />}
     </div>
   );
 }

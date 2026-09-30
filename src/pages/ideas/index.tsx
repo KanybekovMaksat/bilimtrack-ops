@@ -10,17 +10,18 @@ import {
   type IdeaStatus,
 } from "@/entities/idea";
 import { routes } from "@/shared/config";
-import { cn, formatDateTimeFull, formatRelative, initialsOf, orgShort } from "@/shared/lib";
-import { Avatar, Button, Card, EmptyState, ErrorNote, Icon, OrgMark, PageHeader, Pill, SearchInput, SelectInput, Tabs } from "@/shared/ui";
+import { cn, formatDateTimeFull, formatRelative, initialsOf, orgShort, useUrlFilters, useUrlSearch } from "@/shared/lib";
+import { Avatar, Button, Card, EmptyState, ErrorNote, FilterSelect, Icon, OrgMark, PageHeader, Pill, SearchInput, Tabs } from "@/shared/ui";
 
 type TabKey = IdeaStatus | "all";
 
 export function IdeasPage() {
   const ideas = useIdeas();
   const update = useUpdateIdeaStatus();
-  const [tab, setTab] = useState<TabKey>("new");
-  const [orgId, setOrgId] = useState<number | null>(null);
-  const [query, setQuery] = useState("");
+  const f = useUrlFilters();
+  const [query, setQuery] = useUrlSearch(f, 250);
+  const tab: TabKey = f.oneOf<TabKey>("tab", [...IDEA_STATUSES, "all"]) ?? "new";
+  const orgId = f.num("org") ?? null;
   const [preview, setPreview] = useState<string | null>(null);
 
   const orgs = [...new Map(ideas.filter((i) => i.org).map((i) => [i.org!.id, i.org!])).values()].sort((a, b) => a.name.localeCompare(b.name));
@@ -36,16 +37,18 @@ export function IdeasPage() {
       <PageHeader title="Идеи" subtitle="предложения пользователей по продукту · из всех организаций" />
       <Tabs
         value={tab}
-        onChange={setTab}
+        onChange={(k) => f.set({ tab: k === "new" ? undefined : k })}
         items={[...IDEA_STATUSES.map((s) => ({ key: s as TabKey, label: ideaStatusLabel[s], count: count(s) })), { key: "all", label: "Все", count: count("all") }]}
       />
       <div className="flex flex-wrap items-center gap-2">
         <SearchInput placeholder="Текст идеи или автор" value={query} onChange={setQuery} width={260} />
-        <SelectInput
-          className="w-[240px]"
-          placeholder={`Все организации · ${orgs.length}`}
-          value={orgId ?? ""}
-          onChange={(e) => setOrgId(e.target.value ? Number(e.target.value) : null)}
+        <FilterSelect
+          label="Организация"
+          allLabel={`Все организации · ${orgs.length}`}
+          searchPlaceholder="Название организации"
+          menuWidth={340}
+          value={orgId === null ? undefined : String(orgId)}
+          onChange={(v) => f.set({ org: v })}
           options={orgs.map((o) => ({ value: String(o.id), label: o.name }))}
         />
         <div className="flex-1" />

@@ -1,24 +1,22 @@
-import { useState } from "react";
 import { useNavigate } from "react-router";
 import { ORG_TYPES, OrgCategoryPill, OrgStatusPill, STALE_DAYS, isStale, orgCategory, orgCategoryLabel, orgMark, orgStatusLabel, useOrganizations, type OrgCategory, type OrgStatus } from "@/entities/organization";
 import { useCan } from "@/entities/session";
 import { routes } from "@/shared/config";
-import { cn, formatAgo, formatDate, formatInt, plural } from "@/shared/lib";
-import { Button, Cell, EmptyState, FilterChip, Icon, Num, OrgMark, PageHeader, Row, SearchInput, Table } from "@/shared/ui";
+import { cn, formatAgo, formatDate, formatInt, plural, useUrlFilters, useUrlSearch } from "@/shared/lib";
+import { Button, Cell, EmptyState, FilterChip, FilterSelect, Icon, Num, OrgMark, PageHeader, Row, SearchInput, Table } from "@/shared/ui";
 
 const STATUSES: OrgStatus[] = ["active", "inactive", "archived"];
-
-/** Cycles a filter chip through its values and back to «all». */
-const cycle = <T,>(list: T[], v: T | null): T | null => (v === null ? list[0] : (list[list.indexOf(v) + 1] ?? null));
+const CATEGORIES: OrgCategory[] = ["client", "beta"];
 
 export function OrgsPage() {
   const orgs = useOrganizations();
   const navigate = useNavigate();
-  const [query, setQuery] = useState("");
-  const [type, setType] = useState<string | null>(null);
-  const [status, setStatus] = useState<OrgStatus | null>(null);
-  const [staleOnly, setStaleOnly] = useState(false);
-  const [category, setCategory] = useState<OrgCategory | null>(null);
+  const f = useUrlFilters();
+  const [query, setQuery] = useUrlSearch(f, 250);
+  const type = f.oneOf("type", ORG_TYPES.map((t) => t.value));
+  const status = f.oneOf("status", STATUSES);
+  const category = f.oneOf("category", CATEGORIES);
+  const staleOnly = f.flag("stale");
   const can = useCan();
 
   const q = query.trim().toLowerCase();
@@ -31,7 +29,6 @@ export function OrgsPage() {
       (!category || orgCategory(o) === category) &&
       (!q || `${o.name} ${o.shortName} ${o.legalName} ${o.slug}`.toLowerCase().includes(q)),
   );
-  const typeLabel = ORG_TYPES.find((t) => t.value === type)?.label;
 
   return (
     <div className="flex flex-col gap-4">
@@ -48,26 +45,26 @@ export function OrgsPage() {
       />
       <div className="flex flex-wrap items-center gap-2">
         <SearchInput placeholder="Название, слаг" value={query} onChange={setQuery} />
-        <FilterChip
-          label={typeLabel ? `Тип: ${typeLabel}` : "Тип"}
-          tone={type ? "active" : "default"}
-          onClick={() => setType((t) => cycle(ORG_TYPES.map((x) => x.value), t))}
+        <FilterSelect label="Тип" allLabel="Все типы" value={type} onChange={(v) => f.set({ type: v })} options={ORG_TYPES} />
+        <FilterSelect
+          label="Статус"
+          allLabel="Все статусы"
+          value={status}
+          onChange={(v) => f.set({ status: v })}
+          options={STATUSES.map((s) => ({ value: s, label: orgStatusLabel[s] }))}
         />
-        <FilterChip
-          label={status ? `Статус: ${orgStatusLabel[status]}` : "Статус"}
-          tone={status ? "active" : "default"}
-          onClick={() => setStatus((s) => cycle(STATUSES, s))}
-        />
-        <FilterChip
-          label={category ? `Категория: ${orgCategoryLabel[category]}` : "Категория"}
-          tone={category ? "active" : "default"}
-          onClick={() => setCategory((c) => cycle<OrgCategory>(["client", "beta"], c))}
+        <FilterSelect
+          label="Категория"
+          allLabel="Все категории"
+          value={category}
+          onChange={(v) => f.set({ category: v })}
+          options={CATEGORIES.map((c) => ({ value: c, label: orgCategoryLabel[c] }))}
         />
         <FilterChip
           tone={staleOnly ? "warn" : "default"}
           icon="zzz"
           label={`Без входов ${STALE_DAYS}+ дней · ${staleCount}`}
-          onClick={() => setStaleOnly((v) => !v)}
+          onClick={() => f.set({ stale: !staleOnly })}
         />
       </div>
       {rows.length ? (

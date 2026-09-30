@@ -1,9 +1,8 @@
-import { useState } from "react";
 import { Link } from "react-router";
 import { JOURNAL_PAGE, useAccessLogs, useJournalChoices, type AccessEntry, type AccessFilters } from "@/entities/journal";
 import { routes } from "@/shared/config";
-import { formatDateTimeShort, useDebouncedEffect } from "@/shared/lib";
-import { Callout, Cell, EmptyState, FilterChip, Num, PageHeader, Pager, Pill, Row, SearchInput, SelectInput, Table, TextInput } from "@/shared/ui";
+import { formatDateTimeShort, useUrlFilters, useUrlSearch } from "@/shared/lib";
+import { Callout, Cell, EmptyState, FilterChip, FilterSelect, Num, PageHeader, Pager, Pill, Row, SearchInput, Table, TextInput } from "@/shared/ui";
 
 const EVENT_TONE: Record<AccessEntry["eventType"], "success" | "danger" | "neutral" | "info"> = {
   login_success: "success",
@@ -19,17 +18,18 @@ const REASONS: Record<string, string> = {
 
 export function LoginsPage() {
   const choices = useJournalChoices();
-  const [filters, setFilters] = useState<AccessFilters>({});
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const logs = useAccessLogs(filters, page);
-  const update = (patch: Partial<AccessFilters>) => {
-    setFilters((f) => ({ ...f, ...patch }));
-    setPage(1);
+  const f = useUrlFilters();
+  const [search, setSearch] = useUrlSearch(f);
+  const page = f.num("page") ?? 1;
+  const filters: AccessFilters = {
+    q: f.get("q"),
+    eventType: f.get("event"),
+    dateFrom: f.get("from"),
+    dateTo: f.get("to"),
+    failedOnly: f.flag("failed") || undefined,
+    operatorsOnly: f.flag("team") || undefined,
   };
-  useDebouncedEffect(search.trim(), 350, (q) => {
-    if ((filters.q ?? "") !== q) update({ q: q || undefined });
-  });
+  const logs = useAccessLogs(filters, page);
 
   const rows = logs.data?.rows ?? [];
 
@@ -38,17 +38,17 @@ export function LoginsPage() {
       <PageHeader title="Логи входов" subtitle="входы, выходы и смены пароля по всей платформе — для разбора «не пускает»" />
       <div className="flex flex-wrap items-center gap-2">
         <SearchInput placeholder="Логин, имя или IP" value={search} onChange={setSearch} />
-        <SelectInput
-          className="w-[200px]"
-          placeholder="Все события"
-          value={filters.eventType ?? ""}
-          onChange={(e) => update({ eventType: e.target.value || undefined, failedOnly: undefined })}
+        <FilterSelect
+          label="Событие"
+          allLabel="Все события"
+          value={filters.eventType}
+          onChange={(v) => f.set({ event: v, failed: undefined })}
           options={choices.data?.eventTypes ?? []}
         />
-        <TextInput look="plain" inputSize="sm" type="date" className="w-[150px]" value={filters.dateFrom ?? ""} onChange={(e) => update({ dateFrom: e.target.value || undefined })} title="С даты" />
-        <TextInput look="plain" inputSize="sm" type="date" className="w-[150px]" value={filters.dateTo ?? ""} onChange={(e) => update({ dateTo: e.target.value || undefined })} title="По дату" />
-        <FilterChip tone={filters.failedOnly ? "danger" : "default"} icon="alert-circle" label="Только неудачные" onClick={() => update({ failedOnly: !filters.failedOnly, eventType: undefined })} />
-        <FilterChip tone={filters.operatorsOnly ? "active" : "default"} icon="shield-lock" label="Только команда" onClick={() => update({ operatorsOnly: !filters.operatorsOnly })} />
+        <TextInput look="plain" inputSize="sm" type="date" className="w-[150px]" value={filters.dateFrom ?? ""} onChange={(e) => f.set({ from: e.target.value })} title="С даты" />
+        <TextInput look="plain" inputSize="sm" type="date" className="w-[150px]" value={filters.dateTo ?? ""} onChange={(e) => f.set({ to: e.target.value })} title="По дату" />
+        <FilterChip tone={filters.failedOnly ? "danger" : "default"} icon="alert-circle" label="Только неудачные" onClick={() => f.set({ failed: !filters.failedOnly, event: undefined })} />
+        <FilterChip tone={filters.operatorsOnly ? "active" : "default"} icon="shield-lock" label="Только команда" onClick={() => f.set({ team: !filters.operatorsOnly })} />
       </div>
       {logs.error ? (
         <Callout tone="danger" icon="alert-triangle">
@@ -91,7 +91,7 @@ export function LoginsPage() {
           ))}
         </Table>
       )}
-      <Pager page={page} pageSize={JOURNAL_PAGE} total={logs.data?.count ?? 0} onPage={setPage} />
+      <Pager page={page} pageSize={JOURNAL_PAGE} total={logs.data?.count ?? 0} onPage={(p) => f.set({ page: p })} />
     </div>
   );
 }

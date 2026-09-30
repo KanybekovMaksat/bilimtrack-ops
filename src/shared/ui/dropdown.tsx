@@ -130,6 +130,7 @@ export function Dropdown<V extends string>({
   };
 
   const chosen = selected && look === "chip" && clearable;
+  const caption = selected ? (label && look === "chip" ? `${label}: ${selected.label}` : selected.label) : (label ?? placeholder);
 
   return (
     <>
@@ -140,6 +141,7 @@ export function Dropdown<V extends string>({
         onKeyDown={onKey}
         aria-haspopup="listbox"
         aria-expanded={open}
+        title={look === "chip" ? caption : undefined}
         className={cn(
           look === "chip"
             ? cn(
@@ -155,7 +157,7 @@ export function Dropdown<V extends string>({
       >
         {selected && <OptionGlyph o={selected} size={look === "chip" ? 20 : 22} />}
         <span className={cn("min-w-0 flex-1 truncate", !selected && look === "field" && "text-neutral-400")}>
-          {selected ? (label && look === "chip" ? `${label}: ${selected.label}` : selected.label) : (label ?? placeholder)}
+          {caption}
         </span>
         <Icon name="chevron-down" size={14} className={cn("shrink-0 opacity-60 transition-transform", open && "rotate-180")} />
       </button>
@@ -217,5 +219,35 @@ export function Dropdown<V extends string>({
           document.body,
         )}
     </>
+  );
+}
+
+type FilterSelectProps<V extends string> = {
+  /** Chip caption: «Категория» → «Категория: Техническая проблема» once chosen. */
+  label: string;
+  /** Reset row in the list: «Все категории». */
+  allLabel: string;
+  value: V | null | undefined;
+  onChange: (value: V | undefined) => void;
+  options: DropdownOption<V>[];
+  searchPlaceholder?: string;
+  menuWidth?: number;
+};
+
+/** The one filter-bar select: chip trigger, search, reset row. Pair it with `useUrlFilters` so the choice lands in the URL. */
+export function FilterSelect<V extends string>({ label, allLabel, value, onChange, options, searchPlaceholder, menuWidth }: FilterSelectProps<V>) {
+  return (
+    <Dropdown<V>
+      look="chip"
+      clearable
+      searchable
+      label={label}
+      placeholder={allLabel}
+      searchPlaceholder={searchPlaceholder}
+      menuWidth={menuWidth}
+      value={value ?? null}
+      onChange={(v) => onChange(v ?? undefined)}
+      options={options}
+    />
   );
 }

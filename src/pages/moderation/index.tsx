@@ -1,9 +1,8 @@
-import { useState } from "react";
 import { useModerationReports, type ModerationQuery } from "@/entities/moderation";
 import { useOrganizationsSoft } from "@/entities/organization";
-import { useDebouncedEffect } from "@/shared/lib";
-import { Button, Callout, Drawer, Icon, PageHeader, SearchInput, SelectInput, Tabs } from "@/shared/ui";
-import { PLACEHOLDER, STATUS_OPTIONS, num, useFilters, type Tab } from "./lib";
+import { useUrlFilters, useUrlSearch } from "@/shared/lib";
+import { Button, Callout, Drawer, FilterSelect, Icon, PageHeader, SearchInput, Tabs } from "@/shared/ui";
+import { PLACEHOLDER, STATUS_OPTIONS, type Tab } from "./lib";
 import { PostsPanel } from "./ui/posts-panel";
 import { CommentsPanel } from "./ui/comments-panel";
 import { ChatConversation, ChatsPanel } from "./ui/chats";
@@ -11,35 +10,25 @@ import { ReportsPanel } from "./ui/reports-panel";
 import { UserDrawer } from "./ui/user-drawer";
 
 export function ModerationPage() {
-  const f = useFilters();
+  const f = useUrlFilters();
   const orgs = useOrganizationsSoft().data ?? [];
-  const tab: Tab = (["posts", "comments", "chats", "reports"] as Tab[]).includes(f.get("tab") as Tab) ? (f.get("tab") as Tab) : "reports";
-  const [search, setSearch] = useState(f.get("q") ?? "");
-  const page = num(f.get("page")) ?? 1;
-  const chatId = num(f.get("chat"));
-  const userId = num(f.get("user"));
+  const tab = f.oneOf<Tab>("tab", ["posts", "comments", "chats", "reports"]) ?? "reports";
+  const [search, setSearch] = useUrlSearch(f, 400);
+  const page = f.num("page") ?? 1;
+  const chatId = f.num("chat");
+  const userId = f.num("user");
   const q = f.get("q");
 
-  // The box follows the URL when it changes from outside (tab switch, filter reset).
-  const [shownQ, setShownQ] = useState(q);
-  if (shownQ !== q) {
-    setShownQ(q);
-    setSearch(q ?? "");
-  }
-  useDebouncedEffect(search.trim(), 400, (next) => {
-    if (next !== (q ?? "")) f.set({ q: next || undefined });
-  });
-
-  const person = f.get("person");
+  const person = f.num("person");
   const query: ModerationQuery = {
     q: tab === "reports" ? undefined : q,
     status: f.get("status"),
     type: tab === "chats" ? f.get("type") : undefined,
-    organizationId: num(f.get("org")),
-    ...(tab === "chats" ? { participantId: num(person) } : tab === "reports" ? { reportedUserId: num(person) } : { authorId: num(person) }),
-    postId: tab === "comments" ? num(f.get("post")) : undefined,
+    organizationId: f.num("org"),
+    ...(tab === "chats" ? { participantId: person } : tab === "reports" ? { reportedUserId: person } : { authorId: person }),
+    postId: tab === "comments" ? f.num("post") : undefined,
   };
-  const onPage = (p: number) => f.set({ page: String(p) });
+  const onPage = (p: number) => f.set({ page: p });
   const openReports = useModerationReports({ status: "open", page: 1 });
 
   return (
@@ -61,25 +50,27 @@ export function ModerationPage() {
       <div className="flex flex-wrap items-center gap-2">
         {tab !== "reports" && <SearchInput width={280} placeholder={PLACEHOLDER[tab]} value={search} onChange={setSearch} />}
         {STATUS_OPTIONS[tab].length > 0 && (
-          <SelectInput className="w-[200px]" placeholder="Статус: все" value={f.get("status") ?? ""} onChange={(e) => f.set({ status: e.target.value || undefined })} options={STATUS_OPTIONS[tab]} />
+          <FilterSelect label="Статус" allLabel="Любой статус" value={f.get("status")} onChange={(v) => f.set({ status: v })} options={STATUS_OPTIONS[tab]} />
         )}
         {tab === "chats" && (
-          <SelectInput
-            className="w-[180px]"
-            placeholder="Тип: все"
-            value={f.get("type") ?? ""}
-            onChange={(e) => f.set({ type: e.target.value || undefined })}
+          <FilterSelect
+            label="Тип"
+            allLabel="Все чаты"
+            value={f.get("type")}
+            onChange={(v) => f.set({ type: v })}
             options={[
               { value: "direct", label: "Личные" },
               { value: "group", label: "Чаты предметов" },
             ]}
           />
         )}
-        <SelectInput
-          className="w-[220px]"
-          placeholder="Все организации"
-          value={f.get("org") ?? ""}
-          onChange={(e) => f.set({ org: e.target.value || undefined })}
+        <FilterSelect
+          label="Организация"
+          allLabel="Все организации"
+          searchPlaceholder="Название организации"
+          menuWidth={340}
+          value={f.get("org")}
+          onChange={(v) => f.set({ org: v })}
           options={orgs.map((o) => ({ value: String(o.id), label: o.name }))}
         />
         {person && (

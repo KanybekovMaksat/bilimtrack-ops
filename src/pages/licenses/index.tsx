@@ -3,8 +3,8 @@ import { useNavigate } from "react-router";
 import { LICENSE_CELL, licenseCell, useLicenseCatalog, useLicenses, type LicenseCell, type LicenseRow } from "@/entities/license";
 import { EditLicenseModal } from "@/features/edit-license";
 import { routes } from "@/shared/config";
-import { cn, daysSince, formatDate, orgShort, plural } from "@/shared/lib";
-import { Button, Card, Cell, EmptyState, FilterChip, Icon, OrgMark, PageHeader, SearchInput, Table } from "@/shared/ui";
+import { cn, daysSince, formatDate, orgShort, plural, useUrlFilters, useUrlSearch } from "@/shared/lib";
+import { Button, Card, Cell, EmptyState, FilterChip, FilterSelect, Icon, OrgMark, PageHeader, SearchInput, Table } from "@/shared/ui";
 
 const LEGEND: LicenseCell[] = ["y", "p", "x", "n", "o"];
 
@@ -12,11 +12,12 @@ export function LicensesPage() {
   const catalog = useLicenseCatalog();
   const licenses = useLicenses();
   const navigate = useNavigate();
-  const [diffOnly, setDiffOnly] = useState(false);
-  const [noContract, setNoContract] = useState(false);
-  const [query, setQuery] = useState("");
-  const [plan, setPlan] = useState<string | null>(null);
-  const [expiring, setExpiring] = useState(false);
+  const f = useUrlFilters();
+  const [query, setQuery] = useUrlSearch(f, 250);
+  const plan = f.oneOf("plan", catalog.plans.map((p) => p.code));
+  const diffOnly = f.flag("diff");
+  const noContract = f.flag("noContract");
+  const expiring = f.flag("expiring");
   const [editing, setEditing] = useState<LicenseRow | null>(null);
 
   const modules = catalog.modules;
@@ -55,7 +56,7 @@ export function LicensesPage() {
         {catalog.plans.map((p) => (
           <Card
             key={p.code}
-            onClick={() => setPlan((v) => (v === p.code ? null : p.code))}
+            onClick={() => f.set({ plan: plan === p.code ? undefined : p.code })}
             className={cn("flex cursor-pointer flex-col gap-1 px-4 py-3.5 hover:border-brand", plan === p.code && "border-brand bg-brand-50")}
             title="Показать только этот пакет"
           >
@@ -71,10 +72,16 @@ export function LicensesPage() {
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <SearchInput width={220} placeholder="Организация" value={query} onChange={setQuery} />
-        <FilterChip icon="arrows-diff" tone={diffOnly ? "warn" : "default"} label={`Расхождения с договором · ${totalDiff}`} onClick={() => setDiffOnly((v) => !v)} />
-        <FilterChip icon="file-text" tone={noContract ? "active" : "default"} label={`Без договора · ${withoutContract}`} onClick={() => setNoContract((v) => !v)} />
-        <FilterChip icon="clock-exclamation" tone={expiring ? "danger" : "default"} label={`Истекает ≤ 30 дней · ${expiringCount}`} onClick={() => setExpiring((v) => !v)} />
-        {plan && <FilterChip icon="x" tone="active" label={`Пакет: ${catalog.plans.find((p) => p.code === plan)?.label ?? plan}`} onClick={() => setPlan(null)} />}
+        <FilterSelect
+          label="Пакет"
+          allLabel="Все пакеты"
+          value={plan}
+          onChange={(v) => f.set({ plan: v })}
+          options={catalog.plans.map((p) => ({ value: p.code, label: p.label, hint: `${p.organizationsCount} ${plural(p.organizationsCount, ["клиент", "клиента", "клиентов"])}` }))}
+        />
+        <FilterChip icon="arrows-diff" tone={diffOnly ? "warn" : "default"} label={`Расхождения с договором · ${totalDiff}`} onClick={() => f.set({ diff: !diffOnly })} />
+        <FilterChip icon="file-text" tone={noContract ? "active" : "default"} label={`Без договора · ${withoutContract}`} onClick={() => f.set({ noContract: !noContract })} />
+        <FilterChip icon="clock-exclamation" tone={expiring ? "danger" : "default"} label={`Истекает ≤ 30 дней · ${expiringCount}`} onClick={() => f.set({ expiring: !expiring })} />
         <div className="flex-1" />
         {LEGEND.map((k) => {
           const c = LICENSE_CELL[k];

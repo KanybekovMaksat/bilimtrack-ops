@@ -14,4 +14,4 @@ export { Cell, Num, Row, Table } from "./table";
 export { Segmented, Tabs, type SegmentOption, type TabItem } from "./tabs";
 export { UserAvatar } from "./user-avatar";
 export { Pager } from "./pager";
-export { Dropdown, type DropdownOption } from "./dropdown";
+export { Dropdown, FilterSelect, type DropdownOption } from "./dropdown";

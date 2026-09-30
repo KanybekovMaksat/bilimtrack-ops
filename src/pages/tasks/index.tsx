@@ -1,36 +1,35 @@
 import { useState } from "react";
 import { useSession } from "@/entities/session";
-import { operatorOptions, priorityOptions, priorityStyle, typeGlyph, typeOptions, useBoard, useOperators, useTasks, type Task, type TaskPriority, type TaskType } from "@/entities/task";
+import { TASK_PRIORITIES, TASK_TYPES, operatorOptions, priorityOptions, priorityStyle, typeGlyph, typeOptions, useBoard, useOperators, useTasks, type Task, type TaskPriority, type TaskType } from "@/entities/task";
 import { ManageColumnsModal } from "@/features/manage-columns";
 import { TaskEditorModal, type TaskEditorTarget } from "@/features/task-editor";
-import { formatDate, initialsOf } from "@/shared/lib";
-import { Button, Cell, Dropdown, EmptyState, FilterChip, Icon, PageHeader, Row, SearchInput, Segmented, Table, UserAvatar } from "@/shared/ui";
+import { formatDate, initialsOf, useUrlFilters, useUrlSearch } from "@/shared/lib";
+import { Button, Cell, EmptyState, FilterChip, FilterSelect, Icon, PageHeader, Row, SearchInput, Segmented, Table, UserAvatar } from "@/shared/ui";
 import { TaskBoard } from "@/widgets/task-board";
-
-/** «me» | «none» | operator id (as string) | null (everyone). */
-type AssigneeFilter = string | null;
 
 export function TasksPage() {
   const me = useSession((s) => s.user);
   const board = useBoard();
   const tasks = useTasks(board.id);
   const operators = useOperators();
-  const [view, setView] = useState<"board" | "list">("board");
   const [editor, setEditor] = useState<TaskEditorTarget>(null);
   const [columnsOpen, setColumnsOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const [assignee, setAssignee] = useState<AssigneeFilter>(null);
-  const [type, setType] = useState<TaskType | null>(null);
-  const [priority, setPriority] = useState<TaskPriority | null>(null);
-  const [tag, setTag] = useState<string | null>(null);
-  const [hideDone, setHideDone] = useState(false);
+  const f = useUrlFilters();
+  const [query, setQuery] = useUrlSearch(f, 250);
+  const view = f.oneOf("view", ["board", "list"] as const) ?? "board";
+  /** «me» | «none» | operator id (as string) | undefined (everyone). */
+  const assignee = f.get("assignee");
+  const type = f.oneOf<TaskType>("type", TASK_TYPES.map((t) => t.value));
+  const priority = f.oneOf<TaskPriority>("priority", TASK_PRIORITIES.map((p) => p.value));
+  const tag = f.get("tag");
+  const hideDone = f.flag("hideDone");
 
   const tags = [...new Set(tasks.flatMap((t) => t.tags))].sort();
   const q = query.trim().toLowerCase();
   const visible = tasks.filter(
     (t) =>
       (!q || `${t.title} ${t.description}`.toLowerCase().includes(q)) &&
-      (assignee === null ||
+      (!assignee ||
         (assignee === "me" ? t.assignee?.id === me?.id : assignee === "none" ? !t.assignee : String(t.assignee?.id) === assignee)) &&
       (!type || t.type === type) &&
       (!priority || t.priority === priority) &&
@@ -56,7 +55,7 @@ export function TasksPage() {
           <>
             <Segmented
               value={view}
-              onChange={setView}
+              onChange={(v) => f.set({ view: v === "board" ? undefined : v })}
               options={[
                 { value: "board", label: "Доска" },
                 { value: "list", label: "Список" },
@@ -73,33 +72,27 @@ export function TasksPage() {
       />
       <div className="flex flex-wrap items-center gap-2">
         <SearchInput width={220} placeholder="Заголовок или описание" value={query} onChange={setQuery} />
-        <Dropdown<string>
-          look="chip"
+        <FilterSelect
           label="Исполнитель"
-          placeholder="Все исполнители"
-          clearable
-          searchable
+          allLabel="Все исполнители"
           searchPlaceholder="Имя или логин"
           menuWidth={280}
           value={assignee}
-          onChange={setAssignee}
+          onChange={(v) => f.set({ assignee: v })}
           options={assigneeOptions}
         />
-        <Dropdown<TaskType> look="chip" label="Тип" placeholder="Все типы" clearable value={type} onChange={setType} options={typeOptions()} />
-        <Dropdown<TaskPriority> look="chip" label="Приоритет" placeholder="Любой приоритет" clearable value={priority} onChange={setPriority} options={priorityOptions()} />
+        <FilterSelect label="Тип" allLabel="Все типы" value={type} onChange={(v) => f.set({ type: v })} options={typeOptions()} />
+        <FilterSelect label="Приоритет" allLabel="Любой приоритет" value={priority} onChange={(v) => f.set({ priority: v })} options={priorityOptions()} />
         {tags.length > 0 && (
-          <Dropdown<string>
-            look="chip"
+          <FilterSelect
             label="Метка"
-            placeholder="Все метки"
-            clearable
-            searchable={tags.length > 8}
+            allLabel="Все метки"
             value={tag}
-            onChange={setTag}
+            onChange={(v) => f.set({ tag: v })}
             options={tags.map((t) => ({ value: t, label: t, icon: "tag" }))}
           />
         )}
-        <FilterChip icon="check" tone={hideDone ? "active" : "default"} label="Скрыть выполненные" onClick={() => setHideDone((v) => !v)} />
+        <FilterChip icon="check" tone={hideDone ? "active" : "default"} label="Скрыть выполненные" onClick={() => f.set({ hideDone: !hideDone })} />
       </div>
 
       {view === "board" ? (

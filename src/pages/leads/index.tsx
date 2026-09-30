@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { LEAD_STATUSES, leadStatusLabel, leadStatusTone, useLeads, useUpdateLead, type Lead, type LeadStatus } from "@/entities/lead";
-import { cn, formatDateTimeShort } from "@/shared/lib";
-import { Button, Cell, Drawer, EmptyState, ErrorNote, FilterChip, Icon, KV, Num, PageHeader, Pill, Row, SearchInput, Table, TextArea } from "@/shared/ui";
+import { cn, formatDateTimeShort, useUrlFilters, useUrlSearch } from "@/shared/lib";
+import { Button, Cell, Drawer, EmptyState, ErrorNote, FilterSelect, Icon, KV, Num, PageHeader, Pill, Row, SearchInput, Table, TextArea } from "@/shared/ui";
 
 const COLS = "112px 148px 168px minmax(200px,1fr) 104px 96px 190px 128px";
 
@@ -9,22 +9,28 @@ export function LeadsPage() {
   const leads = useLeads();
   const update = useUpdateLead();
   const [openId, setOpenId] = useState<number | null>(null);
-  const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<LeadStatus | null>(null);
+  const f = useUrlFilters();
+  const [query, setQuery] = useUrlSearch(f, 250);
+  const status = f.oneOf("status", LEAD_STATUSES);
 
   const q = query.trim().toLowerCase();
   const rows = leads.filter((l) => (!status || l.status === status) && (!q || `${l.name} ${l.contact} ${l.org}`.toLowerCase().includes(q)));
   const openIndex = rows.findIndex((l) => l.id === openId);
   const open = openIndex >= 0 ? rows[openIndex] : null;
   const setLeadStatus = (id: number, s: LeadStatus) => update.mutate({ id, status: s });
-  const cycleStatus = () => setStatus((s) => (s === null ? LEAD_STATUSES[0] : (LEAD_STATUSES[LEAD_STATUSES.indexOf(s) + 1] ?? null)));
 
   return (
     <div className="flex flex-col gap-4">
       <PageHeader title="Заявки на демо" subtitle="с лендингов и блога bilimtrack.kg" />
       <div className="flex flex-wrap items-center gap-2">
         <SearchInput placeholder="Имя, контакт, организация" value={query} onChange={setQuery} />
-        <FilterChip label={status ? `Статус: ${leadStatusLabel[status]}` : "Статус"} tone={status ? "active" : "default"} onClick={cycleStatus} />
+        <FilterSelect
+          label="Статус"
+          allLabel="Все статусы"
+          value={status}
+          onChange={(v) => f.set({ status: v })}
+          options={LEAD_STATUSES.map((s) => ({ value: s, label: leadStatusLabel[s] }))}
+        />
         <div className="flex-1" />
         <span className="text-[13px] text-neutral-500">Новых: {leads.filter((l) => l.status === "new").length}</span>
       </div>

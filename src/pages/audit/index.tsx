@@ -3,8 +3,8 @@ import { Link } from "react-router";
 import { JOURNAL_PAGE, diffRows, useAudit, useJournalChoices, type AuditFilters } from "@/entities/journal";
 import { useOrganizationsSoft } from "@/entities/organization";
 import { routes } from "@/shared/config";
-import { formatDateTimeShort, useDebouncedEffect } from "@/shared/lib";
-import { Callout, Cell, EmptyState, FilterChip, Icon, PageHeader, Pager, Pill, SearchInput, SelectInput, TextInput } from "@/shared/ui";
+import { formatDateTimeShort, useUrlFilters, useUrlSearch } from "@/shared/lib";
+import { Callout, Cell, EmptyState, FilterChip, FilterSelect, Icon, PageHeader, Pager, Pill, SearchInput, TextInput } from "@/shared/ui";
 
 const COLS = "24px 128px 170px 170px minmax(220px,1fr) 150px 130px";
 
@@ -20,19 +20,20 @@ const ACTION_TONE: Record<string, "success" | "info" | "danger" | "warn" | "neut
 export function AuditPage() {
   const choices = useJournalChoices();
   const orgs = useOrganizationsSoft().data ?? [];
-  const [filters, setFilters] = useState<AuditFilters>({});
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
+  const f = useUrlFilters();
+  const [search, setSearch] = useUrlSearch(f);
   const [open, setOpen] = useState<number | null>(null);
-  const audit = useAudit(filters, page);
-
-  const update = (patch: Partial<AuditFilters>) => {
-    setFilters((f) => ({ ...f, ...patch }));
-    setPage(1);
+  const page = f.num("page") ?? 1;
+  const filters: AuditFilters = {
+    q: f.get("q"),
+    organizationId: f.get("org"),
+    section: f.get("section"),
+    action: f.get("action"),
+    dateFrom: f.get("from"),
+    dateTo: f.get("to"),
+    operatorsOnly: f.flag("team") || undefined,
   };
-  useDebouncedEffect(search.trim(), 350, (q) => {
-    if ((filters.q ?? "") !== q) update({ q: q || undefined });
-  });
+  const audit = useAudit(filters, page);
 
   const rows = audit.data?.rows ?? [];
 
@@ -41,30 +42,20 @@ export function AuditPage() {
       <PageHeader title="Аудит действий" subtitle="кто, что и когда изменил — по всем организациям и в самой команде" />
       <div className="flex flex-wrap items-center gap-2">
         <SearchInput placeholder="Объект, имя, детали" value={search} onChange={setSearch} />
-        <SelectInput
-          className="w-[210px]"
-          placeholder="Все организации"
-          value={filters.organizationId ?? ""}
-          onChange={(e) => update({ organizationId: e.target.value || undefined })}
-          options={[{ value: "none", label: "— Команда Bilimtrack" }, ...orgs.map((o) => ({ value: String(o.id), label: o.name }))]}
+        <FilterSelect
+          label="Организация"
+          allLabel="Все организации"
+          searchPlaceholder="Название организации"
+          menuWidth={340}
+          value={filters.organizationId}
+          onChange={(v) => f.set({ org: v })}
+          options={[{ value: "none", label: "Команда Bilimtrack", icon: "shield-lock" }, ...orgs.map((o) => ({ value: String(o.id), label: o.name }))]}
         />
-        <SelectInput
-          className="w-[170px]"
-          placeholder="Все разделы"
-          value={filters.section ?? ""}
-          onChange={(e) => update({ section: e.target.value || undefined })}
-          options={choices.data?.sections ?? []}
-        />
-        <SelectInput
-          className="w-[180px]"
-          placeholder="Все действия"
-          value={filters.action ?? ""}
-          onChange={(e) => update({ action: e.target.value || undefined })}
-          options={choices.data?.actions ?? []}
-        />
-        <TextInput look="plain" inputSize="sm" type="date" className="w-[150px]" value={filters.dateFrom ?? ""} onChange={(e) => update({ dateFrom: e.target.value || undefined })} title="С даты" />
-        <TextInput look="plain" inputSize="sm" type="date" className="w-[150px]" value={filters.dateTo ?? ""} onChange={(e) => update({ dateTo: e.target.value || undefined })} title="По дату" />
-        <FilterChip icon="shield-lock" tone={filters.operatorsOnly ? "active" : "default"} label="Только команда Bilimtrack" onClick={() => update({ operatorsOnly: !filters.operatorsOnly })} />
+        <FilterSelect label="Раздел" allLabel="Все разделы" value={filters.section} onChange={(v) => f.set({ section: v })} options={choices.data?.sections ?? []} />
+        <FilterSelect label="Действие" allLabel="Все действия" value={filters.action} onChange={(v) => f.set({ action: v })} options={choices.data?.actions ?? []} />
+        <TextInput look="plain" inputSize="sm" type="date" className="w-[150px]" value={filters.dateFrom ?? ""} onChange={(e) => f.set({ from: e.target.value })} title="С даты" />
+        <TextInput look="plain" inputSize="sm" type="date" className="w-[150px]" value={filters.dateTo ?? ""} onChange={(e) => f.set({ to: e.target.value })} title="По дату" />
+        <FilterChip icon="shield-lock" tone={filters.operatorsOnly ? "active" : "default"} label="Только команда Bilimtrack" onClick={() => f.set({ team: !filters.operatorsOnly })} />
       </div>
 
       {audit.error ? (
@@ -142,7 +133,7 @@ export function AuditPage() {
           })}
         </div>
       )}
-      <Pager page={page} pageSize={JOURNAL_PAGE} total={audit.data?.count ?? 0} onPage={setPage} />
+      <Pager page={page} pageSize={JOURNAL_PAGE} total={audit.data?.count ?? 0} onPage={(p) => f.set({ page: p })} />
     </div>
   );
 }

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useSearchParams } from "react-router";
 import { useCan } from "@/entities/session";
 import {
   periodSourceLabel,
@@ -12,8 +11,8 @@ import {
   type SubscriptionFilters,
 } from "@/entities/subscription";
 import { GrantDaysModal, RevokeAccessModal } from "@/features/manage-subscription";
-import { cn, formatDate, formatDateLong, formatInt, formatNumber, plural, useDebouncedEffect } from "@/shared/lib";
-import { Button, Callout, Cell, Drawer, EmptyState, ErrorNote, FilterChip, KV, PageHeader, Pager, Pill, Row, SearchInput, Table } from "@/shared/ui";
+import { cn, formatDate, formatDateLong, formatInt, formatNumber, plural, useUrlFilters, useUrlSearch } from "@/shared/lib";
+import { Button, Callout, Cell, Drawer, EmptyState, ErrorNote, FilterSelect, KV, PageHeader, Pager, Pill, Row, SearchInput, Table } from "@/shared/ui";
 
 type StatusFilter = NonNullable<SubscriptionFilters["status"]>;
 const STATUSES: StatusFilter[] = ["active", "trial", "expired"];
@@ -110,20 +109,15 @@ function SubscriptionDrawer({ userId, onClose }: { userId: number; onClose: () =
 }
 
 export function SubscriptionsPage() {
-  const [params, setParams] = useSearchParams();
+  const f = useUrlFilters();
   const can = useCan();
   const summary = useBillingSummary();
-  const [query, setQuery] = useState("");
-  const [q, setQ] = useState("");
-  const [status, setStatus] = useState<StatusFilter | undefined>();
-  const [page, setPage] = useState(1);
+  const [query, setQuery] = useUrlSearch(f);
   const [granting, setGranting] = useState(false);
-  const openId = Number(params.get("user")) || null;
-
-  useDebouncedEffect(query.trim(), 350, (next) => {
-    setQ(next);
-    setPage(1);
-  });
+  const q = f.get("q") ?? "";
+  const status = f.oneOf("status", STATUSES);
+  const page = f.num("page") ?? 1;
+  const openId = f.num("user") ?? null;
 
   const list = useSubscriptions({ q: q.length >= 2 ? q : undefined, status, page });
   const total = list.data?.count ?? 0;
@@ -148,17 +142,13 @@ export function SubscriptionsPage() {
       />
       <div className="flex flex-wrap items-center gap-2">
         <SearchInput width={300} placeholder="Логин, почта, телефон или ФИО" value={query} onChange={setQuery} />
-        {STATUSES.map((st) => (
-          <FilterChip
-            key={st}
-            label={subscriptionStatusLabel[st]}
-            tone={status === st ? "active" : "default"}
-            onClick={() => {
-              setStatus(status === st ? undefined : st);
-              setPage(1);
-            }}
-          />
-        ))}
+        <FilterSelect
+          label="Статус"
+          allLabel="Любой статус"
+          value={status}
+          onChange={(v) => f.set({ status: v })}
+          options={STATUSES.map((st) => ({ value: st, label: subscriptionStatusLabel[st] }))}
+        />
         {s && s.expiringIn7Days > 0 && <span className="text-xs text-warn">Истекают за 7 дней: {formatInt(s.expiringIn7Days)}</span>}
         {list.isFetching && <span className="text-xs text-neutral-400">Загрузка…</span>}
       </div>
@@ -172,7 +162,7 @@ export function SubscriptionsPage() {
       ) : (
         <Table cols="minmax(200px,1fr) minmax(160px,1fr) 150px 150px 90px" minWidth={900} head={["Пользователь", "Организация", "Статус", "Доступ до", "Периодов"]}>
           {(list.data?.rows ?? []).map((row) => (
-            <Row key={row.id} onClick={() => setParams({ user: String(row.user.id) })} className={openId === row.user.id ? "bg-brand-50 hover:bg-brand-50" : undefined}>
+            <Row key={row.id} onClick={() => f.set({ user: row.user.id, page: f.get("page") })} className={openId === row.user.id ? "bg-brand-50 hover:bg-brand-50" : undefined}>
               <span className="min-w-0">
                 <Cell className="block">{row.user.fullName}</Cell>
                 <Cell className="block font-num text-[11px] text-neutral-400">{row.user.username}</Cell>
@@ -188,9 +178,9 @@ export function SubscriptionsPage() {
           {list.isLoading && <div className="h-40 animate-pulse bg-neutral-50" />}
         </Table>
       )}
-      {total > SUBSCRIPTIONS_PAGE_SIZE && <Pager page={page} pageSize={SUBSCRIPTIONS_PAGE_SIZE} total={total} onPage={setPage} />}
+      {total > SUBSCRIPTIONS_PAGE_SIZE && <Pager page={page} pageSize={SUBSCRIPTIONS_PAGE_SIZE} total={total} onPage={(p) => f.set({ page: p })} />}
 
-      {openId && <SubscriptionDrawer key={openId} userId={openId} onClose={() => setParams({})} />}
+      {openId && <SubscriptionDrawer key={openId} userId={openId} onClose={() => f.set({ user: undefined, page: f.get("page") })} />}
       {granting && <GrantDaysModal onClose={() => setGranting(false)} />}
     </div>
   );

@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { MODERATION_PAGE, useHidePost, useModerationPosts, useRestorePost, type ModerationPost, type ModerationQuery } from "@/entities/moderation";
-import { cn, formatDateTimeShort, initialsOf } from "@/shared/lib";
+import { cn, formatDateTimeShort, initialsOf, useUrlFilters } from "@/shared/lib";
 import { Avatar, Button, Callout, Card, EmptyState, Icon, Pager, Pill } from "@/shared/ui";
-import { useFilters } from "../lib";
 import { PersonLink, OrgLink, StatusPill, HideModal } from "./common";
 
 export function PostCard({ post, onHide }: { post: ModerationPost; onHide: () => void }) {
-  const f = useFilters();
+  const f = useUrlFilters();
   const restore = useRestorePost();
   const [expanded, setExpanded] = useState(false);
   const images = post.parts.flatMap((p) => p.images);
