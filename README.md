@@ -42,7 +42,7 @@ npm test         # юнит-тесты чистой логики (vitest)
 | Биллинг | `/plans`, `/plans/:code`, `/subscriptions`, `/payments`, `/providers`, `/org-billing` |
 | Соцсети | `/channels`, `/inbox`, `/templates` |
 | Задачи | `/tasks` — канбан с drag-and-drop, список, редактор задачи с комментариями, колонки |
-| Контент | `/posts`, `/posts/editor[/:id]`, `/dicts`, `/media` |
+| Контент | `/forum` (новости и посты в форумах организаций от аккаунта `bilimtrack`), `/posts`, `/posts/editor[/:id]`, `/dicts`, `/media` |
 | Платформа | `/audit`, `/logins`, `/system`, `/errors`, `/team`, `/profile`, `/denied` |
 
 ## Архитектура — Feature-Sliced Design

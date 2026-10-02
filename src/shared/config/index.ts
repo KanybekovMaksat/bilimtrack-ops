@@ -27,6 +27,7 @@ export const routes = {
   inbox: "/inbox",
   templates: "/templates",
   tasks: "/tasks",
+  forum: "/forum",
   posts: "/posts",
   postEditor: "/posts/editor",
   postEdit: (id: string) => `/posts/editor/${id}`,

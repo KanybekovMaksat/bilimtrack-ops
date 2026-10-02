@@ -89,6 +89,7 @@ export const router = createBrowserRouter([
       {
         element: <RequirePermission perm="content" />,
         children: [
+          { path: routes.forum, element: page(() => import("@/pages/forum"), (m) => m.ForumPage) },
           { path: routes.posts, element: page(() => import("@/pages/posts"), (m) => m.PostsPage) },
           // BlockNote is heavy: its chunk loads only when the editor opens.
           { path: routes.postEditor, element: page(() => import("@/pages/post-editor"), (m) => m.PostEditorPage) },

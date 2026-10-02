@@ -32,4 +32,6 @@ export const QK = {
   billingWebhooks: "billing-webhooks",
   orgPaywall: "org-paywall",
   analytics: "ops-analytics",
+  forumPublications: "ops-forum-publications",
+  forumAccount: "ops-forum-account",
 } as const;

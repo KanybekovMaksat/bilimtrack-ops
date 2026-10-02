@@ -70,6 +70,7 @@ export const NAV: NavGroup[] = [
   {
     title: "Контент",
     items: [
+      { to: routes.forum, label: "Форум: новости и посты", icon: "speakerphone", perm: "content" },
       { to: routes.posts, label: "Статьи", icon: "article", perm: "content", also: [routes.postEditor] },
       { to: routes.dicts, label: "Категории и авторы", icon: "tag", perm: "content" },
       { to: routes.media, label: "Обложки", icon: "photo", perm: "content" },

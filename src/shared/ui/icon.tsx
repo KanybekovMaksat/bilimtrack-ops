@@ -1,6 +1,8 @@
 import type { CSSProperties, SVGProps } from "react";
 import {
   Activity,
+  Pin,
+  Video,
   AlarmClock,
   ArchiveX,
   ArrowDown,
@@ -268,6 +270,8 @@ const ICONS = {
   "flask": FlaskConical,
   "heart": Heart,
   "message-circle": MessageCircle,
+  pin: Pin,
+  video: Video,
   "power": Power,
   "device-floppy": Save,
   "shield": Shield,
