@@ -3,7 +3,7 @@ import { DEVICE_LABEL, PORTAL_LABEL, type AnalyticsFilters, type Device, type Po
 import { useOrganizationsSoft } from "@/entities/organization";
 import { formatDayMonth, isoDate, useUrlFilters } from "@/shared/lib";
 import { FilterChip, FilterSelect, PageHeader, Segmented, Tabs, TextInput } from "@/shared/ui";
-import { ActivityOverview, BreakdownCards, FeaturesReport, OrgActivityTable, PagesTable, RetentionReport, TimeReport } from "@/widgets/activity-report";
+import { AchievementsReportView, ActivityOverview, BreakdownCards, FeaturesReport, OrgActivityTable, PagesTable, RetentionReport, TimeReport } from "@/widgets/activity-report";
 
 const TABS = [
   { key: "overview", label: "Обзор" },
@@ -12,6 +12,7 @@ const TABS = [
   { key: "orgs", label: "Организации" },
   { key: "retention", label: "Удержание" },
   { key: "features", label: "Ключевые действия" },
+  { key: "achievements", label: "Достижения" },
 ] as const;
 type TabKey = (typeof TABS)[number]["key"];
 const TAB_KEYS = TABS.map((t) => t.key);
@@ -102,6 +103,7 @@ export function AnalyticsPage() {
       )}
       {tab === "retention" && <RetentionReport filters={filters} />}
       {tab === "features" && <FeaturesReport filters={filters} />}
+      {tab === "achievements" && <AchievementsReportView filters={filters} />}
     </div>
   );
 }

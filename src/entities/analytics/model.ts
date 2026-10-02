@@ -207,3 +207,15 @@ export function change(now: number | null | undefined, before: number | null | u
   if (now == null || before == null || before === 0) return null;
   return (now - before) / before;
 }
+
+/** AchievementsReportSerializer (ops/analytics/achievements/). Shares are percents (0–100). */
+export type AchievementsReport = {
+  awardsInPeriod: number;
+  awardsTotal: number;
+  learnersTotal: number;
+  learnersWithAny: number;
+  learnersWithAnyShare: number;
+  timeline: { date: string; awards: number }[];
+  top: { achievementId: number | null; code: string; title: string; earned: number; earnedInPeriod: number; earnedShare: number }[];
+  organizations: { organizationId: number; name: string; learners: number; withAny: number; awards: number; share: number }[];
+};

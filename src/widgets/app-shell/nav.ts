@@ -27,6 +27,10 @@ export const NAV: NavGroup[] = [
   },
   { title: "Задачи", items: [{ to: routes.tasks, label: "Доска задач", icon: "layout-kanban", perm: "tasks" }] },
   {
+    title: "Геймификация",
+    items: [{ to: routes.achievements, label: "Достижения", icon: "trophy", perm: "gamification" }],
+  },
+  {
     title: "Продажи",
     items: [
       { to: routes.leads, label: "Заявки на демо", icon: "inbox", counter: "leads", perm: "sales" },

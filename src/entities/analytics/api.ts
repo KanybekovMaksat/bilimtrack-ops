@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { api, QK } from "@/shared/api";
-import type { AnalyticsFilters, Breakdown, Features, Heatmap, OrgActivity, Overview, PageStat, Retention, UserActivity } from "./model";
+import type { AchievementsReport, AnalyticsFilters, Breakdown, Features, Heatmap, OrgActivity, Overview, PageStat, Retention, UserActivity } from "./model";
 
 export const analyticsKeys = {
   all: [QK.analytics] as const,
@@ -31,6 +31,7 @@ export const useAnalyticsPages = (f: AnalyticsFilters) => useReport<PageStat[]>(
 export const useAnalyticsBreakdown = (f: AnalyticsFilters) => useReport<Breakdown>("breakdown", f);
 export const useAnalyticsRetention = (f: AnalyticsFilters) => useReport<Retention>("retention", f);
 export const useAnalyticsFeatures = (f: AnalyticsFilters) => useReport<Features>("features", f);
+export const useAnalyticsAchievements = (f: AnalyticsFilters) => useReport<AchievementsReport>("achievements", f);
 export const useOrgActivity = (f: AnalyticsFilters, riskOnly = false) =>
   useReport<OrgActivity[]>("organizations", f, { riskOnly: riskOnly ? "true" : undefined });
 

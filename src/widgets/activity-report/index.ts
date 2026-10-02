@@ -1,3 +1,4 @@
+export { AchievementsReportView } from "./ui/achievements";
 export { ActivityOverview } from "./ui/overview";
 export { BreakdownCards, PagesTable } from "./ui/pages";
 export { OrgActivityTable, RiskOrgsCard } from "./ui/organizations";

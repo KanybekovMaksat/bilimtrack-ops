@@ -1,5 +1,6 @@
 export {
   analyticsKeys,
+  useAnalyticsAchievements,
   useAnalyticsBreakdown,
   useAnalyticsFeatures,
   useAnalyticsHeatmap,
@@ -18,6 +19,7 @@ export {
   WEEKDAYS,
   change,
   pageName,
+  type AchievementsReport,
   type AnalyticsFilters,
   type Breakdown,
   type BreakdownRow,

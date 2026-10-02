@@ -7,7 +7,7 @@ import { initialsOf } from "@/shared/lib";
    Organization owners, the old helpdesk login and everyone else get 403 there and are signed out. */
 
 /** Ops privileges (backend `OpsPermission`): each opens a group of panel sections. */
-export const OPS_PERMISSIONS = ["sales", "support", "organizations", "licenses", "accounts", "moderation", "tasks", "content", "audit", "team", "billing", "analytics"] as const;
+export const OPS_PERMISSIONS = ["sales", "support", "organizations", "licenses", "accounts", "moderation", "tasks", "content", "audit", "team", "billing", "analytics", "gamification"] as const;
 export type OpsPermission = (typeof OPS_PERMISSIONS)[number];
 
 export type SessionUser = {

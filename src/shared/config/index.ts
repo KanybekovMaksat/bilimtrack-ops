@@ -6,6 +6,7 @@ export const routes = {
   home: "/",
   metrics: "/metrics",
   analytics: "/analytics",
+  achievements: "/gamification/achievements",
   leads: "/leads",
   tickets: "/tickets",
   ticket: (id: string | number) => `/tickets/${id}`,

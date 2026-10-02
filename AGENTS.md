@@ -201,7 +201,8 @@ entities/organization/
   `OPS_PERMISSIONS`, зеркало бэкенда): `sales`, `support`, `organizations`,
   `licenses`, `accounts`, `moderation`, `tasks`, `content`, `audit`, `team`,
   `billing` (Bilimtrack+: тарифы, подписки, платежи; читать могут все операторы),
-  `analytics` (аналитика активности пользователей клиентского приложения).
+  `analytics` (аналитика активности пользователей клиентского приложения),
+  `gamification` (каталог достижений: создание, правка, включение).
   Новая привилегия на бэкенде → добавь её в `OPS_PERMISSIONS`.
 - Проверка в UI: `const can = useCan(); can("organizations")` — код типизирован,
   опечатка не скомпилируется.

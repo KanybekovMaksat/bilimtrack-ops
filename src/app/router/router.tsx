@@ -34,6 +34,10 @@ export const router = createBrowserRouter([
         element: <RequirePermission perm="analytics" />,
         children: [{ path: routes.analytics, element: page(() => import("@/pages/analytics"), (m) => m.AnalyticsPage) }],
       },
+      {
+        element: <RequirePermission perm="gamification" />,
+        children: [{ path: routes.achievements, element: page(() => import("@/pages/achievements"), (m) => m.AchievementsPage) }],
+      },
 
       {
         element: <RequirePermission perm="sales" />,
